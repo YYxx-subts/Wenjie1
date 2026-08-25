@@ -1,95 +1,18 @@
 workflows:
   ios-release:
-    name: Wenjie iOS Release
+    name: Wenjie iOS Build
     max_build_duration: 60
     environment:
       groups:
         - apple_credentials
-      vars:
-        BUNDLE_ID: app.atmyx.wenjie
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
     scripts:
-      - name: Set up signing
+      - name: Build and archive
         script: |
-          echo "$IOS_SIGNING_CERTIFICATE" | base64 --decode > cert.p12
-          echo "$IOS_PROVISION_PROFILE" | base64 --decode > profile.mobileprovision
-          
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security import cert.p12 -k build.keychain -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-          
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i profile.mobileprovision))
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          
-      - name: Build iOS App
-        script: |
-          xcodebuild clean build \
-            -project Wenjie.xcodeproj \
-            -scheme Wenjie \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE=$UUID \
-            PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE_ID \
-            | xcpretty
-          
-      - name: Archive App
-        script: |
-          xcodebuild archive \
-            -project Wenjie.xcodeproj \
+          xcodebuild -project Wenjie.xcodeproj \
             -scheme Wenjie \
             -sdk iphoneos \
             -configuration Release \
             -archivePath build/Wenjie.xcarchive \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE=$UUID \
-            PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE_ID
-          
-      - name: Export IPA
-        script: |
-          cat > exportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>ad-hoc</string>
-              <key>stripSwiftSymbols</key>
-              <true/>
-              <key>compileBitcode</key>
-              <false/>
-              <key>teamID</key>
-              <string>$APPLE_TEAM_ID</string>
-              <key>uploadBitcode</key>
-              <false/>
-              <key>uploadSymbols</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
-          
-          xcodebuild -exportArchive \
-            -archivePath build/Wenjie.xcarchive \
-            -exportOptionsPlist exportOptions.plist \
-            -exportPath build/ipa
-          
-          mv build/ipa/*.ipa build/Wenjie.ipa
-          
+            archive
     artifacts:
-      - build/Wenjie.ipa
-      - build/Wenjie.xcarchive
-      - build/DerivedData/**/*
-      
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_API_KEY
-        submit_to_app_store: false
+      - build/*.xcarchive
