@@ -1,0 +1,2359 @@
+/* 禁止房间页整页橡皮筋拉伸：只允许聊天区内部滚动 */
+:root{
+  --fn-status-bar: 0px;
+  --fn-safe-top: max(env(safe-area-inset-top, 0px), var(--fn-status-bar, 0px));
+  /* 比状态栏再收一点，避免顶栏空得过大 */
+  --fn-room-safe: max(0px, calc(var(--fn-safe-top) - 10px));
+}
+html, body{
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overflow-x: clip;
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: auto;
+}
+.mainbox{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.chat-content{
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #EFEFEF;
+  /* block 滚动比 flex 容器 overflow 更稳，避免一键回底留白 */
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 1.8rem;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+.chat-content .last-show{
+  display: block;
+  width: 100%;
+}
+#chatBt{
+  height: 2px;
+  width: 100%;
+  clear: both;
+  pointer-events: none;
+}
+/* 固定顶栏：蓝底延伸进状态栏，文字/按钮落在安全区下方 */
+.room-fixed-head{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  height: auto;
+  min-height: calc(var(--fn-room-safe) + 2.1rem);
+  background-color: #fff;
+  overflow: visible;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.roomtop{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: calc(0.1rem + var(--fn-room-safe)) 0.2rem 0.1rem;
+  min-height: calc(0.7rem + var(--fn-room-safe));
+  height: auto !important;
+  box-sizing: border-box;
+  background: #2f86e0;
+  background-image: linear-gradient(90deg, #2b7adb 0%, #3aa6e8 52%, #4fc0f0 100%);
+  color: white;
+  border: 0;
+  outline: 0;
+}
+.roomtop .back{width:34%;flex-grow:0;display:flex;justify-content:flex-start;align-items:center;font-size:.3rem;font-weight:bold}
+.roomtop .back img{width: 0.2rem;margin-right: 0.2rem}
+.roomtop .show-info{width:66%;flex-grow:0;display:grid;grid-template-columns:2.48rem 1fr;column-gap:.08rem;align-content:center;box-sizing:border-box;padding-right:0;}
+/* 保持字号：把原本浪费在两列中间的宽度给“标签—数值”内部，读数不再贴在标签后面。 */
+.roomtop .show-info li{width:auto;box-sizing:border-box;white-space:nowrap;margin-top:.05rem;margin-bottom:.02rem;font-size:.24rem;line-height:1.08;letter-spacing:0;}
+.roomtop .show-info li span{display:inline-block;margin-left:.14rem;}
+/* 左列（积分、回水）保持原位；仅让右列（输赢、流水）向内留出呼吸空间。 */
+.roomtop .show-info li:nth-child(even){transform:translateX(-.14rem);}
+.chat-content.has-room-head{
+  padding-top: calc(2.5rem + var(--fn-room-safe)) !important;
+}
+
+
+.newest-sn{display: flex;justify-content: space-between;flex-direction: row;margin: 0;padding: 0.06rem 0.2rem;align-items: center;background:#fff;min-height: 0.52rem;box-sizing: border-box;border-bottom: 1px solid #e6e8eb;}
+.newest-sn .sn-num{font-size: 0.2rem;min-width: 0.7rem;line-height: 0.4rem;}
+.newest-sn .left-time{display: flex;align-items: center;min-width: 2rem;height: 0.4rem;}
+.newest-sn .left-time b{background: #EDEFF2;border-radius: 4px;padding: 0 0.08rem;margin-left: 0.02rem;color: #555555;font-size: 0.2rem;height: 0.4rem;line-height: 0.4rem;display: inline-flex;align-items: center;box-sizing: border-box;}
+.newest-sn .left-time b:nth-child(3){background: none;padding: 0;height: auto;line-height: 0.4rem;}
+.newest-sn .left-time b.fping{
+  background: red;
+  color: white;
+  margin-left: 0.04rem;
+  padding: 0 0.1rem;
+  font-size: 0.18rem;
+  border-radius: 4px;
+  font-weight: 600;
+  height: 0.4rem;
+  line-height: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.newest-sn .left-time b.fping.is-drawing{
+  background: #2f86e0;
+}
+.newest-sn .left-time b.fping.is-sealed{
+  background: #e54545;
+}
+.newest-sn .tvimg img{width:auto;height: 0.4rem}
+.newest-sn .bgzimg{display: flex;align-items: center;}
+.newest-sn .bgzimg img{width: 0.66rem;height: 0.4rem;object-fit: fill;display: block;}
+
+.current-sn{display: flex;flex-direction: row;justify-content: flex-start;align-items: center;margin: 0;padding: 0.08rem 0.2rem;background:#fff;box-sizing: border-box;border-bottom: 1px solid #e6e8eb;}
+.current-sn .sn-num{font-size: 0.24rem;min-width: 0.7rem}
+.current-sn .num-sn{flex-grow: 10;display: flex;justify-content: center;align-items: center;min-width: 0}
+.num-sn span{
+  width: 0.48rem;
+  height: 0.44rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 3px;
+  text-shadow: 0 0 1px #000;
+  color: white;
+  font-weight: 800;
+  font-size: 0.28rem;
+  line-height: 1;
+  margin-left: 1px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.n1{background:#e6de00}
+.n2{background:#0092dd}
+.n3{background:#4b4b4b}
+.n4{background:#ff7600}
+.n5{background:#17e2e5}
+.n6{background:#5234ff}
+.n7{background:#bfbfbf}
+.n8{background:#ff2600}
+.n9{background:#780b00}
+.n10{background:#07bf00}
+.n0{background:#07bf00}
+.current-sn .downimg{margin-left: 0.2rem}
+.current-sn .downimg img{width: 0.3rem}
+.current-sn .gyd{font-size: 0.24rem;}
+.current-sn .gyd p{text-align: center}
+
+/* 弹珠28 房间顶栏：圆球等式 */
+.current-sn.is-pc28 .num-sn{
+  justify-content: center;
+  gap: 0.06rem;
+  padding: 0 0.06rem;
+}
+.current-sn .pc28-ball,
+.history-row .pc28-ball{
+  width: 0.36rem !important;
+  height: 0.36rem !important;
+  flex: 0 0 0.36rem !important;
+  border-radius: 50% !important;
+  margin: 0 !important;
+  text-shadow: none !important;
+  font-size: 0.2rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,.12);
+  background: #2f86f6;
+  color: #fff;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+.current-sn .pc28-ball.is-sum,
+.history-row .pc28-ball.is-sum{
+  width: 0.4rem !important;
+  height: 0.4rem !important;
+  flex-basis: 0.4rem !important;
+}
+.pc28-ball.pc-g{background:#1ec45a !important;}
+.pc28-ball.pc-b{background:#2f86f6 !important;}
+.pc28-ball.pc-r{background:#e53935 !important;}
+.pc28-ball.pc-y{background:#f0b429 !important;}
+.current-sn .pc28-op,
+.history-row.is-pc28 .pc28-op,
+.history-row.is-pc28 .numrow span.pc28-op{
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  background: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 0.04rem !important;
+  color: #8a93a0 !important;
+  text-shadow: none !important;
+  font-size: 0.22rem !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  box-sizing: content-box !important;
+}
+.history-row.is-pc28 .pc28-op,
+.history-row.is-pc28 .numrow span.pc28-op{
+  color: #9aa3af !important;
+  font-size: 0.2rem !important;
+}
+.history-row.is-pc28{
+  padding: 0.1rem 0;
+  border-bottom: 1px solid #eee;
+  margin: 0;
+  font-size: 0.22rem;
+}
+.history-row.is-pc28 .col-qh{
+  width: 0.95rem;
+  color: #555;
+  font-size: 0.22rem;
+  flex-shrink: 0;
+}
+.history-row.is-pc28 .col-num,
+.history-row.is-pc28 .col-num.numrow{
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 0.05rem !important;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  min-width: 0;
+}
+.history-row.is-pc28 .col-gy{
+  width: 2.1rem;
+  min-width: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.08rem;
+  flex-grow: 0;
+  flex-shrink: 0;
+  padding: 0 0.04rem 0 0.08rem;
+  box-sizing: border-box;
+}
+.history-row.is-pc28 .col-gy .pc28-ball,
+.history-row.is-pc28 .col-gy .pc28-ball.is-sum{
+  width: 0.4rem !important;
+  height: 0.4rem !important;
+  flex: 0 0 0.4rem !important;
+  margin: 0 !important;
+}
+.history-row.is-pc28 .numrow span.pc28-ball{
+  width: 0.36rem !important;
+  height: 0.36rem !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  text-shadow: none !important;
+}
+/* 表头「号码」不要套奖球窄宽，保持一行 */
+.history-row.titlehi.is-pc28 .col-num,
+.history-row.titlehi.is-pc28 .col-num.numrow{
+  gap: 0 !important;
+}
+.history-row.titlehi.is-pc28 .col-num span,
+.history-row.titlehi.is-pc28 .numrow span{
+  width: auto !important;
+  height: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  color: #8B8B8B !important;
+  text-shadow: none !important;
+  font-weight: normal !important;
+  white-space: nowrap !important;
+  display: inline !important;
+}
+.pc28-txt-da{color:#e53935;font-weight:600;white-space:nowrap;}
+.pc28-txt-xiao{color:#2f86f6;font-weight:600;white-space:nowrap;}
+.history-row.titlehi.is-pc28 .col-num{justify-content: center !important;}
+.history-row.titlehi.is-pc28 .col-gy{
+  width: 2.1rem;
+  min-width: 2.1rem;
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.chat-content .last-show{}
+.chat-content .content-box{flex-grow: 10;display: block;flex-direction: column;margin: 0.1rem;}
+.chat-content .content-box .content-info{background: white;border-radius: 7px;padding: 0.15rem;margin: 0.1rem;box-sizing: border-box;float: left}
+.left-header,.right-header{display: flex;flex-direction: row;justify-content: flex-start; margin: 0.1rem;overflow: hidden}
+.lheader,.rheader{flex-grow: 0;width: 0.8rem;height: 0.8rem;flex-shrink: 0}
+.lheader img,.rheader img{width: 0.8rem; height: 0.8rem;border-radius: 10px}
+
+.right-header .content-box .content-info{background: #9EEA6A;float: right}
+
+
+.content-info{position: relative}
+.left-header .chatnarr{background-image: url("../newimg/leftct.png");width: 0.25rem;height: 0.25rem;background-size: 0.25rem auto;background-repeat:no-repeat;position: absolute;left: calc( -0.2rem + 2px);top: 0.1rem;background-position: right center;}
+.right-header .chatnarr{background-image: url("../newimg/1.png");width: 0.25rem;height: 0.25rem;background-size: 0.25rem auto;background-repeat:no-repeat;position: absolute;right: calc( -0.2rem + 2px);top: 0.1rem;background-position: left center;}
+.chat-content .nick-name{color: #767676;font-size: 0.2rem;width: 100%;float: right}
+.chat-content .right-header .nick-name{text-align: right}
+.chat-content .nick-name.is-vip-hl{
+  color: #c9971a;
+  background: linear-gradient(90deg,#b8860b,#f0c14b,#b8860b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+}
+.vip-chat-badge{
+  width: 0.28rem !important;
+  height: 0.28rem !important;
+  vertical-align: -0.04rem;
+  margin: 0 0.04rem;
+  border-radius: 0 !important;
+  display: inline-block;
+}
+.lheader .vip-frame,
+.rheader .vip-frame{
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 12px;
+  padding: 2px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg,#f6d365,#fda085 45%,#c9971a);
+  box-shadow: 0 0 0 1px rgba(201,151,26,0.35);
+}
+.lheader .vip-frame img,
+.rheader .vip-frame img{
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  display: block;
+}
+.fn-vip-entry{
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 18%;
+  z-index: 12000;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity .28s ease, transform .28s ease;
+}
+.fn-vip-entry.is-show{
+  opacity: 1;
+  transform: translateY(0);
+}
+.fn-vip-entry-inner{
+  min-width: 56%;
+  max-width: 86%;
+  padding: 0.18rem 0.36rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg,rgba(20,16,8,.82),rgba(90,60,10,.88),rgba(20,16,8,.82));
+  color: #ffe7a3;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+  border: 1px solid rgba(240,193,75,.45);
+}
+.fn-vip-entry-text{
+  font-size: 0.3rem;
+  letter-spacing: 0.02rem;
+  font-weight: 600;
+}
+.chat-content .info-content{word-break: break-all;word-wrap: break-word;font-size: 0.25rem;}
+.chat-content .info-content img{
+  max-width: 46vw !important;
+  max-height: 20vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+  border-radius: 6px;
+  cursor: zoom-in;
+  display: block;
+  margin-top: 0.08rem;
+}
+/* 开奖结果图：完整显示，不再裁右侧（旧 clip 会把时时彩图压成竖条） */
+.open-result-wrap{
+  position: relative;
+  display: inline-block;
+  max-width: 46vw;
+  max-height: 20vh;
+  overflow: hidden;
+  border-radius: 6px;
+  line-height: 0;
+  vertical-align: top;
+}
+.open-result-wrap img.open-result-img,
+.open-result-wrap img{
+  max-width: 46vw !important;
+  max-height: 20vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+  display: block;
+}
+body.room-has-live .open-result-wrap{
+  cursor: pointer;
+}
+.chat-content .content-box .content-info{
+  max-width: 78%;
+}
+/* 图片点击放大 */
+.room-img-lightbox{
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,0.88);
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+.room-img-lightbox.is-open{display: flex;}
+.room-img-lightbox img{
+  max-width: 96vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.chat-input{display: flex;flex-direction: row;padding: 0.1rem 0.2rem;background: #FFFFFF;align-items: center;position: relative;z-index: 2;}
+.chat-input .keyb-input{flex-grow: 10;height: 0.4rem;background: #EFEFEF;border-radius: 7px;margin: 0rem 0.2rem;padding:0.1rem 0px;display: flex;align-items: center;justify-content: flex-start;text-indent: 0.1rem;outline: none;font-size: 0.25rem;overflow: hidden}
+.chat-input .keyb-input:focus:before{
+    content:none;
+}
+.chat-input .keyb-left img{width: 0.4rem}
+.chat-input .keyb-right img{width: 0.4rem}
+
+/* 底部输入栏+键盘压在右侧悬浮按钮之上，避免挡键 */
+.room-bottom-dock{
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  z-index: 400;
+  background: #fff;
+}
+
+.keybaord{background: #EFEFEF;display: flex;width: 100%;flex-direction: column;position: relative;z-index: 401;}
+/* App WebView 键盘：禁止触摸时滚动/系统合成 click 改变命中坐标。 */
+.keybaord,.keybaord *{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
+.keybaord li{cursor:pointer;}
+.keybaord .numbaord{display: flex;flex-wrap: wrap;margin:0.1rem 0rem;box-sizing: border-box;}
+.keybaord .numbaord li{width: calc(20% - 2px);background: #FFFFFF;height: 0.7rem;margin-top: 2.5px;margin-left: 2.5px;display: flex;justify-content: center;align-items: center;border-radius: 7px;color: #ADACAD;font-size: 0.3rem;flex-grow: 0;}
+.keybaord .numbaord li.rowstart{margin-left: 0px;}
+.keybaord .numbaord li.delimg img{width: 0.4rem}
+.keybaord .numbaord li.zlong{background: #FE4438;color: white;}
+.keybaord .numbaord li.zhu{background: #178DFF;color: white;}
+.keybaord .numbaord li.zgyh{background: #28A833;color: white;}
+
+/* 弹珠28：三行快捷栏 + 4×5 主键盘（加拿大28玩法二） */
+.keybaord.is-pc28-kb{
+  background: #ececec;
+  padding: 0 0 0.06rem;
+  box-sizing: border-box;
+}
+/* 快捷栏1：竖线分隔（样式不同于下面两栏） */
+.keybaord.is-pc28-kb .pc28-quick-line{
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+}
+.keybaord.is-pc28-kb .pc28-quick-line li{
+  flex: 1 1 0;
+  height: 0.64rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.24rem;
+  color: #888;
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+.keybaord.is-pc28-kb .pc28-quick-line li + li::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: #d8d8d8;
+}
+/* 快捷栏2、3：白底圆角按钮 */
+.keybaord.is-pc28-kb .pc28-quick-btn{
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  padding: 3px 3px 0;
+  box-sizing: border-box;
+  background: #ececec;
+}
+.keybaord.is-pc28-kb .pc28-quick-btn li{
+  flex: 1 1 0;
+  height: 0.66rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #d5d5d5;
+  border-radius: 6px;
+  color: #555;
+  font-size: 0.24rem;
+  box-sizing: border-box;
+}
+/* 主键盘 */
+.keybaord.is-pc28-kb .pc28-numboard{
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 3px;
+  box-sizing: border-box;
+  background: #ececec;
+}
+.keybaord.is-pc28-kb .pc28-numboard li{
+  width: calc((100% - 12px) / 5);
+  height: 0.8rem;
+  margin: 0 3px 3px 0;
+  border-radius: 6px;
+  border: 1px solid #d5d5d5;
+  font-size: 0.28rem;
+  color: #555;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+.keybaord.is-pc28-kb .pc28-numboard li:nth-child(5n){
+  margin-right: 0;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-side{
+  background: #c8c8c8;
+  border-color: #bcbcbc;
+  color: #333;
+  font-weight: 600;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-num{
+  background: #fff;
+  color: #333;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-del{
+  background: #c8c8c8;
+  border-color: #bcbcbc;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-del img,
+.keybaord.is-pc28-kb .pc28-numboard li.delimg img{
+  width: 0.42rem;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-wave{
+  background: #fff;
+  font-size: 0.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  padding: 0 0.02rem;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-red{color: #e53935;}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-green{color: #1ec45a;}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-blue{color: #2f86f6;}
+
+.keybaord .fast-keyboard{display: flex;background:#FFFFFF;margin: 0rem 0rem;box-sizing: border-box;padding: 0.1rem 0rem}
+.keybaord .fast-keyboard li{width: 20%;height: 0.7rem;display: block;text-align:center;line-height:0.7rem;font-size: 0.24rem;color: #ADACAD;box-sizing: border-box;background-image: url("../newimg/spn.png");background-position: left center;background-size: 2px 80%; background-repeat: no-repeat}
+.keybaord .fast-keyboard li:nth-child(1){background: none}
+
+.keybaord .fast-keyboard-url{display: flex;background:#EFEFEF;margin: 0rem 0rem;box-sizing: border-box;padding: 0.2rem 0rem}
+.keybaord .fast-keyboard-url li{width:25%;height:1.2rem;text-align:center;font-size:.24rem;color:#ADACAD;box-sizing:border-box;background-position:left center;background-size:2px 80%;background-repeat:no-repeat;display:flex;flex-direction:column;justify-content:center;touch-action:manipulation!important;pointer-events:auto!important;}
+.keybaord .fast-keyboard-url li img{width: 1rem}
+.keybaord .fast-keyboard-url li:nth-child(1){background: none}
+.keybaord .fast-keyboard-url{touch-action:manipulation!important;pointer-events:auto!important;}
+
+
+/* 自助回水底部弹层 */
+.fn-hs-mask{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center}
+.fn-hs-sheet{width:100%;background:#fff;border-radius:.2rem .2rem 0 0;padding:.36rem .4rem calc(.36rem + env(safe-area-inset-bottom));box-sizing:border-box}
+.fn-hs-title{text-align:center;font-size:.34rem;color:#222;font-weight:600;margin-bottom:.28rem}
+.fn-hs-row{display:flex;align-items:center;justify-content:space-between;padding:.22rem 0;border-bottom:1px solid #eee;font-size:.28rem;color:#333}
+.fn-hs-row b{font-weight:600;color:#222}
+.fn-hs-actions{display:flex;align-items:center;justify-content:center;gap:.8rem;padding:.4rem 0 .1rem}
+.fn-hs-cancel,.fn-hs-ok{background:none;border:0;font-size:.3rem;padding:.1rem .2rem}
+.fn-hs-cancel{color:#333}
+.fn-hs-ok{color:#2f7bff}
+
+/*异步弹窗：贴紧开奖结果栏，去掉顶部分隔缝*/
+#iframeBox{position: absolute;top: 100%;left: 0;background: #fff;padding: 0 0.2rem 0.1rem;border: 0;border-top: 0;display: none;width: 100%;box-sizing: border-box;max-height: 250%;overflow-y: auto;overflow-x: hidden;z-index: 101;}
+
+.history-row.is-ssc .col-qh{
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0;
+  text-align: center;
+}
+.history-row.is-ssc .col-num.numrow{
+  flex: 2 1 0 !important;
+  width: auto !important;
+  gap: 0.06rem;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+.history-row.is-ssc .col-gy-ssc{
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0;
+  text-align: center;
+}
+.history-row.titlehi.is-ssc .col-qh{
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0;
+  text-align: center;
+}
+.history-row.titlehi.is-ssc .col-num,
+.history-row.titlehi.is-ssc .col-num.numrow{
+  flex: 2 1 0 !important;
+  width: auto !important;
+  justify-content: center;
+}
+.history-row.titlehi.is-ssc .col-gy{
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0;
+  text-align: center;
+}
+.history-row.titlehi.is-ssc .col-num.numrow span{
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  color: #8B8B8B !important;
+  font-size: 0.24rem !important;
+  font-weight: normal !important;
+  text-shadow: none !important;
+  letter-spacing: 0.15rem;
+}
+
+/* 时时彩/澳洲5：彩环数字球（数字在图里，隐藏文字） */
+.current-sn.is-ssc .sn-num{flex: 1 1 0 !important;width: auto !important;min-width: 0;font-size: 0.2rem;text-align: center;}
+.current-sn.is-ssc .num-sn{flex: 2 1 0 !important;width: auto !important;min-width: 0;gap: 0.06rem;justify-content: flex-start;align-items: center;}
+.current-sn.is-ssc .gyd{flex: 1 1 0 !important;width: auto !important;min-width: 0;text-align: center;}
+.current-sn.is-ssc .num-sn span,
+.history-row.is-ssc .ssc-ball{
+  display: inline-block !important;
+  width: 0.48rem !important;
+  height: 0.44rem !important;
+  flex: 0 0 0.48rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  box-sizing: border-box !important;
+  background-color: transparent !important;
+  background-repeat: no-repeat !important;
+  background-size: 500% 200% !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  text-shadow: none !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+}
+.current-sn.is-ssc .num-sn span.n0,
+.history-row.is-ssc .ssc-ball.n0{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: -2.47% -6.75% !important; }
+.current-sn.is-ssc .num-sn span.n1,
+.history-row.is-ssc .ssc-ball.n1{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 23.63% -6.75% !important; }
+.current-sn.is-ssc .num-sn span.n2,
+.history-row.is-ssc .ssc-ball.n2{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 49.91% -6.75% !important; }
+.current-sn.is-ssc .num-sn span.n3,
+.history-row.is-ssc .ssc-ball.n3{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 76.10% -6.75% !important; }
+.current-sn.is-ssc .num-sn span.n4,
+.history-row.is-ssc .ssc-ball.n4{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 102.38% -6.75% !important; }
+.current-sn.is-ssc .num-sn span.n5,
+.history-row.is-ssc .ssc-ball.n5{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: -2.47% 106.35% !important; }
+.current-sn.is-ssc .num-sn span.n6,
+.history-row.is-ssc .ssc-ball.n6{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 23.63% 106.35% !important; }
+.current-sn.is-ssc .num-sn span.n7,
+.history-row.is-ssc .ssc-ball.n7{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 49.91% 106.35% !important; }
+.current-sn.is-ssc .num-sn span.n8,
+.history-row.is-ssc .ssc-ball.n8{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 76.10% 106.35% !important; }
+.current-sn.is-ssc .num-sn span.n9,
+.history-row.is-ssc .ssc-ball.n9{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c) !important; background-position: 102.38% 106.35% !important; }
+
+/* 弹珠六合彩：旧站 ball_hk6 红蓝绿球 */
+.current-sn.is-lhc .num-sn{
+  gap: 0.04rem;
+  justify-content: center;
+  align-items: center;
+}
+.current-sn.is-lhc .num-sn span.lhc-ball,
+.history-row.is-lhc .lhc-ball{
+  display: inline-block !important;
+  width: 0.36rem !important;
+  height: 0.36rem !important;
+  flex: 0 0 0.36rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  background-color: transparent !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  text-shadow: none !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+}
+.current-sn.is-lhc .num-sn span.lhc-plus,
+.history-row.is-lhc .lhc-plus{
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 0.22rem !important;
+  height: 0.36rem !important;
+  flex: 0 0 0.22rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  color: #888 !important;
+  font-size: 0.22rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
+  text-shadow: none !important;
+}
+.history-row.is-lhc .col-gy-lhc{
+  width: 1.2rem;
+  flex-grow: 0;
+  flex-shrink: 0;
+  text-align: center;
+}
+.history-row.is-lhc .col-num.numrow{
+  gap: 0.04rem;
+  justify-content: center;
+  align-items: center;
+}
+.history-row.titlehi.is-lhc .col-num.numrow span{
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  color: #8B8B8B !important;
+  font-size: 0.18rem !important;
+  font-weight: normal !important;
+  text-shadow: none !important;
+  text-indent: 0 !important;
+}
+
+.current-sn.is-lhc .num-sn span.lhc-n01,
+.history-row.is-lhc .lhc-ball.lhc-n01,
+.game-box[data-kind="lhc"] .game-num span.lhc-n01{ background-image: url(/Style/newimg/lhcballs/01.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n02,
+.history-row.is-lhc .lhc-ball.lhc-n02,
+.game-box[data-kind="lhc"] .game-num span.lhc-n02{ background-image: url(/Style/newimg/lhcballs/02.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n03,
+.history-row.is-lhc .lhc-ball.lhc-n03,
+.game-box[data-kind="lhc"] .game-num span.lhc-n03{ background-image: url(/Style/newimg/lhcballs/03.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n04,
+.history-row.is-lhc .lhc-ball.lhc-n04,
+.game-box[data-kind="lhc"] .game-num span.lhc-n04{ background-image: url(/Style/newimg/lhcballs/04.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n05,
+.history-row.is-lhc .lhc-ball.lhc-n05,
+.game-box[data-kind="lhc"] .game-num span.lhc-n05{ background-image: url(/Style/newimg/lhcballs/05.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n06,
+.history-row.is-lhc .lhc-ball.lhc-n06,
+.game-box[data-kind="lhc"] .game-num span.lhc-n06{ background-image: url(/Style/newimg/lhcballs/06.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n07,
+.history-row.is-lhc .lhc-ball.lhc-n07,
+.game-box[data-kind="lhc"] .game-num span.lhc-n07{ background-image: url(/Style/newimg/lhcballs/07.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n08,
+.history-row.is-lhc .lhc-ball.lhc-n08,
+.game-box[data-kind="lhc"] .game-num span.lhc-n08{ background-image: url(/Style/newimg/lhcballs/08.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n09,
+.history-row.is-lhc .lhc-ball.lhc-n09,
+.game-box[data-kind="lhc"] .game-num span.lhc-n09{ background-image: url(/Style/newimg/lhcballs/09.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n10,
+.history-row.is-lhc .lhc-ball.lhc-n10,
+.game-box[data-kind="lhc"] .game-num span.lhc-n10{ background-image: url(/Style/newimg/lhcballs/10.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n11,
+.history-row.is-lhc .lhc-ball.lhc-n11,
+.game-box[data-kind="lhc"] .game-num span.lhc-n11{ background-image: url(/Style/newimg/lhcballs/11.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n12,
+.history-row.is-lhc .lhc-ball.lhc-n12,
+.game-box[data-kind="lhc"] .game-num span.lhc-n12{ background-image: url(/Style/newimg/lhcballs/12.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n13,
+.history-row.is-lhc .lhc-ball.lhc-n13,
+.game-box[data-kind="lhc"] .game-num span.lhc-n13{ background-image: url(/Style/newimg/lhcballs/13.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n14,
+.history-row.is-lhc .lhc-ball.lhc-n14,
+.game-box[data-kind="lhc"] .game-num span.lhc-n14{ background-image: url(/Style/newimg/lhcballs/14.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n15,
+.history-row.is-lhc .lhc-ball.lhc-n15,
+.game-box[data-kind="lhc"] .game-num span.lhc-n15{ background-image: url(/Style/newimg/lhcballs/15.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n16,
+.history-row.is-lhc .lhc-ball.lhc-n16,
+.game-box[data-kind="lhc"] .game-num span.lhc-n16{ background-image: url(/Style/newimg/lhcballs/16.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n17,
+.history-row.is-lhc .lhc-ball.lhc-n17,
+.game-box[data-kind="lhc"] .game-num span.lhc-n17{ background-image: url(/Style/newimg/lhcballs/17.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n18,
+.history-row.is-lhc .lhc-ball.lhc-n18,
+.game-box[data-kind="lhc"] .game-num span.lhc-n18{ background-image: url(/Style/newimg/lhcballs/18.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n19,
+.history-row.is-lhc .lhc-ball.lhc-n19,
+.game-box[data-kind="lhc"] .game-num span.lhc-n19{ background-image: url(/Style/newimg/lhcballs/19.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n20,
+.history-row.is-lhc .lhc-ball.lhc-n20,
+.game-box[data-kind="lhc"] .game-num span.lhc-n20{ background-image: url(/Style/newimg/lhcballs/20.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n21,
+.history-row.is-lhc .lhc-ball.lhc-n21,
+.game-box[data-kind="lhc"] .game-num span.lhc-n21{ background-image: url(/Style/newimg/lhcballs/21.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n22,
+.history-row.is-lhc .lhc-ball.lhc-n22,
+.game-box[data-kind="lhc"] .game-num span.lhc-n22{ background-image: url(/Style/newimg/lhcballs/22.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n23,
+.history-row.is-lhc .lhc-ball.lhc-n23,
+.game-box[data-kind="lhc"] .game-num span.lhc-n23{ background-image: url(/Style/newimg/lhcballs/23.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n24,
+.history-row.is-lhc .lhc-ball.lhc-n24,
+.game-box[data-kind="lhc"] .game-num span.lhc-n24{ background-image: url(/Style/newimg/lhcballs/24.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n25,
+.history-row.is-lhc .lhc-ball.lhc-n25,
+.game-box[data-kind="lhc"] .game-num span.lhc-n25{ background-image: url(/Style/newimg/lhcballs/25.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n26,
+.history-row.is-lhc .lhc-ball.lhc-n26,
+.game-box[data-kind="lhc"] .game-num span.lhc-n26{ background-image: url(/Style/newimg/lhcballs/26.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n27,
+.history-row.is-lhc .lhc-ball.lhc-n27,
+.game-box[data-kind="lhc"] .game-num span.lhc-n27{ background-image: url(/Style/newimg/lhcballs/27.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n28,
+.history-row.is-lhc .lhc-ball.lhc-n28,
+.game-box[data-kind="lhc"] .game-num span.lhc-n28{ background-image: url(/Style/newimg/lhcballs/28.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n29,
+.history-row.is-lhc .lhc-ball.lhc-n29,
+.game-box[data-kind="lhc"] .game-num span.lhc-n29{ background-image: url(/Style/newimg/lhcballs/29.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n30,
+.history-row.is-lhc .lhc-ball.lhc-n30,
+.game-box[data-kind="lhc"] .game-num span.lhc-n30{ background-image: url(/Style/newimg/lhcballs/30.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n31,
+.history-row.is-lhc .lhc-ball.lhc-n31,
+.game-box[data-kind="lhc"] .game-num span.lhc-n31{ background-image: url(/Style/newimg/lhcballs/31.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n32,
+.history-row.is-lhc .lhc-ball.lhc-n32,
+.game-box[data-kind="lhc"] .game-num span.lhc-n32{ background-image: url(/Style/newimg/lhcballs/32.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n33,
+.history-row.is-lhc .lhc-ball.lhc-n33,
+.game-box[data-kind="lhc"] .game-num span.lhc-n33{ background-image: url(/Style/newimg/lhcballs/33.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n34,
+.history-row.is-lhc .lhc-ball.lhc-n34,
+.game-box[data-kind="lhc"] .game-num span.lhc-n34{ background-image: url(/Style/newimg/lhcballs/34.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n35,
+.history-row.is-lhc .lhc-ball.lhc-n35,
+.game-box[data-kind="lhc"] .game-num span.lhc-n35{ background-image: url(/Style/newimg/lhcballs/35.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n36,
+.history-row.is-lhc .lhc-ball.lhc-n36,
+.game-box[data-kind="lhc"] .game-num span.lhc-n36{ background-image: url(/Style/newimg/lhcballs/36.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n37,
+.history-row.is-lhc .lhc-ball.lhc-n37,
+.game-box[data-kind="lhc"] .game-num span.lhc-n37{ background-image: url(/Style/newimg/lhcballs/37.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n38,
+.history-row.is-lhc .lhc-ball.lhc-n38,
+.game-box[data-kind="lhc"] .game-num span.lhc-n38{ background-image: url(/Style/newimg/lhcballs/38.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n39,
+.history-row.is-lhc .lhc-ball.lhc-n39,
+.game-box[data-kind="lhc"] .game-num span.lhc-n39{ background-image: url(/Style/newimg/lhcballs/39.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n40,
+.history-row.is-lhc .lhc-ball.lhc-n40,
+.game-box[data-kind="lhc"] .game-num span.lhc-n40{ background-image: url(/Style/newimg/lhcballs/40.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n41,
+.history-row.is-lhc .lhc-ball.lhc-n41,
+.game-box[data-kind="lhc"] .game-num span.lhc-n41{ background-image: url(/Style/newimg/lhcballs/41.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n42,
+.history-row.is-lhc .lhc-ball.lhc-n42,
+.game-box[data-kind="lhc"] .game-num span.lhc-n42{ background-image: url(/Style/newimg/lhcballs/42.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n43,
+.history-row.is-lhc .lhc-ball.lhc-n43,
+.game-box[data-kind="lhc"] .game-num span.lhc-n43{ background-image: url(/Style/newimg/lhcballs/43.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n44,
+.history-row.is-lhc .lhc-ball.lhc-n44,
+.game-box[data-kind="lhc"] .game-num span.lhc-n44{ background-image: url(/Style/newimg/lhcballs/44.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n45,
+.history-row.is-lhc .lhc-ball.lhc-n45,
+.game-box[data-kind="lhc"] .game-num span.lhc-n45{ background-image: url(/Style/newimg/lhcballs/45.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n46,
+.history-row.is-lhc .lhc-ball.lhc-n46,
+.game-box[data-kind="lhc"] .game-num span.lhc-n46{ background-image: url(/Style/newimg/lhcballs/46.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n47,
+.history-row.is-lhc .lhc-ball.lhc-n47,
+.game-box[data-kind="lhc"] .game-num span.lhc-n47{ background-image: url(/Style/newimg/lhcballs/47.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n48,
+.history-row.is-lhc .lhc-ball.lhc-n48,
+.game-box[data-kind="lhc"] .game-num span.lhc-n48{ background-image: url(/Style/newimg/lhcballs/48.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n49,
+.history-row.is-lhc .lhc-ball.lhc-n49,
+.game-box[data-kind="lhc"] .game-num span.lhc-n49{ background-image: url(/Style/newimg/lhcballs/49.png) !important; }
+
+.history-row{display: flex;flex-direction: row;align-items: center;width: 100%;font-size: 0.24rem;margin: 0;padding: 0.08rem 0;border-bottom: 1px solid #ECECEC;box-sizing: border-box;}
+.history-row.titlehi{border-bottom: 2px solid #DEDEDE;color: #8B8B8B;padding: 0.1rem 0;margin: 0;}
+.history-row.titlehi span{color: #8B8B8B;text-shadow:none;font-weight: normal}
+.history-row .col-num{flex-grow: 10;display: flex;justify-content: center}
+.history-row .col-lh{width: 2rem;flex-grow: 0;flex-shrink: 0}
+.history-row .col-gy{width: 0.9rem;flex-grow: 0;flex-shrink: 0;text-align: center}
+.history-row .col-qh{width: 0.7rem;flex-grow: 0;flex-shrink: 0}
+.col-lh span.gray,.col-gy span.gray{color: red}
+.col-lh span.blue,.col-gy span.blue{color: #4283E5}
+.numrow span{width: 0.3rem;height: 0.3rem;border-radius: 5px;display: flex;justify-content: center;align-items: center;border-radius: 3px;text-shadow: 0 0 1px #000;color: white;font-weight: 700;margin-left: 1px;}
+
+
+.forecast-row{display: flex;justify-content: start;align-items: center;font-size: 0.24rem;border-bottom: 1px solid #DEDEDE;width: 100%;}
+.forecast-row .for-sn{width: 2rem;display: flex;justify-content: center;}
+.forecast-row .for-title,.forecast-row .for-num{
+    /*flex-grow: 10;*/
+    flex-shrink: 0;justify-content: center;display: flex;
+    width: 40%;
+    
+}
+.forecast-row .for-zoushi1{
+    /*flex-grow: 10;*/
+    flex-shrink: 0;justify-content: center;display: flex;
+    width: 20%;
+    font-size: 0.15rem;
+}
+.forecast-row .for-zoushi2{
+    /*flex-grow: 10;*/
+    flex-shrink: 0;justify-content: center;display: flex;
+    width: 10%;
+    font-size: 0.15rem;
+}
+.forecast-row .for-dx,.forecast-row .for-ds{width: 1rem;display: flex;justify-content: center;align-items: center}
+.forecast-row .for-zuhe{width: 1.5rem;display: flex;justify-content: center;align-items: center}
+.forecast-row .for-dx span,.forecast-row .for-ds span{display: flex;justify-content: center;align-items: center;color: white;border-radius: 5px;width: 0.4rem;height: 0.4rem;font-size: 0.24rem}
+.forecast-row .for-zuhe span{display: flex;justify-content: center;align-items: center;color: white;border-radius: 5px;width: 0.8rem;height: 0.4rem;font-size: 0.24rem}
+.forecast-row .red{background-color: #BB2626;}
+.forecast-row .blue{background-color: #3C4BFF;}
+.forecast-row .yellow{background-color: #ffc107;}
+.forecast-row .pink{background-color: #ff3ea587;}
+.forecast-row li{border-right: 1px solid #DEDEDE;padding: 0.1rem 0rem;flex-shrink: 0;min-height: 0.4rem}
+.forecast-row li:last-child{border-right: 0px none;}
+
+.changlong-row{display: flex;font-size: 0.24rem}
+.changlong-row li{padding: 0.1rem 0rem;flex-shrink: 0;min-height: 0.4rem;width: 25%;flex-grow: 0;display: flex;justify-content: center;align-items: center}
+
+
+.zhudanwrap{margin: 0.1rem 0.2rem;box-sizing: border-box;border-bottom: 1px solid #DEDEDE}
+.zhudan-row{display: flex;font-size: 0.24rem;justify-content:space-between;}
+.zhudan-row li{display: flex;padding: 0.1rem 0px;}
+.zhudan-row.infozhu li{font-size: 0.2rem}
+
+/* 群聊 @ 与下注确认表（名爵样式；关键视觉已内联，此处兜底） */
+.chat-at{color:#2b7cff!important;font-weight:600;}
+.chat-content .content-box .content-info{max-width:78%;}
+/* 下注详情卡：跟通知气泡同宽，禁止标题竖排折行 */
+.chat-content .content-info:has(.fn-bet-card),
+.chat-content .content-info.fn-bet-wrap{
+  width:78%!important;
+  max-width:78%!important;
+  min-width:78%!important;
+  box-sizing:border-box!important;
+  float:left!important;
+  display:block!important;
+}
+.chat-content .info-content:has(.fn-bet-card),
+.chat-content .info-content.fn-bet-inner{
+  width:100%!important;
+  max-width:100%!important;
+  display:block!important;
+  box-sizing:border-box!important;
+  word-break:normal!important;
+}
+.chat-content .info-content .fn-bet-card,
+.fn-bet-card{
+  display:block!important;
+  clear:both;
+  margin-top:4px!important;
+  overflow:hidden!important;
+  border-radius:5px!important;
+  background:#fff!important;
+  color:#4b4b4b;
+  border:1px solid #e6e6e6!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:100%!important;
+  box-sizing:border-box!important;
+  word-break:keep-all!important;
+}
+.fn-bet-hd{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  min-height:36px;
+  padding:0 10px;
+  background:#2f86e0!important;
+  background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%)!important;
+  color:#fff!important;
+  font-size:14px;
+}
+.fn-bet-hd b{color:#fff!important;font-weight:700;}
+.fn-bet-follow{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:4px;padding:4px 9px;background:#fff;color:#168da8;font-size:13px;font-weight:800;text-decoration:none;}
+.fn-bet-line{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:6px!important;
+  min-height:36px;
+  padding:6px 8px!important;
+  border-bottom:1px solid #eee;
+  font-size:14px!important;
+  color:#4b4b4b;
+  box-sizing:border-box;
+}
+.fn-bet-line b{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  font-weight:700;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  word-break:keep-all!important;
+}
+.fn-bet-line > span{flex:0 0 auto!important;white-space:nowrap!important;}
+.fn-bet-ft{padding:8px 10px;font-size:13px;color:#5a6b73;box-sizing:border-box;}
+.fn-bet-ft strong{color:#d32632;}
+
+/* 封盘注单核对卡片：强制与长通知气泡同宽（内容短时也不收缩） */
+.chat-content .content-info:has(.fn-seal-card),
+.chat-content .content-info.fn-seal-wrap{
+  width:78%!important;
+  max-width:78%!important;
+  min-width:78%!important;
+  padding:0.12rem!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+  float:left!important;
+  display:block!important;
+}
+.chat-content .info-content:has(.fn-seal-card),
+.chat-content .info-content.fn-seal-inner{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.chat-content .info-content .fn-seal-card{
+  display:block!important;
+  clear:both;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:100%!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+.fn-seal-card{
+  display:block;
+  overflow:hidden;
+  border-radius:5px;
+  background:#fff;
+  border:1px solid #dfe7ee;
+  width:100%;
+  max-width:100%;
+  min-width:100%;
+  box-sizing:border-box;
+}
+.fn-seal-hd{
+  padding:7px 8px!important;
+  background:#2f86e0!important;
+  background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%)!important;
+  color:#fff!important;
+  font-size:13px;
+  font-weight:700;
+  text-align:center;
+  line-height:1.35;
+  word-break:keep-all;
+  white-space:normal;
+}
+.fn-seal-hd-game,
+.fn-seal-hd-term{
+  display:block!important;
+  width:100%!important;
+  text-align:center!important;
+  line-height:1.35!important;
+  word-break:keep-all!important;
+}
+.fn-seal-row a{color:#2b7cff!important;}
+/* 系统卡片会先经过 HTML 白名单，行内 style 会被安全移除；必须由 class 还原布局。
+   选择器必须盖过 .chat-content .info-content{font-size:0.25rem} 的继承放大。 */
+.chat-content .info-content .fn-seal-card,
+.chat-content .info-content.fn-seal-inner .fn-seal-card{
+  font-size:12px!important;
+  line-height:1.4!important;
+  color:#333!important;
+}
+.chat-content .info-content .fn-seal-bd,
+.fn-seal-bd{padding:4px 0 6px!important;box-sizing:border-box!important;}
+.chat-content .info-content .fn-seal-sep,
+.fn-seal-sep{
+  display:block!important;
+  margin:8px 10px!important;
+  padding:0!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:0!important;
+  border:0!important;
+  border-top:1px solid #c5d0dc!important;
+  background:transparent!important;
+  font-size:0!important;
+  line-height:0!important;
+  letter-spacing:0!important;
+  color:transparent!important;
+  text-indent:-9999px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.chat-content .info-content .fn-seal-gap,
+.fn-seal-gap{height:4px!important;padding:0!important;margin:0!important;border:0!important;}
+.chat-content .info-content .fn-seal-line,
+.fn-seal-line{
+  padding:2px 8px!important;
+  font-size:13px!important;
+  line-height:1.55!important;
+  color:#333!important;
+  font-weight:400!important;
+  text-align:left!important;
+  box-sizing:border-box!important;
+  white-space:pre-wrap!important;
+  word-break:break-word!important;
+}
+.chat-content .info-content .fn-seal-line.fn-seal-warn,
+.fn-seal-line.fn-seal-warn{
+  color:#e53935!important;
+  font-weight:700!important;
+  text-align:center!important;
+  font-size:13px!important;
+}
+.chat-content .info-content .fn-seal-line.fn-seal-closed,
+.fn-seal-line.fn-seal-closed{
+  text-align:center!important;
+  font-weight:700!important;
+  color:#333!important;
+}
+.chat-content .info-content .fn-seal-check-wrap,
+.fn-seal-check-wrap{padding:2px 0!important;font-size:13px!important;line-height:1.5!important;color:#333!important;box-sizing:border-box!important;}
+.chat-content .info-content .fn-seal-check-wrap > div:not(.fn-seal-list),
+.fn-seal-check-wrap > div:not(.fn-seal-list){padding:2px 8px!important;font-size:13px!important;}
+.chat-content .info-content .fn-seal-row,
+.fn-seal-row{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:4px!important;
+  padding:5px 8px!important;
+  font-size:12px!important;
+  line-height:1.4!important;
+  color:#333!important;
+  border-bottom:1px dashed #e8e8e8!important;
+  box-sizing:border-box!important;
+}
+.chat-content .info-content .fn-seal-row > span,
+.fn-seal-row > span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:12px!important;}
+.chat-content .info-content .fn-seal-row b,
+.fn-seal-row b{font-size:12px!important;line-height:1.4!important;font-weight:600!important;}
+.chat-content .info-content .fn-seal-detail,
+.fn-seal-detail{flex:0 0 auto!important;color:#2b7cff!important;text-decoration:none!important;font-size:12px!important;white-space:nowrap!important;}
+.chat-content .info-content .fn-seal-empty,
+.fn-seal-empty{padding:6px 8px!important;color:#888!important;font-size:12px!important;text-align:center!important;}
+
+/* 封盘核对「注单详情」弹窗 */
+.fn-bet-detail-mask{
+  position:fixed;inset:0;z-index:9999;
+  display:none;align-items:center;justify-content:center;
+  padding:0 0.32rem;box-sizing:border-box;
+  background:rgba(0,0,0,.45);
+}
+.fn-bet-detail-mask.is-open{display:flex;}
+.fn-bet-detail-dialog{
+  width:86%;max-width:360px;max-height:72vh;
+  background:#fff;border-radius:8px;overflow:hidden;
+  box-shadow:0 8px 28px rgba(0,0,0,.22);
+  display:flex;flex-direction:column;
+}
+.fn-bet-detail-hd{
+  position:relative;flex:0 0 auto;
+  height:44px;display:flex;align-items:center;justify-content:center;
+  background:#2f86e0;
+  background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%);
+  color:#fff;
+}
+.fn-bet-detail-title{font-size:16px;font-weight:700;letter-spacing:.02em;}
+.fn-bet-detail-close{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border:0;background:transparent;color:#fff;
+  font-size:26px;line-height:1;padding:0;cursor:pointer;
+}
+.fn-bet-detail-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;}
+.fn-bet-detail-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.fn-bet-detail-table th,
+.fn-bet-detail-table td{
+  width:33.33%;padding:11px 6px;text-align:center;
+  font-size:14px;border:1px solid #e6edf5;box-sizing:border-box;
+  word-break:break-all;
+}
+.fn-bet-detail-table thead th{
+  background:#eef6ff;color:#2b7adb;font-weight:700;
+  border-color:#d7e6f7;
+}
+.fn-bet-detail-table tbody td{color:#333;background:#fff;}
+.fn-bet-detail-empty{color:#999!important;padding:24px 8px!important;}
+
+/* 一键返回底部（对齐名爵 .home-content .bottom） */
+.fn-chat-to-bottom{
+  position: fixed;
+  right: 0.18rem;
+  /* 始终位于完整底部 dock 上方；dock 的实测高度已包含安全区。 */
+  bottom: calc(var(--fn-chat-dock-height, 1.5rem) + .12rem);
+  width: 0.72rem;
+  height: 0.72rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  background: url(/Style/newimg/to_bottom.png) center / 100% 100% no-repeat;
+  background-color: transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  z-index: 220;
+  cursor: pointer;
+  display: none;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.fn-chat-to-bottom.is-show{ display: block; }
+.fn-chat-to-bottom.is-kb-open{
+  /* 键盘展开后仍使用同一个 dock 实测高度，不再叠加 safe-area。 */
+  bottom: calc(var(--fn-chat-dock-height, 5.6rem) + .12rem);
+}
+.fn-chat-to-bottom .fn-chat-unread{
+  position: absolute;
+  top: -0.06rem;
+  right: -0.06rem;
+  min-width: 0.32rem;
+  height: 0.32rem;
+  padding: 0 0.06rem;
+  box-sizing: border-box;
+  border-radius: 0.32rem;
+  background: #ff6a6a;
+  color: #fff;
+  font-size: 0.2rem;
+  line-height: 0.32rem;
+  text-align: center;
+  font-weight: 700;
+  display: none;
+}
+.fn-chat-to-bottom .fn-chat-unread.is-on{ display: block; }
+
+/* 右侧悬浮按钮：紧挨切换按钮向下排列，去掉点击蓝底 */
+.room-side-fabs{
+  position: fixed;
+  right: 0.04rem;
+  top: auto;
+  /* LIVE 对准「点击 Live直播开奖」箭头尖端（约聊天区中下部） */
+  bottom: max(2.4rem, 26vh);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  -webkit-tap-highlight-color: transparent;
+}
+.room-side-fabs .fab-btn.is-live img{
+  width: 0.86rem;
+  height: 0.86rem;
+}
+.room-side-fabs a,
+.room-side-fabs button,
+.room-side-fabs .fab-btn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.86rem;
+  height: 0.86rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.back{
+  touch-action: manipulation;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 5;
+}
+.room-side-fabs a:active,
+.room-side-fabs a:focus,
+.room-side-fabs button:active,
+.room-side-fabs button:focus,
+.room-side-fabs .fab-btn:active,
+.room-side-fabs .fab-btn:focus{
+  background: transparent !important;
+  outline: none !important;
+}
+.room-side-fabs img{
+  display: block;
+  width: 0.86rem;
+  height: 0.86rem;
+  object-fit: contain;
+  pointer-events: none;
+  background: transparent;
+}
+
+/* 直播画面：跟在开奖结果栏下方，随顶栏一起撑开 */
+.room-live-panel{
+  display: block;
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: 0;
+  visibility: hidden;
+  z-index: 1;
+  flex: 0 0 auto;
+  background: #000;
+  overflow: hidden;
+}
+.room-live-panel.is-open{height: auto; visibility: visible;}
+.room-live-panel iframe{
+  display: block;
+  width: 100% !important;
+  height: 56.25vw;
+  max-height: 280px;
+  min-height: 180px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: #000;
+}
+.room-game-switch{
+  display: none;
+  position: fixed;
+  right: 0.9rem;
+  top: auto;
+  bottom: max(2.4rem, 26vh);
+  z-index: 260;
+  width: 1.6rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 0.12rem;
+}
+.room-game-switch.is-open{display: block;}
+.room-game-switch li{list-style: none;margin: 0.08rem 0;}
+.room-game-switch a{display: flex;align-items: center;gap: 0.08rem;color: #228fff;text-decoration: none;-webkit-tap-highlight-color: transparent;}
+.room-game-switch img.imgst{width: 0.4rem;height: 0.4rem;}
+.fmaint{color:#e53935 !important;font-weight:600 !important;white-space:nowrap;}
+/* 直播引导：灰色蒙版 + 提示图 + 今日不再提示 + 知道了 */
+.room-live-guide{
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0.4rem 0.36rem;
+  -webkit-tap-highlight-color: transparent;
+}
+.room-live-guide.is-on{
+  display: flex !important;
+  animation: roomLiveGuideFadeIn .28s ease-out;
+  -webkit-animation: roomLiveGuideFadeIn .28s ease-out;
+}
+.room-live-guide.is-leaving{
+  animation: roomLiveGuideFadeOut .45s linear forwards;
+  -webkit-animation: roomLiveGuideFadeOut .45s linear forwards;
+  pointer-events: none;
+}
+.room-side-fabs .fab-toggle{
+  border:0;
+  padding:0;
+  flex:0 0 .72rem;
+  width:.72rem!important;
+  height:.72rem!important;
+  background:transparent;
+}
+.room-side-fabs .fab-toggle img{
+  width:.72rem;
+  height:.72rem;
+}
+.room-side-fabs .fab-toggle{
+  touch-action:none;
+}
+.room-side-fabs .fab-btn:not(.fab-toggle){
+  max-height:.86rem;
+  opacity:1;
+  transform:translate3d(0,0,0);
+  overflow:hidden;
+  transition:max-height .2s ease, opacity .16s ease, transform .2s ease, margin .2s ease;
+}
+.room-side-fabs.is-collapsed{gap:0;}
+.room-side-fabs.is-collapsed .fab-btn:not(.fab-toggle){
+  height:0!important;
+  max-height:0;
+  min-height:0;
+  margin:0;
+  opacity:0;
+  transform:translate3d(.18rem,0,0);
+  pointer-events:none;
+  border:0!important;
+}
+.room-live-guide-mask{
+  position: absolute;
+  inset: 0;
+  background: rgba(70, 70, 70, 0.72);
+  background-image: url(/Style/newimg/guide/live_guide_mask.png?v=20260730g1);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.room-live-guide-panel{
+  position: relative;
+  z-index: 1;
+  width: 3.7rem;
+  max-width: 64vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.14rem;
+  transform: translateY(0.55rem);
+  -webkit-transform: translateY(0.55rem);
+}
+.room-live-guide-tip{
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.room-live-guide-today{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.08rem;
+  margin: 0;
+  color: #fff;
+  font-size: 0.22rem;
+  line-height: 1.2;
+  font-weight: 500;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+.room-live-guide-today input{
+  width: 0.26rem;
+  height: 0.26rem;
+  margin: 0;
+  accent-color: #2f8dff;
+}
+.room-live-guide-ok{
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 1.65rem;
+  max-width: 38%;
+  margin: 0.02rem 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.room-live-guide-ok img{
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+@keyframes roomLiveGuideFadeIn{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+@-webkit-keyframes roomLiveGuideFadeIn{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+@keyframes roomLiveGuideFadeOut{
+  from{ opacity: 1; }
+  to{ opacity: 0; }
+}
+@-webkit-keyframes roomLiveGuideFadeOut{
+  from{ opacity: 1; }
+  to{ opacity: 0; }
+}
+
+/* 20260812: fixed-width tabular countdown cells; prevent per-second digit jitter */
+.newest-sn .left-time b:not(.fping){width:.36rem;padding:0;justify-content:center;text-align:center;font-variant-numeric:tabular-nums;}
+.newest-sn .left-time b:nth-child(3){width:.16rem;}
+
+/* 20260812: 房间底部输入与投注键盘统一为正式版五列样式。 */
+.room-bottom-dock{
+  /* 键盘展开时不要在最后一排按键下额外留出一块白底。 */
+  padding-bottom:0;
+  background:#fff;
+  border-top:1px solid #d9dde2;
+}
+.chat-input{
+  min-height:.64rem;
+  padding:.12rem .18rem;
+  box-sizing:border-box;
+}
+.chat-input .keyb-input{
+  height:.44rem;
+  margin:0 .18rem;
+  border:1px solid #dedede;
+  border-radius:7px;
+  background:#fff;
+}
+/* 未打开自定义键盘时，输入栏采用更高的视觉尺寸；点击后仍回到原高度，
+   所以键盘展开的总高度和按键位置不受影响。 */
+.room-bottom-dock > .chat-input{
+  height:.64rem!important;
+  min-height:.64rem!important;
+  padding:.12rem .18rem!important;
+}
+.room-bottom-dock > .chat-input .keyb-input{height:.44rem!important;}
+.room-bottom-dock > .chat-input .keyb-input textarea{height:.44rem!important;line-height:.44rem!important;}
+/* 用户要的是输入栏下面的留白，不是把输入白框本身拉高。 */
+.room-bottom-dock:not(.fn-keyboard-open){
+  /* 用 dock 内边距形成独立分隔带；旧 Android WebView 不再依赖易被吞掉的子元素 margin。 */
+  padding-top:.12rem!important;
+  padding-bottom:max(.34rem, env(safe-area-inset-bottom, 0px))!important;
+  background:#f2f2f2!important;
+}
+/* 普通状态为整块浅灰底板：白色输入框与左右按钮悬在底板上方，底部仍可见留白。 */
+.room-bottom-dock:not(.fn-keyboard-open) > .chat-input{background:#f2f2f2!important;margin-top:0!important;}
+.room-bottom-dock.fn-keyboard-open > .chat-input,
+.room-bottom-dock:has(#keyboard1[style*="display: block"]) > .chat-input,
+.room-bottom-dock:has(#keyboard2[style*="display: block"]) > .chat-input{
+  height:.64rem!important;
+  min-height:.64rem;
+  padding:.12rem .18rem;
+  /* 快捷栏前必须有看得见的灰色缝隙，不能与输入栏融成同一块白底。 */
+  /* 展开键盘时仍保持与普通输入栏一致的顶部留白。 */
+  margin-top:0!important;
+  margin-bottom:.12rem!important;
+  background:#eef0f2!important;
+}
+/* 自定义键盘展开时同样保留 App 底部安全区。
+   这与只有输入栏时的留白高度一致，最后一排按键不会压住 Home 指示条。 */
+.room-bottom-dock.fn-keyboard-open,
+.room-bottom-dock:has(#keyboard1[style*="display: block"]),
+.room-bottom-dock:has(#keyboard2[style*="display: block"]){
+  padding-top:.12rem!important;
+  padding-bottom:max(.34rem, env(safe-area-inset-bottom, 0px))!important;
+  background:#f2f2f2!important;
+}
+.room-bottom-dock.fn-keyboard-open > .chat-input .keyb-input,
+.room-bottom-dock:has(#keyboard1[style*="display: block"]) > .chat-input .keyb-input,
+.room-bottom-dock:has(#keyboard2[style*="display: block"]) > .chat-input .keyb-input{height:.44rem;}
+.room-bottom-dock.fn-keyboard-open > .chat-input .keyb-input textarea,
+.room-bottom-dock:has(#keyboard1[style*="display: block"]) > .chat-input .keyb-input textarea,
+.room-bottom-dock:has(#keyboard2[style*="display: block"]) > .chat-input .keyb-input textarea{height:.44rem!important;line-height:.44rem!important;}
+
+/* 旧 Android WebView 不支持 :has() 时会丢弃整组选择器，必须提供不含 :has() 的独立回退。 */
+.room-bottom-dock.fn-keyboard-open{
+  padding-top:.12rem!important;
+  padding-bottom:max(.34rem, env(safe-area-inset-bottom, 0px))!important;
+  background:#f2f2f2!important;
+}
+.room-bottom-dock.fn-keyboard-open > .chat-input{
+  height:.64rem!important;
+  min-height:.64rem!important;
+  padding:.12rem .18rem!important;
+  margin-top:0!important;
+  margin-bottom:.12rem!important;
+  background:#eef0f2!important;
+}
+.room-bottom-dock.fn-keyboard-open > .chat-input .keyb-input,
+.room-bottom-dock.fn-keyboard-open > .chat-input .keyb-input textarea{
+  height:.44rem!important;
+  line-height:.44rem!important;
+}
+.keybaord:not(.is-pc28-kb){
+  padding:0;
+  background:#e7ebf1;
+  box-sizing:border-box;
+}
+.keybaord:not(.is-pc28-kb) .fast-keyboard{
+  display:flex;
+  align-items:stretch;
+  margin:0;
+  padding:0;
+  background:#fff;
+}
+.keybaord:not(.is-pc28-kb) .fast-keyboard li{
+  width:16.6667%;
+  height:.56rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  font-size:.25rem;
+  font-weight:600;
+  color:#3e3e3e;
+  background:none;
+  border:0;
+}
+.keybaord:not(.is-pc28-kb) .numbaord{
+  margin:0;
+  padding:3px;
+  background:#e7ebf1;
+}
+.keybaord:not(.is-pc28-kb) .numbaord li{
+  width:calc((100% - 12px)/5);
+  height:.72rem;
+  margin:0 3px 3px 0;
+  border:1px solid #dce1e8;
+  border-radius:6px;
+  background:#f8fbfd;
+  color:#3e4145;
+  font-size:.3rem;
+  font-weight:500;
+  box-shadow:0 1px 1px rgba(0,0,0,.16);
+}
+.keybaord:not(.is-pc28-kb) .numbaord li:nth-child(5n){margin-right:0;}
+.keybaord:not(.is-pc28-kb) .numbaord li.rowstart,
+.keybaord:not(.is-pc28-kb) .numbaord li.delimg{
+  background:#b9c2d0;
+  border-color:#adb7c5;
+  color:#3d4249;
+  font-weight:600;
+}
+.keybaord:not(.is-pc28-kb) .numbaord li.zlong{background:#b9c2d0;color:#f01d35;border-color:#adb7c5;}
+.keybaord:not(.is-pc28-kb) .numbaord li.zgyh{background:#b9c2d0;color:#24b72c;border-color:#adb7c5;}
+.keybaord:not(.is-pc28-kb) .numbaord li.zhu{background:#b9c2d0;color:#2585e8;border-color:#adb7c5;}
+.keybaord:not(.is-pc28-kb) .numbaord li.slash-key{font-size:.28rem;}
+.keybaord:not(.is-pc28-kb) .numbaord li.slash-key::after{content:none;}
+.keybaord:not(.is-pc28-kb) .numbaord li.delimg img{width:.38rem;}
+
+/* 弹珠房同样采用图五的色板和按键质感，保留该玩法独有的文字键。 */
+.keybaord.is-pc28-kb{background:#e7ebf1;padding:0 0 .06rem;}
+.keybaord.is-pc28-kb{padding:0;}
+.keybaord.is-pc28-kb .pc28-quick-line li{height:.56rem;font-size:.32rem;font-weight:600;color:#3e3e3e;}
+.keybaord:not(.is-pc28-kb) .fast-keyboard li{font-size:.29rem;}
+.keybaord.is-pc28-kb .pc28-quick-btn{padding:3px 3px 0;background:#e7ebf1;}
+.keybaord.is-pc28-kb .pc28-quick-btn li{height:.56rem;background:#f8fbfd;border-color:#dce1e8;color:#3e4145;font-size:.24rem;}
+.keybaord.is-pc28-kb .pc28-numboard{padding:3px;background:#e7ebf1;}
+.keybaord.is-pc28-kb .pc28-numboard li{height:.72rem;background:#f8fbfd;border-color:#dce1e8;color:#3e4145;box-shadow:0 1px 1px rgba(0,0,0,.16);}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-side,
+.keybaord.is-pc28-kb .pc28-numboard li.kb-del,
+.keybaord.is-pc28-kb .pc28-numboard li.kb-wave{background:#b9c2d0;border-color:#adb7c5;}
+
+/* 20260812: 正式版消息分层。仅作用于左侧已有正式版参考的聊天内容；
+   本人右侧气泡、图片、VIP、语音/表情/红包、独立公告页和弹窗均不在此规则内。 */
+.left-header.fn-msg-score-status .content-info{
+  padding:.13rem .16rem;
+  border-radius:4px;
+}
+.left-header.fn-msg-score-status .info-content{
+  font-size:.29rem;
+  line-height:1.48;
+  color:#222;
+}
+.left-header.fn-msg-score-status .chat-at{color:#168db8!important;font-weight:700;}
+
+/* 玩家预测文本：不套厚气泡，靠分隔线与状态颜色形成高密度信息块。 */
+.left-header.fn-msg-prediction .content-box{margin-right:.10rem;}
+.left-header.fn-msg-prediction .content-info{
+  float:none;
+  width:auto;
+  margin:.08rem 0;
+  padding:.08rem .14rem;
+  border-radius:0;
+  background:rgba(255,255,255,.82);
+}
+.left-header.fn-msg-prediction .info-content{
+  font-size:.27rem;
+  line-height:1.53;
+  color:#222;
+  white-space:pre-wrap;
+}
+
+/* 活动公告：标题与正文是独立块；后台下发的标题/链接/段落不做替换。 */
+.left-header.fn-msg-activity .content-box,
+.left-header.fn-msg-long-notice .content-box,
+.left-header.fn-msg-broadcast .content-box{flex:1 1 auto;min-width:0;margin-right:.08rem;}
+.left-header.fn-msg-activity .content-info{
+  float:none;
+  margin:.08rem 0 .14rem;
+  padding:0;
+  border-radius:3px;
+  overflow:hidden;
+  background:#fff;
+}
+.left-header.fn-msg-activity .info-content{font-size:.28rem;line-height:1.58;color:#222;word-break:break-word;}
+.fn-msg-activity-title{
+  padding:.15rem .18rem;
+  background:linear-gradient(90deg,#36c6bd 0%,#1694b9 100%);
+  color:#fff;
+  font-weight:700;
+  font-size:.30rem;
+  line-height:1.35;
+  text-align:center;
+}
+.fn-msg-activity-body{padding:.16rem .18rem .20rem;}
+.fn-msg-activity-body a{color:#087cc9!important;font-weight:600;overflow-wrap:anywhere;}
+
+/* 安全提醒：白色阅读块，段落和风险提示比普通聊天更易扫读。 */
+.left-header.fn-msg-long-notice .content-info{
+  float:none;
+  margin:.08rem 0 .16rem;
+  padding:.18rem .20rem;
+  border-radius:3px;
+  background:#fff;
+}
+.left-header.fn-msg-long-notice .info-content{
+  font-size:.30rem;
+  line-height:1.72;
+  color:#242424;
+  word-break:break-word;
+}
+.left-header.fn-msg-long-notice .info-content br+br{line-height:2.05;}
+
+/* 灰底运营广播：只由波浪分隔的后台广播内容触发，不影响普通公告。 */
+.left-header.fn-msg-broadcast .content-info{
+  float:none;
+  margin:.08rem 0 .16rem;
+  padding:.18rem .20rem;
+  border-radius:2px;
+  background:rgba(86,89,94,.68);
+}
+.left-header.fn-msg-broadcast .info-content{
+  font-size:.29rem;
+  line-height:1.72;
+  color:#fff;
+  text-shadow:0 1px 1px rgba(0,0,0,.14);
+  word-break:break-word;
+}
+
+/* 注单回执：保持紧凑表格，青绿标题、红赔率、蓝金额、红色合计各司其职。 */
+.left-header.fn-msg-bet .content-info{width:auto!important;max-width:none!important;min-width:0!important;padding:.08rem!important;margin:.07rem 0 .12rem!important;}
+.left-header.fn-msg-bet .fn-bet-card{border-radius:3px!important;border-color:#dce7ea!important;}
+.left-header.fn-msg-bet .fn-bet-hd{min-height:.58rem!important;padding:0 .16rem!important;background:linear-gradient(90deg,#36c6bd 0%,#1596b7 100%)!important;font-size:.25rem!important;}
+.left-header.fn-msg-bet .fn-bet-line{min-height:.52rem!important;padding:.08rem .14rem!important;font-size:.24rem!important;}
+.left-header.fn-msg-bet .fn-bet-ft{padding:.10rem .14rem!important;font-size:.23rem!important;}
+
+/* 结算与封盘核对：标题—用途—名单—说明四级分块，保障后台模板文字原样显示。 */
+.left-header.fn-msg-settlement .content-info,
+.left-header.fn-msg-seal .content-info{
+  float:none;
+  width:auto!important;
+  max-width:none!important;
+  min-width:0!important;
+  margin:.08rem 0 .16rem!important;
+  padding:.06rem!important;
+  border-radius:3px;
+}
+.left-header.fn-msg-settlement .fn-seal-card,
+.left-header.fn-msg-seal .fn-seal-card{border-radius:2px;border-color:#d8e2e7;}
+.left-header.fn-msg-settlement .fn-seal-hd,
+.left-header.fn-msg-seal .fn-seal-hd{padding:.14rem .16rem!important;background:linear-gradient(90deg,#36c6bd 0%,#1596b7 100%)!important;font-size:.30rem!important;line-height:1.35!important;}
+.left-header.fn-msg-settlement .fn-settlement-bd{padding:.18rem .20rem!important;font-size:.28rem!important;line-height:1.65!important;}
+.left-header.fn-msg-settlement .fn-settlement-bd > div{margin:0 0 .18rem!important;line-height:1.65!important;}
+.left-header.fn-msg-seal .fn-seal-bd{padding:.10rem 0 .15rem!important;}
+.left-header.fn-msg-seal .fn-seal-line{padding:.06rem .17rem!important;font-size:.27rem!important;line-height:1.60!important;}
+.left-header.fn-msg-seal .fn-seal-row{padding:.10rem .17rem!important;font-size:.26rem!important;line-height:1.48!important;}
+.left-header.fn-msg-seal .fn-seal-row > span,
+.left-header.fn-msg-seal .fn-seal-row b,
+.left-header.fn-msg-seal .fn-seal-detail{font-size:.26rem!important;}
+.left-header.fn-msg-seal .fn-seal-detail{color:#078ac9!important;font-weight:700;}
+.left-header.fn-msg-seal .fn-seal-sep{margin:.15rem .17rem!important;border-top-color:#3f3f3f!important;}
+
+/* 2.0.6：正式版弹珠键盘固定为一行快捷键和 5×4 主键盘。
+   Grid 让每行永远正好五键，杜绝 WebView 缩放时第 5 键换行。 */
+.keybaord.is-pc28-kb .pc28-quick-btn{display:none!important;}
+.keybaord.is-pc28-kb .pc28-numboard{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-auto-rows:.72rem!important;
+  gap:3px!important;
+  padding:3px!important;
+  margin:0!important;
+}
+.keybaord.is-pc28-kb .pc28-numboard li{
+  width:auto!important;
+  height:auto!important;
+  min-width:0!important;
+  margin:0!important;
+}
+
+/* 2.0.7：封盘属于全宽系统消息，卡片延伸至屏幕右侧；右侧快捷键只浮在上层。 */
+.left-header.fn-msg-seal{
+  margin-right:0!important;
+  overflow:visible!important;
+}
+.left-header.fn-msg-seal .content-box{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  margin:.1rem 0 .1rem .1rem!important;
+}
+.left-header.fn-msg-seal .content-info{
+  width:100%!important;
+  max-width:none!important;
+  margin:.08rem 0 .16rem!important;
+  box-sizing:border-box!important;
+}
+
+/* 2.0.8：注单回执是结构化卡片，不能由单条下注文字决定外层宽度。 */
+.left-header.fn-msg-bet .content-box{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  margin:.1rem 0 .1rem .1rem!important;
+}
+.left-header.fn-msg-bet .content-info{
+  float:none!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:.07rem 0 .12rem!important;
+  box-sizing:border-box!important;
+}
+.left-header.fn-msg-bet .fn-bet-card{width:100%!important;max-width:none!important;}
+
+/* 2.0.9：本人的即时注单使用 fn-bet-optimistic，不会经过后台消息分类；
+   必须与回传后的 fn-msg-bet 共用整行卡片宽度。 */
+.left-header.fn-bet-optimistic .content-box{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  margin:.1rem 0 .1rem .1rem!important;
+}
+.left-header.fn-bet-optimistic .content-info{
+  float:none!important;
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  margin:.07rem 0 .12rem!important;
+  box-sizing:border-box!important;
+}
+.left-header.fn-bet-optimistic .info-content,
+.left-header.fn-bet-optimistic .fn-bet-card{width:100%!important;max-width:none!important;box-sizing:border-box!important;}
+
+/* 2.0.10：卡片本身 100% 仍不够，普通消息行会按内容宽度收缩。
+   含注单的整条消息行必须占满可用行宽，且不能保留右侧空头像位。 */
+.left-header:has(.fn-bet-card),
+.left-header.fn-bet-optimistic{
+  width:calc(100% - .2rem)!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+}
+.left-header:has(.fn-bet-card) .rheader,
+.left-header.fn-bet-optimistic .rheader{display:none!important;}
+.left-header:has(.fn-bet-card) .content-box,
+.left-header.fn-bet-optimistic .content-box{
+  flex:1 1 0!important;
+  width:auto!important;
+  min-width:0!important;
+}
+
+/* 2.0.11：个人注单与封盘卡共用整条内容列的实际宽度。
+   旧气泡父级不再裁切，短注单也保持正式版的大卡片比例。 */
+.left-header:has(.fn-bet-card) .content-info,
+.left-header.fn-bet-optimistic .content-info,
+.left-header:has(.fn-bet-card) .info-content,
+.left-header.fn-bet-optimistic .info-content{overflow:visible!important;}
+.left-header:has(.fn-bet-card) .fn-bet-card,
+.left-header.fn-bet-optimistic .fn-bet-card{
+  width:calc(100vw - 3rem)!important;
+  min-width:calc(100vw - 3rem)!important;
+  max-width:calc(100vw - 3rem)!important;
+}
+
+/* 2.0.12：个人注单与封盘卡右边缘对齐到快捷按钮栏左侧，并留出小间距。
+   宽度由消息行的右侧预留决定，禁止卡片继续使用 viewport 宽度越过按钮。 */
+.left-header:has(.fn-bet-card),
+.left-header.fn-bet-optimistic,
+.left-header.fn-msg-seal{
+  width:auto!important;
+  margin-right:1.08rem!important;
+}
+.left-header:has(.fn-bet-card) .fn-bet-card,
+.left-header.fn-bet-optimistic .fn-bet-card,
+.left-header.fn-msg-seal .content-info,
+.left-header.fn-msg-seal .fn-seal-card{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+
+/* 2.0.13：注单、封盘与结算是同一类结构化消息。
+   整行先在右侧快捷按钮栏左边留出空隙，再由内容列填满剩余区域；
+   不再直接用 viewport 宽度，避免白色外层和卡片伸到快捷按钮下方。 */
+.left-header:has(.fn-bet-card),
+.left-header.fn-bet-optimistic,
+.left-header.fn-msg-seal,
+.left-header.fn-msg-settlement,
+.left-header.fn-msg-after-seal-custom{
+  display:flex!important;
+  width:auto!important;
+  margin:.10rem 1.08rem .10rem .10rem!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+}
+.left-header:has(.fn-bet-card) .rheader,
+.left-header.fn-bet-optimistic .rheader,
+.left-header.fn-msg-seal .rheader,
+.left-header.fn-msg-settlement .rheader,
+.left-header.fn-msg-after-seal-custom .rheader{display:none!important;}
+.left-header:has(.fn-bet-card) .content-box,
+.left-header.fn-bet-optimistic .content-box,
+.left-header.fn-msg-seal .content-box,
+.left-header.fn-msg-settlement .content-box,
+.left-header.fn-msg-after-seal-custom .content-box{
+  flex:1 1 0!important;
+  width:auto!important;
+  min-width:0!important;
+  margin:0 .10rem!important;
+}
+.left-header:has(.fn-bet-card) .content-info,
+.left-header.fn-bet-optimistic .content-info,
+.left-header.fn-msg-seal .content-info,
+.left-header.fn-msg-settlement .content-info,
+.left-header.fn-msg-after-seal-custom .content-info{
+  float:none!important;
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:.07rem 0 .12rem!important;
+  box-sizing:border-box!important;
+}
+.left-header:has(.fn-bet-card) .info-content,
+.left-header.fn-bet-optimistic .info-content,
+.left-header.fn-msg-seal .info-content,
+.left-header.fn-msg-settlement .info-content,
+.left-header.fn-msg-after-seal-custom .info-content,
+.left-header:has(.fn-bet-card) .fn-bet-card,
+.left-header.fn-bet-optimistic .fn-bet-card,
+.left-header.fn-msg-seal .fn-seal-card,
+.left-header.fn-msg-settlement .fn-seal-card,
+.left-header.fn-msg-settlement .fn-settlement-card{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+}
+
+/* 2.0.14：普通房间键盘与正式版一样固定为五列四行。
+   旧 flex 的“20% + 左间距”会让一行只能容纳四键，导致第 5 键从第二行开始持续错位。 */
+.keybaord:not(.is-pc28-kb){
+  /* 自绘键盘最后一排必须贴底；安全区由 App 外层处理，不能在键盘里再留一段空行。 */
+  padding:0!important;
+  background:#ececec!important;
+  box-sizing:border-box!important;
+}
+.keybaord:not(.is-pc28-kb) .fast-keyboard{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  margin:0!important;
+  padding:.05rem 0!important;
+  background:#fff!important;
+  box-sizing:border-box!important;
+}
+.keybaord:not(.is-pc28-kb) .fast-keyboard li{
+  width:auto!important;
+  height:.58rem!important;
+  line-height:.58rem!important;
+  margin:0!important;
+  padding:0!important;
+  background-image:none!important;
+  font-size:.32rem!important;
+  color:#444!important;
+  font-weight:600!important;
+  box-sizing:border-box!important;
+}
+.keybaord:not(.is-pc28-kb) .numbaord{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-template-rows:repeat(4,.72rem)!important;
+  grid-auto-flow:row!important;
+  gap:3px!important;
+  margin:0!important;
+  padding:3px!important;
+  background:#ececec!important;
+  box-sizing:border-box!important;
+}
+.keybaord:not(.is-pc28-kb) .numbaord li,
+.keybaord:not(.is-pc28-kb) .numbaord li.rowstart{
+  width:auto!important;
+  height:auto!important;
+  min-width:0!important;
+  margin:0!important;
+  border:1px solid #d4d9e0!important;
+  border-radius:6px!important;
+  background:#f8fafc!important;
+  color:#3d4248!important;
+  font-size:.28rem!important;
+  font-weight:500!important;
+  box-sizing:border-box!important;
+}
+.keybaord:not(.is-pc28-kb) .numbaord li.rowstart,
+.keybaord:not(.is-pc28-kb) .numbaord li.delimg{
+  background:#bac3d1!important;
+  border-color:#aeb8c7!important;
+  font-weight:600!important;
+}
+.keybaord:not(.is-pc28-kb) .numbaord li.zlong{color:#ef2e38!important;}
+.keybaord:not(.is-pc28-kb) .numbaord li.zhu{color:#2588e9!important;}
+.keybaord:not(.is-pc28-kb) .numbaord li.zgyh{color:#1db33a!important;}
+.keybaord:not(.is-pc28-kb) .numbaord li.delimg img{width:.42rem!important;}
+
+/* .bottom-height 是旧版用于弹层的固定高度；用于键盘会制造最后一排下方的空行。 */
+#keyboard1.keybaord.bottom-height{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  flex:0 0 auto!important;
+}
+
+/* 快捷输入区与输入栏不能只靠外边距分开：旧的固定定位会吞掉 margin。
+   在键盘容器本身顶部保留一条浅灰分隔带，输入栏会随整个键盘上移。 */
+#keyboard1.keybaord{
+  border-top:.12rem solid #eef0f2!important;
+}
+
+/* 2.0.15：结构化卡片的昵称必须先独立占行，再开始白色卡片。
+   注单扩宽后不能让外层气泡进入昵称层，避免遮住“管理员 + 时间”。 */
+.left-header:has(.fn-bet-card) .nick-name,
+.left-header.fn-bet-optimistic .nick-name,
+.left-header.fn-msg-seal .nick-name,
+.left-header.fn-msg-settlement .nick-name,
+.left-header.fn-msg-after-seal-custom .nick-name{
+  display:block!important;
+  clear:both!important;
+  position:relative!important;
+  z-index:2!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:.28rem!important;
+  margin:0 .10rem .04rem!important;
+  line-height:.28rem!important;
+  box-sizing:border-box!important;
+}
+.left-header:has(.fn-bet-card) .content-info,
+.left-header.fn-bet-optimistic .content-info,
+.left-header.fn-msg-seal .content-info,
+.left-header.fn-msg-settlement .content-info,
+.left-header.fn-msg-after-seal-custom .content-info{
+  clear:both!important;
+  position:relative!important;
+  z-index:1!important;
+}
+
+
+/* 20260815: coordinate-aligned keyboard pressed state */
+.numbaord li.fn-key-pressed,
+.fast-keyboard li.fn-key-pressed,
+.pc28-quick li.fn-key-pressed {
+    filter: brightness(.9);
+    box-shadow: inset 0 .04rem .1rem rgba(0, 0, 0, .22);
+    /* fixed 合成层内不再移动按键本身，避免 iOS 命中层再次失同步。 */
+    transform: none!important;
+}
+/* android-chat-nickname-flow-20260816: Android WebView 聊天昵称与气泡始终按纵向文档流排列。
+   旧 WebView 不支持 :has()，因此结构化消息必须同时使用 JS 已标记的显式类名。 */
+.chat-content .left-header .content-box,
+.chat-content .right-header .content-box{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+}
+.chat-content .left-header .content-box{align-items:flex-start!important;}
+.chat-content .right-header .content-box{align-items:flex-end!important;}
+.chat-content .left-header .nick-name,
+.chat-content .right-header .nick-name{
+  float:none!important;
+  flex:0 0 auto!important;
+  position:relative!important;
+  z-index:2!important;
+  box-sizing:border-box!important;
+}
+.chat-content .left-header .content-info,
+.chat-content .right-header .content-info{
+  float:none!important;
+  flex:0 0 auto!important;
+  position:relative!important;
+  z-index:1!important;
+}
+
+.left-header.fn-msg-bet,
+.left-header.fn-bet-optimistic,
+.left-header.fn-msg-seal,
+.left-header.fn-msg-settlement,
+.left-header.fn-msg-after-seal-custom{
+  display:flex!important;
+  width:auto!important;
+  margin:.10rem 1.08rem .10rem .10rem!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+}
+.left-header.fn-msg-bet .rheader,
+.left-header.fn-bet-optimistic .rheader,
+.left-header.fn-msg-seal .rheader,
+.left-header.fn-msg-settlement .rheader,
+.left-header.fn-msg-after-seal-custom .rheader{display:none!important;}
+.left-header.fn-msg-bet .content-box,
+.left-header.fn-bet-optimistic .content-box,
+.left-header.fn-msg-seal .content-box,
+.left-header.fn-msg-settlement .content-box,
+.left-header.fn-msg-after-seal-custom .content-box{
+  flex:1 1 0!important;
+  width:auto!important;
+  min-width:0!important;
+  margin:0 .10rem!important;
+  align-items:stretch!important;
+}
+.left-header.fn-msg-bet .nick-name,
+.left-header.fn-bet-optimistic .nick-name,
+.left-header.fn-msg-seal .nick-name,
+.left-header.fn-msg-settlement .nick-name,
+.left-header.fn-msg-after-seal-custom .nick-name{
+  display:block!important;
+  clear:both!important;
+  align-self:stretch!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:.28rem!important;
+  margin:0 .10rem .04rem!important;
+  line-height:.28rem!important;
+}
+.left-header.fn-msg-bet .content-info,
+.left-header.fn-bet-optimistic .content-info,
+.left-header.fn-msg-seal .content-info,
+.left-header.fn-msg-settlement .content-info,
+.left-header.fn-msg-after-seal-custom .content-info{
+  clear:both!important;
+  align-self:stretch!important;
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:.07rem 0 .12rem!important;
+  box-sizing:border-box!important;
+}
+.left-header.fn-msg-bet .info-content,
+.left-header.fn-msg-bet .fn-bet-card,
+.left-header.fn-bet-optimistic .info-content,
+.left-header.fn-bet-optimistic .fn-bet-card,
+.left-header.fn-msg-seal .info-content,
+.left-header.fn-msg-seal .fn-seal-card,
+.left-header.fn-msg-settlement .info-content,
+.left-header.fn-msg-settlement .fn-seal-card,
+.left-header.fn-msg-settlement .fn-settlement-card,
+.left-header.fn-msg-after-seal-custom .info-content{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+}
+
+/* 20260817: iOS 自绘键盘最终结构修复。
+   底栏必须参与 mainbox 的 flex 布局，禁止任何旧内联 fixed 规则重新创建独立命中层。 */
+.mainbox > .chat-content{
+  padding-bottom:0!important;
+}
+.mainbox > .room-bottom-dock{
+  position:relative!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  transform:none!important;
+  contain:layout paint;
+}
+
+/* chat-readable-vip-20260817：所有游戏统一提高昵称、时间、VIP 徽章与消息可读性。 */
+.chat-content .left-header .nick-name,
+.chat-content .right-header .nick-name{
+  min-height:.34rem!important;
+  line-height:.34rem!important;
+  font-size:.24rem!important;
+}
+.chat-content .vip-chat-badge{
+  width:.34rem!important;
+  height:.34rem!important;
+  margin:0 .045rem!important;
+}
+.chat-content .info-content{
+  font-size:.29rem!important;
+  line-height:1.55!important;
+}
+.left-header.fn-msg-activity .info-content{
+  font-size:.31rem!important;
+}
+.left-header.fn-msg-bet .fn-bet-hd,
+.left-header.fn-bet-optimistic .fn-bet-hd{
+  font-size:.28rem!important;
+}
+.left-header.fn-msg-bet .fn-bet-line,
+.left-header.fn-bet-optimistic .fn-bet-line{
+  font-size:.27rem!important;
+}
+.left-header.fn-msg-bet .fn-bet-ft,
+.left-header.fn-bet-optimistic .fn-bet-ft{
+  font-size:.26rem!important;
+}
+.left-header.fn-msg-settlement .fn-seal-hd,
+.left-header.fn-msg-seal .fn-seal-hd{
+  font-size:.32rem!important;
+}
+.left-header.fn-msg-settlement .fn-settlement-bd{
+  font-size:.30rem!important;
+}
+.left-header.fn-msg-seal .fn-seal-line{
+  font-size:.29rem!important;
+}
+.left-header.fn-msg-seal .fn-seal-row,
+.left-header.fn-msg-seal .fn-seal-row > span,
+.left-header.fn-msg-seal .fn-seal-row b,
+.left-header.fn-msg-seal .fn-seal-detail{
+  font-size:.28rem!important;
+}
+
+
+/* robot-vip-close-card-20260817 */
+.chat-content .vip-chat-badge{
+  width:.42rem!important;
+  height:.42rem!important;
+  margin:0 .055rem!important;
+  object-fit:contain!important;
+  vertical-align:middle!important;
+}
+.chat-content .info-content,
+.chat-content .nick-name{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif!important;
+}
+.chat-content .fn-close-countdown-card{
+  width:100%!important;
+  max-width:100%!important;
+  padding:.16rem .14rem!important;
+  border:0!important;
+  border-radius:.08rem!important;
+  background:#aaa!important;
+  color:#fff!important;
+  text-align:center!important;
+  box-sizing:border-box!important;
+}
+.chat-content .fn-close-countdown-card .fn-close-countdown-title{
+  font-size:.28rem!important;
+  line-height:1.45!important;
+  color:#fff!important;
+  white-space:nowrap!important;
+  letter-spacing:-.006rem!important;
+  overflow:visible!important;
+}
+.chat-content .fn-close-countdown-card .fn-close-countdown-body,
+.chat-content .fn-close-countdown-card .fn-close-countdown-warning,
+.chat-content .fn-close-countdown-card .fn-seal-line{
+  padding:0!important;
+  font-size:.29rem!important;
+  line-height:1.65!important;
+  color:#fff!important;
+  text-align:center!important;
+  font-weight:700!important;
+  background:transparent!important;
+}
+.chat-content .fn-close-countdown-card .fn-close-countdown-divider{
+  margin:.06rem 0!important;
+  border-top:.02rem dashed rgba(255,255,255,.92)!important;
+}
+
+/* admin-chat-badge-20260817 */
+.chat-content .admin-chat-badge{
+  display:inline-block!important;
+  width:.22rem!important;
+  height:.22rem!important;
+  margin:0 .04rem!important;
+  object-fit:contain!important;
+  vertical-align:middle!important;
+  position:relative!important;
+  top:0!important;
+  border:0!important;
+  border-radius:50%!important;
+}
+
+/* close-countdown-standalone-20260817 */
+.chat-content .fn-close-countdown-notice{
+  display:flex!important;
+  clear:both!important;
+  width:100%!important;
+  margin:.10rem 0 .18rem!important;
+  padding:.04rem .18rem!important;
+  justify-content:center!important;
+  align-items:flex-start!important;
+  box-sizing:border-box!important;
+}
+.chat-content .fn-close-countdown-notice-inner{
+  display:block!important;
+  width:86%!important;
+  max-width:8.8rem!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.chat-content .fn-close-countdown-notice .fn-close-countdown-card{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}

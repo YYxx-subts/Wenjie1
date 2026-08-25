@@ -1,0 +1,137 @@
+// 新页面统一从右侧进入：只动画当前新文档，不移动旧页面截图，避免白屏和旧页滑出。
+(function feiniaoPageEnter() {
+    var css = '@keyframes fnPageEnter{from{transform:translate3d(100%,0,0)}to{transform:translate3d(0,0,0)}}' +
+        'html.fn-page-enter{overflow-x:hidden;background:#fff}' +
+        'html.fn-page-enter body{animation:fnPageEnter .42s cubic-bezier(.22,.61,.36,1) both;backface-visibility:hidden;transform-origin:0 50%;will-change:transform}';
+    try {
+        var style = document.createElement('style');
+        style.id = 'fn-page-enter-style';
+        style.textContent = css;
+        (document.head || document.documentElement).appendChild(style);
+    } catch (e) {}
+    function start() {
+        if (window.__FN_NATIVE_PAGE_TRANSITION__) return;
+        try {
+            var nav = window.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+            if (nav && nav.type === 'back_forward') return;
+            if (!document.body || document.documentElement.classList.contains('fn-page-enter')) return;
+            document.documentElement.classList.add('fn-page-enter');
+            document.body.addEventListener('animationend', function () {
+                document.documentElement.classList.remove('fn-page-enter');
+            }, { once: true });
+        } catch (e) {}
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, false);
+    else start();
+})();
+
+// 页面级即时加载提示：只覆盖当前文档，真正导航完成后由下一页自然消失。
+(function feiniaoPageLoading() {
+    var timer = null;
+    function ensureStyle() {
+        if (document.getElementById('fn-page-loading-style')) return;
+        var s = document.createElement('style'); s.id = 'fn-page-loading-style';
+        s.textContent = '.fn-page-loading{position:fixed;inset:0;background:rgba(20,35,48,.18);z-index:2147483646;display:flex;align-items:center;justify-content:center;pointer-events:none}.fn-page-loading-box{width:96px;height:96px;border-radius:16px;background:rgba(60,70,78,.76);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:300 17px/1.2 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}.fn-page-loading-dots{display:flex;gap:6px;margin-bottom:17px}.fn-page-loading-dots i{width:11px;height:14px;border-radius:99px;background:#e2e7f1;animation:fnLoadingDot 1.4s ease-in-out infinite}.fn-page-loading-dots i:nth-child(2){animation-delay:.22s}.fn-page-loading-dots i:nth-child(3){animation-delay:.44s}@keyframes fnLoadingDot{0%,100%{transform:translateY(3px) scale(.7)}50%{transform:translateY(-3px) scale(1.15)}}';
+        (document.head || document.documentElement).appendChild(s);
+    }
+    window.fnShowPageLoading = function (text) {
+        ensureStyle();
+        var old = document.getElementById('fn-page-loading'); if (old) old.remove();
+        var box = document.createElement('div'); box.id = 'fn-page-loading'; box.className = 'fn-page-loading';
+        box.innerHTML = '<div class="fn-page-loading-box"><div class="fn-page-loading-dots"><i></i><i></i><i></i></div><div>' + String(text || '正在加载').replace(/[<>&]/g, '') + '</div></div>';
+        (document.body || document.documentElement).appendChild(box);
+        clearTimeout(timer); timer = setTimeout(function () { if (box.parentNode) box.remove(); }, 12000);
+    };
+    window.fnHidePageLoading = function () { clearTimeout(timer); var el = document.getElementById('fn-page-loading'); if (el) el.remove(); };
+    document.addEventListener('click', function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+        if (!a || a.target === '_blank') return;
+        var href = a.getAttribute('href') || '';
+        if (/^(javascript:|#|mailto:|tel:)/i.test(href)) return;
+        if (/Templates\/(New|Old)\/.*Bet|do=room(?:&|$)/i.test(href)) {
+            window.fnShowPageLoading(/Bet/i.test(href) ? '正在加入' : '循环加载');
+        } else if (/^\//.test(href) || /^https?:\/\//i.test(href)) {
+            window.fnShowPageLoading('正在加载');
+        }
+    }, true);
+    document.addEventListener('touchend', function (e) {
+        var el = e.target && e.target.closest ? e.target.closest('[data-url],button[onclick],li[ontouchend]') : null;
+        if (!el) return;
+        var url = el.getAttribute('data-url') || '';
+        var inline = el.getAttribute('ontouchend') || el.getAttribute('onclick') || '';
+        if (url || /location\.(href|assign|replace)|feiniaoGo/i.test(inline)) window.fnShowPageLoading('正在加载');
+    }, true);
+})();
+
+// App 物理返回：HTML5+(plus) 与普通 WebView 都能尽量回上一页
+var plusReady = function (callback) {
+    if (window.plus) {
+        callback();
+    } else {
+        document.addEventListener('plusready', callback);
+    }
+};
+
+function feiniaoNavigateBack() {
+    try {
+        var path = (location.pathname || '') + (location.search || '');
+        var href = location.href || '';
+        // 与 App 壳、页内返回按钮一致的业务回退
+        if (/do=room(?!door)/i.test(href) || /Templates\/room/i.test(path)) {
+            if (window.history && history.length > 1) history.back();
+            else location.href = '/action.php?do=gamelist';
+            return;
+        }
+        if (/do=gamelist/i.test(href) || /do=kefu/i.test(href) || /Templates\/user\//i.test(path)) {
+            location.href = '/action.php?do=roomdoor';
+            return;
+        }
+        if (/do=roomdoor/i.test(href)) {
+            location.href = '/action.php?do=login';
+            return;
+        }
+        if (window.history && history.length > 1) {
+            history.back();
+            return;
+        }
+        location.href = '/action.php?do=gamelist';
+    } catch (e) {
+        try { history.back(); } catch (e2) {}
+    }
+}
+
+window.feiniaoNavigateBack = feiniaoNavigateBack;
+
+plusReady(function () {
+    var firstBack = 0;
+    var handleBack = function () {
+        var now = Date.now || function () {
+            return new Date().getTime();
+        };
+        try {
+            var currentWebview = plus.webview.currentWebview();
+            currentWebview.canBack(function (evt) {
+                if (evt && evt.canBack) {
+                    history.back();
+                    return;
+                }
+                // 无 WebView 历史时走业务回退；入口页双击退出
+                var href = location.href || '';
+                if (/do=login/i.test(href)) {
+                    if (!firstBack) {
+                        firstBack = now();
+                        plus.nativeUI.toast('再按一次退出应用');
+                        setTimeout(function () { firstBack = 0; }, 2000);
+                    } else if (now() - firstBack < 2000) {
+                        plus.runtime.quit();
+                    }
+                    return;
+                }
+                feiniaoNavigateBack();
+            });
+        } catch (e) {
+            feiniaoNavigateBack();
+        }
+    };
+    plus.key.addEventListener('backbutton', handleBack);
+});

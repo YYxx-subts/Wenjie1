@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en" class="hall-noselect">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#5babeb" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=20260727a" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260727a" />
+    <title>欢迎来到【<?php echo get_query_val("fn_room", "roomname", array("roomid" => $_SESSION['roomid']));
+?>】房间</title>
+
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/common.css" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/gamelist.css?v=20260810maintstatus1" />
+    <!-- 首页返回时优先从 WebView 磁盘缓存解码首屏素材，动态期号仍由下方实时接口校正。 -->
+    <link rel="preload" as="image" href="/Style/newimg/ic_game_list_top_bg.webp?v=20260724x" fetchpriority="high" />
+    <link rel="preload" as="image" href="/Style/newimg/gamebg.png" fetchpriority="high" />
+    <style>
+        :root{ --fn-hall-bottom-nav-h: 0px; }
+        .footer_menu2{display:flex;position:relative;flex:0 0 auto;width:100%;justify-content:space-around;align-items:stretch;gap:0;padding:0.06rem 0.04rem calc(0.10rem + env(safe-area-inset-bottom,0px));box-sizing:border-box;z-index:50;pointer-events:auto;background:transparent;min-height:calc(0.86rem + 0.16rem + env(safe-area-inset-bottom,0px))}
+        .footer_menu2 li{display:flex;flex:1 1 0;justify-content:center;align-items:center;min-width:0;min-height:48px;pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+        .footer_menu2 li:active{opacity:.82;transform:scale(.96)}
+        .footer_menu2 li img{width:auto;height:0.86rem;max-width:92%;display:block;object-fit:contain;pointer-events:none}
+        html,body{background-color:#4a9fe0!important;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent;}
+        body,body *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-user-drag:none!important;}
+        img,a,button,li,div,span,b,marquee,section,nav{-webkit-touch-callout:none!important;-webkit-user-drag:none!important;}
+        .roomtop,.notice,.home-banner,.hall-cat-nav,.gamelist,.footer_menu2,.mainbox{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
+        .footer_menu2,.footer_menu2 li,.footer_menu2 img{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
+        .home-banner,.home-banner *,.banner-slide,.banner-slide img{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-user-drag:none!important;}
+        .notice,.notice *,.rightcon,marquee{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
+        .roomtop,.roomtop *,.hall-title,.top-btn{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
+        input,textarea{-webkit-user-select:text!important;user-select:text!important;}
+    </style>
+    <script>
+    (function(){
+      try{
+        var c=localStorage.getItem('fn_hall_cat');
+        if(c==='lottery'||c==='sport') document.documentElement.setAttribute('data-hall-cat',c);
+      }catch(e){}
+    })();
+    </script>
+    <script type="text/javascript" src="/Style/newjs/jquery-1.10.1.min.js"></script>
+    <script type="text/javascript" src="/Style/newjs/room-overscroll.js?v=20260803pagelock1"></script>
+<script type="text/javascript" src="/Style/newjs/pc28-balls.js?v=20260803balls2"></script>
+    <script type="text/javascript" src="/Style/newjs/bg-music.js?v=20260811bg3"></script>
+    <script type="text/javascript">var gimdIDS=[];</script>
+    <script type="text/javascript">window.fnNativeReadyDeferred = true;</script>
+<script type="text/javascript" src="/Style/plus.js?v=20260812pageload4"></script>
+    <link rel="Stylesheet" type="text/css" href="/Style/pop/css/style.css" />
+    <script type="text/javascript" src="/Style/pop/js/popups.js"></script>
+
+<script>
+(function(){
+  function lock(root){
+    if(!root||!root.querySelectorAll)return;
+    var imgs=root.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      imgs[i].setAttribute('draggable','false');
+      imgs[i].setAttribute('unselectable','on');
+    }
+  }
+  lock(document);
+  document.addEventListener('DOMContentLoaded', function(){ lock(document); });
+  // 轮播异步插入后也锁一次
+  setTimeout(function(){ lock(document); }, 800);
+  setTimeout(function(){ lock(document); }, 2500);
+})();
+</script>
+
+</head>
+<body>
+<script>
+(function(){
+  try{
+    var root=document.documentElement;
+    var probe=document.createElement("div");
+    probe.style.cssText="position:fixed;top:0;left:0;height:env(safe-area-inset-top);width:0;visibility:hidden;pointer-events:none;";
+    document.documentElement.appendChild(probe);
+    var inset=probe.getBoundingClientRect().height||0;
+    probe.remove();
+    if(inset<1){
+      inset=Math.round((window.devicePixelRatio>2?48:32));
+    }
+    root.style.setProperty("--fn-status-bar", inset+"px");
+  }catch(e){}
+})();
+</script>
+<div class="mainbox max-width">
+
+    <div class="roomtop">
+        <img class="roomtop-bg" src="/Style/newimg/ic_game_list_top_bg.webp?v=20260724x" alt="">
+        <div class="hall-title">游戏大厅</div>
+        <div class="top-btn">
+            <img id="goback" src="/Style/newimg/ic_game_list_back.webp?v=20260724p" alt="返回">
+        </div>
+    </div>
+   
+    <div class="notice">
+        <div class="leftlaba"><img src="/Style/newimg/laba.png"></div>
+        <div class="rightcon"><marquee behavior="scroll" direction="left" scrollamount="4" scrolldelay="40"><?php
+            $roomNotice = '';
+            if (!empty($_SESSION['roomid'])) {
+                $roomNotice = trim((string) get_query_val('fn_setting', 'setting_kefu', array('roomid' => $_SESSION['roomid'])));
+                if ($roomNotice === '') {
+                    $roomNotice = trim((string) get_query_val('fn_welcome', 'content', array('roomid' => $_SESSION['roomid'])));
+                }
+            }
+            if ($roomNotice === '') {
+                $roomNotice = '欢迎光临，请联系在线客服上分！';
+            }
+            // Pad so short notices still enter from the right edge and scroll LTR→RTL.
+            $marqueeText = $roomNotice . str_repeat('　', 28) . $roomNotice . str_repeat('　', 18);
+            echo htmlspecialchars($marqueeText, ENT_QUOTES, 'UTF-8');
+        ?></marquee></div>
+    </div>
+
+    <section class="home-banner" id="homeBanner" aria-label="活动轮播图"></section>
+
+    <nav class="hall-cat-nav" aria-label="游戏分类">
+        <button type="button" class="hall-cat-btn is-on" data-cat="sport" aria-pressed="true" aria-label="弹珠">
+            <img class="hall-cat-on" src="/Style/newimg/hall_cat_marble_on.png?v=20260730h1" alt="弹珠">
+            <img class="hall-cat-off" src="/Style/newimg/hall_cat_marble_off.png?v=20260730h1" alt="">
+        </button>
+        <button type="button" class="hall-cat-btn" data-cat="lottery" aria-pressed="false" aria-label="彩票">
+            <img class="hall-cat-on" src="/Style/newimg/hall_cat_lottery_on.png?v=20260802cp" alt="彩票">
+            <img class="hall-cat-off" src="/Style/newimg/hall_cat_lottery_off.png?v=20260802cp" alt="">
+        </button>
+    </nav>
+    <script>
+    // 分类按钮的原生兜底：不依赖 jQuery/click，兼容 iOS WebView 触摸事件被吞的情况。
+    (function () {
+        function applyHallCategory(cat) {
+            cat = cat === 'lottery' ? 'lottery' : 'sport';
+            var root = document.documentElement;
+            root.setAttribute('data-hall-cat', cat);
+            var boxes = document.querySelectorAll('#hallGameList .game-box');
+            for (var i = 0; i < boxes.length; i++) {
+                var visible = String(boxes[i].getAttribute('data-cat') || '') === cat;
+                boxes[i].classList.toggle('is-cat-hidden', !visible);
+                boxes[i].style.display = visible ? '' : 'none';
+            }
+            var buttons = document.querySelectorAll('.hall-cat-btn');
+            for (var j = 0; j < buttons.length; j++) {
+                var active = String(buttons[j].getAttribute('data-cat') || '') === cat;
+                buttons[j].classList.toggle('is-on', active);
+                buttons[j].setAttribute('aria-pressed', active ? 'true' : 'false');
+            }
+            try { localStorage.setItem('fn_hall_cat', cat); } catch (e) {}
+        }
+        window.__fnSetHallCategory = applyHallCategory;
+        function handle(e) {
+            var target = e.target;
+            var button = target && target.closest ? target.closest('.hall-cat-btn') : null;
+            if (!button) return;
+            if (e.cancelable) e.preventDefault();
+            e.stopPropagation();
+            applyHallCategory(button.getAttribute('data-cat'));
+        }
+        document.addEventListener('touchend', handle, true);
+        document.addEventListener('click', handle, true);
+    })();
+    </script>
+
+    <div class="gamelist">
+        <div class="last-show" id="hallGameList">
+            <?php
+            // 弹珠类进「体育」；其余进「彩票」。默认打开体育页。
+            $sportGameIds = array(5, 6, 7, 10);
+            $defaultCat = 'sport';
+            $sportOpenCount = 0;
+            $lotteryOpenCount = 0;
+            foreach ($list as $gm) {
+                if ($gm['is_open'] == 'false') continue;
+                $gid = (int)$gm['game_id'];
+                if (in_array($gid, $sportGameIds, true)) $sportOpenCount++;
+                else $lotteryOpenCount++;
+            }
+            foreach ($list as $gm):
+                if ($gm['is_open'] == 'false') continue;
+                $ballCount = isset($gm['ball_count']) ? (int)$gm['ball_count'] : getGameBallCount($gm['game_id']);
+                $kind = isset($gm['kind']) ? $gm['kind'] : getGameKind($gm['game_id']);
+                $cat = in_array((int)$gm['game_id'], $sportGameIds, true) ? 'sport' : 'lottery';
+                // 首屏即按默认分类隐藏，避免先闪出全部游戏
+                $hideClass = ($cat === $defaultCat) ? '' : ' is-cat-hidden';
+                // 同时输出内联 display，避免旧 CSS/脚本缓存或首屏时序导致两类游戏短暂混排。
+                $hideStyle = ($cat === $defaultCat) ? '' : ' style="display:none !important"';
+            ?>
+            <div class="game-box<?=$hideClass;?>"<?=$hideStyle;?> id="game-id-<?=$gm['game_id'];?>" data-gid="<?=$gm['game_id'];?>" data-cat="<?=$cat;?>" data-kind="<?=htmlspecialchars($kind, ENT_QUOTES, 'UTF-8');?>" data-balls="<?=$ballCount;?>" data-left="<?=$gm['opinfo']['letf_time'];?>">
+                <img src="/Style/newimg/gamebg.png">
+                <div class="game-info">
+                    <li class="game-ico"><img src="/Style/newimg/game_<?=$gm['game_id'];?>.png?v=20260729logo"></li>
+                    <li class="game-name"><img src="/Style/newimg/game_name_<?=$gm['game_id'];?>.png?v=20260728d"></li>
+                    <li class="game-sn"><b>第<span id="next_num_<?=$gm['game_id'];?>"><?php
+                        $bootNextSn = '';
+                        if (!empty($gm['opinfo']['next_sn'])) {
+                            $bootNextSn = trim((string) $gm['opinfo']['next_sn']);
+                        } elseif (!empty($gm['opinfo']['next_term']) && function_exists('formatDisplayTerm')) {
+                            $bootNextSn = trim((string) formatDisplayTerm($gm['opinfo']['next_term']));
+                        }
+                        echo $bootNextSn !== '' ? htmlspecialchars($bootNextSn, ENT_QUOTES, 'UTF-8') : '<b>——</b>';
+                    ?></span>期</b></li>
+                    <li class="game-time"><b>-</b><b>-</b><b>:</b><b>-</b><b>-</b></li>
+                    <li class="game-num" id="current_num_<?=$gm['game_id'];?>">
+                        <!-- 禁止依赖外部 HTTP loading.gif：慢网会破图并阻塞首屏。 -->
+                        <span class="sn-num aaa"><b>--</b></span>
+                        <?php for ($bi = 1; $bi <= $ballCount; $bi++): ?>
+                        <span class="n<?=$bi;?>"><?=$bi;?></span>
+                        <?php endfor; ?>
+                    </li>
+                </div>
+            </div>
+            <script type="text/javascript">gimdIDS.push(<?=$gm['game_id'];?>)</script>
+            <?php endforeach;?>
+        </div>
+<div class="hall-cat-empty" id="hallCatEmpty"<?= $sportOpenCount > 0 ? ' hidden' : ''; ?>>该分类暂无开放游戏</div>
+</div>
+<script type="text/javascript">
+// 在游戏卡片刚输出后立即应用分类，避免等待后续大厅脚本或点击按钮。
+(function () {
+    function applyInitialHallCategory() {
+        if (typeof window.__fnSetHallCategory !== 'function') return;
+        var cat = 'sport';
+        try {
+            var saved = localStorage.getItem('fn_hall_cat');
+            if (saved === 'sport' || saved === 'lottery') cat = saved;
+        } catch (e) {}
+        window.__fnSetHallCategory(cat);
+    }
+    applyInitialHallCategory();
+    setTimeout(applyInitialHallCategory, 0);
+})();
+</script>
+
+<div class="footer_menu2" role="navigation" aria-label="大厅底部导航">
+    <li data-url="/action.php?do=kefu"><img src="/Style/newimg/home_nav_service.png?v=20260809a" alt="在线客服"></li>
+    <li data-action="vip" data-url="/Templates/user/vip.php"><img src="/Style/newimg/home_nav_vip.png?v=20260809a" alt="VIP等级"></li>
+    <li data-action="promo"><img src="/Style/newimg/home_nav_promo.png?v=20260809a" alt="优惠活动"></li>
+    <li data-action="roomintro" data-url="/Templates/roomintro.php"><img src="/Style/newimg/home_nav_room.png?v=20260809a" alt="房间介绍"></li>
+    <li data-url="/Templates/user/"><img src="/Style/newimg/home_nav_user.png?v=20260809a" alt="个人中心"></li>
+</div>
+</div>
+<script type="text/javascript">
+    var FEINIAO_USER_ID = <?php echo json_encode((string)($_SESSION['userid'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    var FEINIAO_ROOM_ID = <?php echo json_encode((string)($_SESSION['roomid'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    var FEINIAO_ROOM_NOTICE = <?php echo json_encode((string)$roomNotice, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    // 轮播配置以后台实时结果为准，不再持久化到 WebView storage。
+    // 否则后台删除图片后，旧 session/localStorage 会在网络慢或失败时把它重新画出来。
+    var FALLBACK_BANNER_IMAGE = '/Style/newimg/home_banner_preload.png?v=20260812preload2';
+    var FALLBACK_BANNER_PAYLOAD = {
+        data: { banners: [{ id: 'local-fallback', status: 'enabled', sort: 1,
+            image: FALLBACK_BANNER_IMAGE, link: '' }] }
+    };
+
+    function purgeLegacyBannerCaches() {
+        ['sessionStorage', 'localStorage'].forEach(function (storageName) {
+            try {
+                var storage = window[storageName];
+                var keys = [];
+                for (var i = 0; i < storage.length; i++) {
+                    var key = storage.key(i);
+                    if (/^fn_home_banners_/i.test(String(key || ''))) keys.push(key);
+                }
+                keys.forEach(function (key) { storage.removeItem(key); });
+            } catch (e) {}
+        });
+    }
+    purgeLegacyBannerCaches();
+
+    function normalizeBannerImage(value) {
+        var src = String(value || '').trim();
+        if (!src) return '';
+        // 两张已废弃的历史兜底图一律拒绝；即使旧接口数据再次返回也不能复活。
+        if (/(home_banner_default|carousel-official-crop)\.(jpg|png|webp)/i.test(src)) return '';
+        // 后台接口历史上会返回 wjagent 的 /upload 地址，但图片实际存放在 H5 站点。
+        // 后台域名会返回后台入口 HTML，WKWebView 因此显示为轮播空白。
+        src = src.replace(/^https?:\/\/wjagent\.atmyx\.app(\/upload\/)/i, 'https://wjh5.atmyx.app$1');
+        if (/^\/upload\//i.test(src)) return 'https://wjh5.atmyx.app' + src;
+        // 历史版本曾缓存整张 data:image；后台删除后仍可永久复活，因此不再接受。
+        if (/^data:image\//i.test(src)) return '';
+        if (/^(https?:\/\/|\/\/)/i.test(src)) return src;
+        // 本站 H5 静态资源
+        if (/^\/Style\//i.test(src)) return src;
+        // /upload 是轮播图的 H5 静态目录；其余旧后台 /assets 仍走后台域名。
+        if (src.charAt(0) === '/') return 'https://wjagent.atmyx.app' + src;
+        return 'https://wjagent.atmyx.app/' + src;
+    }
+
+    function filterBannerRows(payload) {
+        var rows = payload && payload.data && Array.isArray(payload.data.banners) ? payload.data.banners : [];
+        return rows.filter(function (row) {
+            var status = String(row && row.status == null ? 'enabled' : (row && row.status || '')).toLowerCase();
+            var enabled = row && row.enabled !== false && ['disabled', 'disable', 'off', 'closed', 'close', '停用', '关闭'].indexOf(status) < 0;
+            if (!enabled) return false;
+            var image = normalizeBannerImage(row.image || row.imageUrl || row.url);
+            if (!image) return false;
+            row.__normalizedImage = image;
+            return true;
+        }).sort(function (a, b) { return Number(a.sort || 0) - Number(b.sort || 0); });
+    }
+
+    function renderHomeBanners(payload) {
+        var rows = filterBannerRows(payload);
+        var box = $('#homeBanner').empty();
+        // 图片解码完成前以及任何图片加载失败时，底层始终是指定预加载图。
+        box.css({
+            'background-image': 'url("' + FALLBACK_BANNER_IMAGE + '")',
+            'background-size': 'cover',
+            'background-position': 'center'
+        });
+        if (!rows.length) {
+            box.addClass('is-visible');
+            return;
+        }
+        box.addClass('is-visible');
+        var track = $('<div class="banner-track"></div>');
+        rows.forEach(function (row, index) {
+            var image = row.__normalizedImage || normalizeBannerImage(row.image || row.imageUrl || row.url);
+            if (!image) return;
+            var slide = $('<a class="banner-slide" target="_blank" rel="noopener"></a>');
+            if (row.link || row.href) slide.attr('href', row.link || row.href);
+            else slide.attr('href', 'javascript:void(0)');
+            var img = $('<img alt="" draggable="false" unselectable="on">').attr('src', bustBannerUrl(image, row));
+            img.on('error', function () {
+                if (this.getAttribute('data-fallback-applied') === '1') return;
+                this.setAttribute('data-fallback-applied', '1');
+                this.src = FALLBACK_BANNER_IMAGE;
+            });
+            // 第一张轮播是首页最大可见素材：立即拉取且提高优先级；其余保持正常解码。
+            img.attr('decoding', 'async');
+            if (index === 0) img.attr('fetchpriority', 'high').attr('loading', 'eager');
+            else img.attr('loading', 'lazy');
+            slide.append(img);
+            track.append(slide);
+        });
+        if (!track.children().length) {
+            box.removeClass('is-visible');
+            return;
+        }
+        box.append(track);
+
+        var realTotal = track.children().length;
+        var loop = realTotal >= 2;
+        // 无限循环：首尾各克隆一张，结构 [末克隆][0..n-1][首克隆]
+        if (loop) {
+            var $first = track.children().first().clone(true, true);
+            var $last = track.children().last().clone(true, true);
+            $first.attr('data-clone', 'first');
+            $last.attr('data-clone', 'last');
+            track.prepend($last);
+            track.append($first);
+        }
+        var total = track.children().length; // 含克隆
+        // track 下标：loop 时 1..(realTotal) 为真实图，0/末为克隆
+        var current = loop ? 1 : 0;
+        var timer = null;
+        var dragging = false;
+        var startX = 0;
+        var startY = 0;
+        var deltaX = 0;
+        var locked = false;
+        var ignoreClick = false;
+        var jumping = false;
+
+        function realIndex(trackIdx) {
+            if (!loop) return trackIdx;
+            if (trackIdx <= 0) return realTotal - 1;
+            if (trackIdx >= realTotal + 1) return 0;
+            return trackIdx - 1;
+        }
+        function updateDots() {
+            box.find('.banner-dot').removeClass('is-active').eq(realIndex(current)).addClass('is-active');
+        }
+        function setTransform(trackIdx, animate) {
+            if (animate === false) track.addClass('is-dragging');
+            else track.removeClass('is-dragging');
+            track.css('transform', 'translate3d(' + (-trackIdx * 100) + '%,0,0)');
+            if (animate === false) {
+                void track[0].offsetWidth;
+                track.removeClass('is-dragging');
+            }
+        }
+        function normalizeAfterTransition() {
+            if (!loop || jumping) return;
+            if (current === 0) {
+                // 落到「末克隆」→ 无动画跳到真实最后一张
+                jumping = true;
+                current = realTotal;
+                setTransform(current, false);
+                jumping = false;
+            } else if (current === realTotal + 1) {
+                // 落到「首克隆」→ 无动画跳到真实第一张
+                jumping = true;
+                current = 1;
+                setTransform(current, false);
+                jumping = false;
+            }
+            updateDots();
+        }
+
+        function goTo(trackIdx, animate) {
+            if (total <= 0) return;
+            if (!loop) {
+                current = (trackIdx % total + total) % total;
+                setTransform(current, animate);
+                updateDots();
+                return;
+            }
+            current = trackIdx;
+            setTransform(current, animate);
+            updateDots();
+            if (animate === false) {
+                normalizeAfterTransition();
+            }
+        }
+
+        function nextSlide() { goTo(current + 1, true); }
+        function prevSlide() { goTo(current - 1, true); }
+
+        function startAuto() {
+            stopAuto();
+            if (realTotal < 2) return;
+            timer = setInterval(nextSlide, 4000);
+        }
+        function stopAuto() {
+            if (timer) { clearInterval(timer); timer = null; }
+        }
+
+        track.off('transitionend.fnbanner').on('transitionend.fnbanner', function (e) {
+            if (e.target !== track[0]) return;
+            normalizeAfterTransition();
+        });
+
+        if (realTotal >= 2) {
+            var dots = $('<div class="banner-dots"></div>');
+            for (var i = 0; i < realTotal; i++) {
+                (function (idx) {
+                    dots.append(
+                        $('<button type="button" class="banner-dot' + (idx === 0 ? ' is-active' : '') + '" aria-label="第' + (idx + 1) + '张"></button>')
+                            .on('click', function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // 点圆点：跳到真实张（track 下标 +1）
+                                goTo(loop ? (idx + 1) : idx, true);
+                                startAuto();
+                            })
+                    );
+                })(i);
+            }
+            box.append(dots);
+        }
+
+        goTo(current, false);
+        startAuto();
+
+        function onPointerDown(clientX, clientY) {
+            if (realTotal < 2) return;
+            dragging = true;
+            locked = false;
+            ignoreClick = false;
+            startX = clientX;
+            startY = clientY;
+            deltaX = 0;
+            stopAuto();
+            // 拖动前若停在克隆位，先瞬移到真实位
+            normalizeAfterTransition();
+            track.addClass('is-dragging');
+        }
+        function onPointerMove(clientX, clientY, evt) {
+            if (!dragging) return;
+            var dx = clientX - startX;
+            var dy = clientY - startY;
+            if (!locked) {
+                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    dragging = false;
+                    track.removeClass('is-dragging');
+                    startAuto();
+                    return;
+                }
+                locked = true;
+            }
+            if (evt && evt.cancelable) evt.preventDefault();
+            deltaX = dx;
+            var width = box.width() || 1;
+            var percent = (-current * 100) + (deltaX / width * 100);
+            track.css('transform', 'translate3d(' + percent + '%,0,0)');
+        }
+        function onPointerUp() {
+            if (!dragging) return;
+            dragging = false;
+            track.removeClass('is-dragging');
+            var width = box.width() || 1;
+            var threshold = width * 0.18;
+            if (Math.abs(deltaX) > 12) ignoreClick = true;
+            if (deltaX <= -threshold) goTo(current + 1, true);
+            else if (deltaX >= threshold) goTo(current - 1, true);
+            else goTo(current, true);
+            deltaX = 0;
+            startAuto();
+        }
+
+        var el = box[0];
+        el.addEventListener('touchstart', function (e) {
+            if (!e.touches || !e.touches.length) return;
+            onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        el.addEventListener('touchmove', function (e) {
+            if (!e.touches || !e.touches.length) return;
+            onPointerMove(e.touches[0].clientX, e.touches[0].clientY, e);
+        }, { passive: false });
+        el.addEventListener('touchend', onPointerUp);
+        el.addEventListener('touchcancel', onPointerUp);
+
+        el.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) return;
+            onPointerDown(e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', function (e) {
+            onPointerMove(e.clientX, e.clientY, e);
+        });
+        window.addEventListener('mouseup', onPointerUp);
+
+        track.on('click', 'a.banner-slide', function (e) {
+            if (ignoreClick) {
+                e.preventDefault();
+                e.stopPropagation();
+                ignoreClick = false;
+                return false;
+            }
+            var href = $(this).attr('href') || '';
+            if (!href || href.indexOf('javascript:') === 0) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    function bustBannerUrl(src, row) {
+        var u = String(src || '');
+        if (!u || /^data:/i.test(u)) return u;
+        var stamp = String((row && (row.id || row.createdAt || row.updatedAt)) || '');
+        if (!stamp) stamp = '1';
+        return u + (u.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(stamp);
+    }
+
+    function applyBannerPayload(payload) {
+        if (!filterBannerRows(payload).length) return false;
+        renderHomeBanners(payload);
+        try {
+            sessionStorage.setItem('fn_home_banners_cache_v2_' + FEINIAO_ROOM_ID, JSON.stringify({ t: Date.now(), payload: payload }));
+        } catch (e) {}
+        return true;
+    }
+
+    function readCachedBannerPayload() {
+        try {
+            var raw = sessionStorage.getItem('fn_home_banners_cache_v2_' + FEINIAO_ROOM_ID);
+            var cached = raw ? JSON.parse(raw) : null;
+            if (cached && cached.payload && Date.now() - Number(cached.t || 0) < 10 * 60 * 1000
+                && filterBannerRows(cached.payload).length) return cached.payload;
+        } catch (e) {}
+        return null;
+    }
+
+    function fetchHomeBanners() {
+        // 同域代理优先（安卓 WebView 对跨域 GET + 磁盘缓存更敏感）
+        var req = {
+            method: 'get',
+            dataType: 'json',
+            cache: false,
+            data: { roomid: FEINIAO_ROOM_ID, _: Date.now() },
+            timeout: 3500
+        };
+        return $.ajax($.extend({}, req, { url: '/api_room_promos.php' })).then(null, function () {
+            return $.ajax($.extend({}, req, {
+                url: 'https://wjagent.atmyx.app/api/public/room-promos'
+            }));
+        }).done(function (payload) {
+            if (!applyBannerPayload(payload)) renderHomeBanners(FALLBACK_BANNER_PAYLOAD);
+        });
+    }
+
+    function loadHomeBanners() {
+        // 从其他页面返回时先复用本次 WebView 已加载的轮播数据，接口只在后台校验。
+        // 没有缓存时才显示预加载图，避免每次回大厅都先闪一下缓冲图。
+        renderHomeBanners(readCachedBannerPayload() || FALLBACK_BANNER_PAYLOAD);
+        fetchHomeBanners();
+        // 从后台改图返回大厅 / 安卓 WebView 恢复前台时再拉一次
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') fetchHomeBanners();
+        });
+    }
+    loadHomeBanners();
+
+    // 分类：体育=弹珠类(5/6/7/10)；彩票=其余。记住上次选中的分类，从游戏返回时恢复。
+    (function bindHallCats() {
+        var $nav = $('.hall-cat-nav');
+        if (!$nav.length) return;
+        var $boxes = $('#hallGameList .game-box');
+        var $empty = $('#hallCatEmpty');
+        var CAT_KEY = 'fn_hall_cat';
+
+        function readSavedCat() {
+            try {
+                var c = localStorage.getItem(CAT_KEY);
+                if (c === 'sport' || c === 'lottery') return c;
+            } catch (e) {}
+            return 'sport';
+        }
+        function saveCat(cat) {
+            try { localStorage.setItem(CAT_KEY, cat); } catch (e) {}
+        }
+
+        function applyCat(cat) {
+            cat = String(cat || 'sport');
+            if (cat !== 'sport' && cat !== 'lottery') cat = 'sport';
+            try { document.documentElement.setAttribute('data-hall-cat', cat); } catch (e0) {}
+            var shown = 0;
+            $boxes.each(function () {
+                var boxCat = String(this.getAttribute('data-cat') || 'lottery');
+                var on = boxCat === cat;
+                this.classList.toggle('is-cat-hidden', !on);
+                this.style.removeProperty('display');
+                if (on) shown++;
+            });
+            $nav.find('.hall-cat-btn').removeClass('is-on').attr('aria-pressed', 'false');
+            $nav.find('.hall-cat-btn[data-cat="' + cat + '"]').addClass('is-on').attr('aria-pressed', 'true');
+            if (shown > 0) {
+                $empty.attr('hidden', 'hidden').hide();
+            } else {
+                $empty.removeAttr('hidden').show();
+            }
+            saveCat(cat);
+        }
+
+        window.__hallApplyCat = applyCat;
+        applyCat(readSavedCat());
+
+        $nav.off('.hallcat').on('touchend.hallcat', '.hall-cat-btn', function (e) {
+            // App WebView 中 click 可能被吞，touchend 直接切换分类。
+            e.preventDefault();
+            e.stopPropagation();
+            var cat = String(this.getAttribute('data-cat') || 'sport');
+            try { this.blur(); } catch (e0) {}
+            applyCat(cat);
+        }).on('click.hallcat', '.hall-cat-btn', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var cat = String(this.getAttribute('data-cat') || 'sport');
+            try { this.blur(); } catch (e) {}
+            applyCat(cat);
+        });
+    })();
+
+    setTimeout(function () {
+        $('.gamelist').css('max-height', '');
+        if (typeof window.__hallApplyCat === 'function') {
+            try {
+                var c = localStorage.getItem('fn_hall_cat');
+                window.__hallApplyCat((c === 'lottery' || c === 'sport') ? c : 'sport');
+            } catch (e) {
+                window.__hallApplyCat('sport');
+            }
+        }
+    }, 500);
+    (function bindHallNav() {
+        var moved = false;
+        var sx = 0, sy = 0;
+        function goRoom($box) {
+            if (window.__fnHallDragging) return;
+            if ($box && $box.hasClass && $box.hasClass('is-drag-source')) return;
+            if (window.__fnNavigating) return;
+            var gmid = $box.data('gid');
+            if (!gmid) return;
+            var cat = $box.attr('data-cat') || ($('.hall-cat-btn.is-on').attr('data-cat')) || 'sport';
+            try { localStorage.setItem('fn_hall_cat', cat); } catch (err) {}
+            window.__fnNavigating = true;
+            var url = '/action.php?do=room&game=' + gmid;
+            if (window.fnShowPageLoading) window.fnShowPageLoading('正在加入');
+            // 统一走当前 H5 WebView 导航，让服务器端页面过渡和网页缓存生效。
+            window.location.href = url;
+        }
+        function goBack() {
+            if (window.__fnNavigating || window.__fnExitPromptOpen) return;
+            window.__fnExitPromptOpen = true;
+            var leave = function () {
+                window.__fnNavigating = true;
+                window.__fnExitPromptOpen = false;
+                window.location.href = '/action.php?do=roomdoor';
+            };
+            var cancel = function () {
+                window.__fnExitPromptOpen = false;
+            };
+            if (typeof jqalert === 'function') {
+                jqalert({
+                    content: '退出房间吗？',
+                    yestext: '确定',
+                    notext: '取消',
+                    click_bg: false,
+                    yesfn: leave,
+                    nofn: cancel
+                });
+            } else if (window.confirm('退出房间吗？')) {
+                leave();
+            } else {
+                cancel();
+            }
+        }
+        function footerAction($li) {
+            if (window.__fnNavigating) return;
+            var action = $li.data('action');
+            if (action === 'promo') {
+                var banner = document.getElementById('homeBanner');
+                if (banner && banner.querySelector('img, .banner-slide, .swiper-slide, a')) {
+                    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    try { alert('暂无优惠活动'); } catch (e) {}
+                }
+                return;
+            }
+            var url = $li.data('url');
+            if (!url) return;
+            window.__fnNavigating = true;
+            if (window.fnShowPageLoading) window.fnShowPageLoading('正在加载');
+            window.location.href = url;
+        }
+        $('#goback').off('.fnnav').on('click.fnnav', function (e) {
+            e.preventDefault();
+            goBack();
+        }).on('touchend.fnnav', function (e) {
+            if (moved) return;
+            e.preventDefault();
+            goBack();
+        });
+        $('.game-box').off('.fnnav')
+            .on('touchstart.fnnav', function (e) {
+                var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+                if (!t) return;
+                sx = t.clientX; sy = t.clientY; moved = false;
+            })
+            .on('touchmove.fnnav', function (e) {
+                var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+                if (!t) return;
+                if (Math.abs(t.clientX - sx) > 12 || Math.abs(t.clientY - sy) > 12) moved = true;
+            })
+            .on('touchend.fnnav', function (e) {
+                if (moved) return;
+                e.preventDefault();
+                goRoom($(this));
+            })
+            .on('click.fnnav', function (e) {
+                e.preventDefault();
+                goRoom($(this));
+            });
+        // App WebView 常吞 click：底栏与进房一致用 touchend 立即跳转
+        $('.footer_menu2 li').off('.fnnav')
+            .on('touchstart.fnnav', function (e) {
+                var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+                if (!t) return;
+                sx = t.clientX; sy = t.clientY; moved = false;
+            })
+            .on('touchmove.fnnav', function (e) {
+                var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+                if (!t) return;
+                if (Math.abs(t.clientX - sx) > 12 || Math.abs(t.clientY - sy) > 12) moved = true;
+            })
+            .on('touchend.fnnav', function (e) {
+                if (moved) return;
+                e.preventDefault();
+                footerAction($(this));
+            })
+            .on('click.fnnav', function (e) {
+                e.preventDefault();
+                footerAction($(this));
+            });
+        $('.game-box, #goback, .hall-cat-btn, .footer_menu2 li, .back').css({
+            'touch-action': 'manipulation',
+            '-webkit-tap-highlight-color': 'transparent',
+            'cursor': 'pointer'
+        });
+    })();
+
+    // 大厅倒计时：本地每秒刷新 UI，服务器 5 秒同步一次（原先每秒 AJAX+整段重绘会卡 WebView）
+    var hallTimers = {};
+    var hallFp = {};
+    var hallWaiting = {};
+    var hallMaintenance = {};
+    var hallSealed = {};
+    var hallSealedTerm = {}; // 本地/服务端已封盘的期号，防乱序回退到 open
+    var hallLastOpen = {};
+    var hallPollBusy = false;
+    var hallNativeReadySent = false;
+    // 仅用于页面返回的首屏占位。缓存至多保留 20 秒，随后永远以实时 upop 返回为准，
+    // 绝不把缓存当作开奖或下注状态依据。
+    var HALL_STATE_CACHE_KEY = 'fn_hall_state_v1_' + String(FEINIAO_ROOM_ID || '0');
+    var HALL_STATE_CACHE_TTL = 20000;
+
+    function readHallStateCache() {
+        try {
+            var raw = sessionStorage.getItem(HALL_STATE_CACHE_KEY);
+            var data = raw ? JSON.parse(raw) : null;
+            if (!data || !Array.isArray(data.rows) || !data.at) return null;
+            var age = Date.now() - Number(data.at);
+            if (age < 0 || age > HALL_STATE_CACHE_TTL) return null;
+            return { rows: data.rows, ageSec: Math.floor(age / 1000) };
+        } catch (e) { return null; }
+    }
+
+    function writeHallStateCache(rows) {
+        try {
+            if (Array.isArray(rows) && rows.length) {
+                sessionStorage.setItem(HALL_STATE_CACHE_KEY, JSON.stringify({ at: Date.now(), rows: rows }));
+            }
+        } catch (e) {}
+    }
+
+    function paintHallTime(gid) {
+        var left = parseInt(hallTimers[gid], 10);
+        if (isNaN(left)) return;
+        var fp = parseInt(hallFp[gid], 10) || 0;
+        // 本地倒计时归零：先显示红色「封盘中」，绝不误切「开奖中」或静默 00:00
+        if (left <= 0 && !hallWaiting[gid]) {
+            hallSealed[gid] = true;
+            hallTimers[gid] = 0;
+            left = 0;
+        }
+        $('#game-id-' + gid).find('.game-time').html(buildTime(left, fp, !!hallWaiting[gid], !!hallSealed[gid], !!hallMaintenance[gid]));
+    }
+
+    function tickHallTimers() {
+        Object.keys(hallTimers).forEach(function (gid) {
+            if (hallTimers[gid] > 0) hallTimers[gid] -= 1;
+            paintHallTime(gid);
+        });
+    }
+
+    function hallDisplayNextSn(row) {
+        var sn = String((row && row.next_sn) || '').trim();
+        if (sn) return sn;
+        var term = String((row && row.next_term) || '').trim();
+        if (!term) return '';
+        // 与 PHP formatDisplayTerm 一致：去掉 20xx 年份前缀
+        var m = term.match(/^(20\d{2})(\d{5,})$/);
+        return m ? m[2] : term;
+    }
+
+    function applyHallRows(rows, cacheAgeSec) {
+        if (!Array.isArray(rows)) return;
+        cacheAgeSec = Math.max(0, parseInt(cacheAgeSec, 10) || 0);
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i] || {};
+            var gid = String(row.gameid || '');
+            if (!gid) continue;
+
+            // 期号与开奖号码生命周期不同：必须每次有值就刷新，不能绑在 openKey 上
+            var nextSn = hallDisplayNextSn(row);
+            if (nextSn) {
+                $('#next_num_' + row.gameid).text(nextSn);
+            }
+            // 与房间页复用服务端双重核验结果：首页只展示维护状态，不自行猜测服务器故障。
+            hallMaintenance[gid] = parseInt(row.upstream_maintenance, 10) === 1;
+
+            if (!row.current_sn) continue;
+            var termKey = String(nextSn || row.next_term || row.current_sn || '');
+            // 回显缓存时扣除经过的秒数；实时包 cacheAgeSec 为 0。
+            // letf_time = 可下注剩余秒（bet_close），不是 effective_next 整段倒计时
+            var left = Math.max(0, (parseInt(row.letf_time, 10) || 0) - cacheAgeSec);
+            hallFp[gid] = parseInt(row.fp_time, 10) || 0;
+            var st = String(row.draw_status || '');
+            var waiting = st === 'processing' || st === 'drawing' || parseInt(row.waiting_draw, 10) === 1;
+            var sealed = st === 'sealed';
+
+            if (waiting) {
+                hallWaiting[gid] = true;
+                hallSealed[gid] = false;
+                left = 0;
+            } else if (sealed || (st === 'open' && left <= 0)) {
+                hallSealed[gid] = true;
+                hallWaiting[gid] = false;
+                hallSealedTerm[gid] = termKey;
+                left = 0;
+            } else if (st === 'open' && left > 0) {
+                // 同一期已封盘后，乱序/过期 open 响应不得回退
+                if (hallSealed[gid] && hallSealedTerm[gid] && hallSealedTerm[gid] === termKey) {
+                    left = 0;
+                    hallWaiting[gid] = false;
+                    hallSealed[gid] = true;
+                } else {
+                    hallWaiting[gid] = false;
+                    hallSealed[gid] = false;
+                    hallSealedTerm[gid] = '';
+                }
+            } else {
+                // 未知状态：保留本地 sealed/waiting，仅同步倒计时数字
+                if (hallSealed[gid] || hallWaiting[gid]) left = 0;
+            }
+            hallTimers[gid] = left;
+            paintHallTime(gid);
+
+            var openKey = row.current_sn + '|' + row.open_num;
+            if (hallLastOpen[gid] !== openKey) {
+                hallLastOpen[gid] = openKey;
+                var numArr = String(row.open_num || '').split(',');
+                var box = $('#game-id-' + row.gameid);
+                var kind = box.attr('data-kind') || '';
+                var numHtml = '';
+                if (kind === 'pc28' && typeof window.pc28EquationHtml === 'function') {
+                    numHtml = '<span class="sn-num">' + row.current_sn + '期</span>' + window.pc28EquationHtml(numArr, { light: false });
+                } else if (kind === 'lhc') {
+                    numHtml = '<span class="sn-num">' + row.current_sn + '</span>';
+                    var lhcBalls = [];
+                    for (var j = 0; j < numArr.length; j++) {
+                        if (numArr[j] === '') continue;
+                        var ln = parseInt(numArr[j], 10);
+                        if (isNaN(ln) || ln < 1) continue;
+                        lhcBalls.push(ln);
+                        if (lhcBalls.length >= 7) break;
+                    }
+                    while (lhcBalls.length < 7) lhcBalls.push(1);
+                    for (var k = 0; k < 6; k++) {
+                        var lpad = ('0' + lhcBalls[k]).slice(-2);
+                        numHtml += '<span class="lhc-ball lhc-n' + lpad + '">' + lpad + '</span>';
+                    }
+                    numHtml += '<span class="lhc-plus">+</span>';
+                    var ltpad = ('0' + lhcBalls[6]).slice(-2);
+                    numHtml += '<span class="lhc-ball lhc-n' + ltpad + '">' + ltpad + '</span>';
+                } else {
+                    numHtml = '<span class="sn-num">' + row.current_sn + '</span>';
+                    for (var n = 0; n < numArr.length; n++) {
+                        if (numArr[n] === '') continue;
+                        var ballNo = parseInt(numArr[n], 10);
+                        if (isNaN(ballNo) || ballNo < 0) continue;
+                        numHtml += '<span class="n' + ballNo + '">' + ballNo + '</span>';
+                    }
+                }
+                $('#current_num_' + row.gameid).html(numHtml);
+            }
+        }
+    }
+
+    // 先画最近 20 秒内的真实大厅状态，消除返回大厅时的“第一期/空白”闪屏。
+    var cachedHallState = readHallStateCache();
+    if (cachedHallState) applyHallRows(cachedHallState.rows, cachedHallState.ageSec);
+
+    function syncHallTimers() {
+        if (hallPollBusy) return;
+        hallPollBusy = true;
+        $.ajax({
+            url: "/action.php?do=upop",
+            method: 'get',
+            dataType: 'json',
+            timeout: 2500,
+            cache: false,
+            data: {'gid': gimdIDS},
+            success: function (res) {
+                if (res && Number(res.status) === 0 && /请先登录/.test(String(res.msg || ''))) {
+                    try { window.location.replace('/action.php?do=login'); } catch (e) {}
+                    return;
+                }
+                if (!res || !res.list) return;
+                applyHallRows(res.list, 0);
+                writeHallStateCache(res.list);
+                notifyHallFirstFrameReady();
+            },
+            complete: function () {
+                hallPollBusy = false;
+            }
+        });
+    }
+
+    function notifyHallFirstFrameReady() {
+        if (hallNativeReadySent) return;
+        hallNativeReadySent = true;
+        // 立刻揭开 App 过渡层：不再等图片/接口，避免「暂时无法连接服务器」转圈
+        try { if (window.FnNative && FnNative.pageReady) FnNative.pageReady(location.href); } catch (e) {}
+    }
+    // DOM 一就绪就通知原生，不阻塞在大厅轮询
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { notifyHallFirstFrameReady(); });
+    } else {
+        notifyHallFirstFrameReady();
+    }
+    syncHallTimers();
+    setInterval(tickHallTimers, 1000);
+    setInterval(syncHallTimers, 5000);
+
+    function buildTime(leftSec,fpSec,waiting,sealed,maintenance) {
+        // 服务端双重核验确认上游异常：首页只替换状态文字，不遮挡大厅。
+        if (maintenance) {
+            return '<b class="fping is-maintenance">维护中</b>';
+        }
+        // 服务端优先语义：sealed → 红色封盘中；drawing/processing → 开奖中；open+剩余秒 → 数字倒计时
+        if (sealed && !waiting) {
+            return '<b class="fping is-sealed">封盘中</b>';
+        }
+        if (waiting) {
+            return '<b class="fping">开奖中</b>';
+        }
+        var totalSec=parseInt(leftSec,10);
+        if(isNaN(totalSec)||totalSec<0) totalSec=0;
+        if (totalSec <= 0) {
+            return '<b class="fping is-sealed">封盘中</b>';
+        }
+        var min  =   Math.floor(totalSec/60);
+        var sec = totalSec%60;
+        min=(min<10)?'0'+min:min+"";
+        sec=(sec<10)?'0'+sec:sec+"";
+        var lastStr='';
+        lastStr+='<b>'+min[0]+'</b>';
+        lastStr+='<b>'+min[1]+'</b>';
+        lastStr+='<b>:</b>';
+        lastStr+='<b>'+sec[0]+'</b>';
+        lastStr+='<b>'+sec[1]+'</b>';
+        return lastStr;
+    }
+</script>
+<div style="overflow: hidden;">
+            <audio src="/bgMusic.mp3" id="Jaudio" class="media-audio" preload="none" loop="loop"></audio>
+        </div>
+        <script type="text/javascript">
+            function audioAutoPlay(id){
+                try { if (localStorage.getItem('fn_draw_music') === '0') return; } catch (e) {}
+                var audio = document.getElementById(id);
+                if (!audio) return;
+                try { audio.muted = false; audio.loop = true; } catch (e) {}
+                var go = function(){
+                  var p = audio.play();
+                  if (p && p.catch) p.catch(function(){});
+                };
+                // 首次触摸时启动音乐
+                document.addEventListener("WeixinJSBridgeReady", go, false);
+                document.addEventListener('YixinJSBridgeReady', go, false);
+                document.addEventListener('touchstart', go, {once:true, passive:true});
+                document.addEventListener('click', go, {once:true});
+            }
+        audioAutoPlay('Jaudio');
+</script>
+
+<script>
+(function () {
+  // 全页禁止长按系统菜单（复制/翻译/选中），输入框除外
+  function fnHallIsEditable(el) {
+    if (!el || !el.closest) return false;
+    return !!el.closest('input, textarea, [contenteditable="true"]');
+  }
+  document.addEventListener('contextmenu', function (e) {
+    if (fnHallIsEditable(e.target)) return;
+    e.preventDefault();
+  }, true);
+  document.addEventListener('selectstart', function (e) {
+    if (fnHallIsEditable(e.target)) return;
+    e.preventDefault();
+  }, true);
+  document.addEventListener('dragstart', function (e) {
+    if (fnHallIsEditable(e.target)) return;
+    e.preventDefault();
+  }, true);
+  try { document.body.style.webkitTouchCallout = 'none'; } catch (err) {}
+  try { document.documentElement.style.webkitUserSelect = 'none'; } catch (err) {}
+
+  // 真正的卡片父级是 #hallGameList，不是外层 .gamelist
+  var list = document.getElementById('hallGameList') || document.querySelector('.gamelist .last-show') || document.querySelector('.gamelist');
+  var scroller = document.querySelector('.gamelist') || list;
+  if (!list) return;
+
+  var ORDER_KEY = 'fn_hall_game_order_v1';
+  var LONG_MS = 360;
+  var MOVE_CANCEL = 12;
+  var pressTimer = null;
+  var dragging = false;
+  var startX = 0, startY = 0;
+  var card = null;
+  var placeholder = null;
+  var cardH = 0;
+  var originY = 0;
+  var baseTop = 0;
+  var baseLeft = 0;
+  var dropIndex = -1;
+  var raf = 0;
+  var pendingY = 0;
+  var docBound = false;
+  var homeParent = null;
+  var homeNext = null;
+
+  function cat() {
+    return document.documentElement.getAttribute('data-hall-cat') || 'lottery';
+  }
+  function readMap() {
+    try { return JSON.parse(localStorage.getItem(ORDER_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function writeMap(m) {
+    try { localStorage.setItem(ORDER_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+  function itemCards() {
+    var out = [];
+    var kids = list.children;
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (!el.classList || !el.classList.contains('game-box')) continue;
+      if (el.classList.contains('is-cat-hidden') || el.classList.contains('is-drag-placeholder')) continue;
+      out.push(el);
+    }
+    return out;
+  }
+  function applyOrder() {
+    var order = readMap()[cat()];
+    if (!order || !order.length) return;
+    var map = {};
+    Array.prototype.forEach.call(list.querySelectorAll('.game-box[data-gid]'), function (el) {
+      var id = String(el.getAttribute('data-gid') || '');
+      if (id) map[id] = el;
+    });
+    for (var i = 0; i < order.length; i++) {
+      var el = map[String(order[i])];
+      if (el) list.appendChild(el);
+    }
+  }
+  function saveOrder() {
+    var ids = [];
+    var cards = itemCards();
+    for (var i = 0; i < cards.length; i++) {
+      var id = String(cards[i].getAttribute('data-gid') || '');
+      if (id) ids.push(id);
+    }
+    if (!ids.length) return;
+    var m = readMap();
+    m[cat()] = ids;
+    writeMap(m);
+  }
+  applyOrder();
+  var nav = document.querySelector('.hall-cat-nav');
+  if (nav) {
+    nav.addEventListener('click', function () {
+      setTimeout(applyOrder, 30);
+    }, false);
+  }
+
+  function clearPress() {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+  }
+
+  function clearShifts() {
+    var kids = list.querySelectorAll('.game-box');
+    for (var i = 0; i < kids.length; i++) {
+      kids[i].classList.remove('is-shifting');
+      kids[i].style.transition = '';
+      kids[i].style.transform = '';
+    }
+  }
+
+  function unbindDoc() {
+    if (!docBound) return;
+    document.removeEventListener('touchmove', onDocMove, true);
+    document.removeEventListener('touchend', onDocEnd, true);
+    document.removeEventListener('touchcancel', onDocCancel, true);
+    docBound = false;
+  }
+  function bindDoc() {
+    if (docBound) return;
+    document.addEventListener('touchmove', onDocMove, { capture: true, passive: false });
+    document.addEventListener('touchend', onDocEnd, { capture: true, passive: false });
+    document.addEventListener('touchcancel', onDocCancel, { capture: true, passive: false });
+    docBound = true;
+  }
+
+  function resetCardStyles(el) {
+    if (!el) return;
+    el.classList.remove('is-drag-source');
+    el.style.position = '';
+    el.style.left = '';
+    el.style.top = '';
+    el.style.width = '';
+    el.style.height = '';
+    el.style.margin = '';
+    el.style.zIndex = '';
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+    el.style.transform = '';
+    el.style.transition = '';
+    el.style.boxShadow = '';
+  }
+
+  function putCardBack(el, beforeNode) {
+    if (!el) return;
+    resetCardStyles(el);
+    if (beforeNode && beforeNode.parentNode === list) {
+      list.insertBefore(el, beforeNode);
+    } else if (homeNext && homeNext.parentNode === list) {
+      list.insertBefore(el, homeNext);
+    } else {
+      list.appendChild(el);
+    }
+  }
+
+  function cleanupVisual(keepCardInPlace) {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    clearShifts();
+    if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+    placeholder = null;
+    if (card && !keepCardInPlace) {
+      // 仅在未提交时把卡放回原位；提交时已经 insert 好了
+      if (!list.contains(card)) putCardBack(card, null);
+      else resetCardStyles(card);
+    } else if (card) {
+      resetCardStyles(card);
+    }
+    scroller.classList.remove('is-reordering');
+    list.classList.remove('is-reordering');
+    dropIndex = -1;
+    homeParent = null;
+    homeNext = null;
+  }
+
+  function endDrag(commit) {
+    clearPress();
+    unbindDoc();
+    if (!dragging) {
+      cleanupVisual(false);
+      card = null;
+      window.__fnHallDragging = false;
+      return;
+    }
+    dragging = false;
+    window.__fnHallDragging = true;
+
+    if (commit && card && placeholder && placeholder.parentNode === list) {
+      list.insertBefore(card, placeholder);
+      resetCardStyles(card);
+      if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+      placeholder = null;
+      saveOrder();
+      clearShifts();
+      scroller.classList.remove('is-reordering');
+      list.classList.remove('is-reordering');
+      dropIndex = -1;
+      homeParent = null;
+      homeNext = null;
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    } else {
+      cleanupVisual(false);
+    }
+
+    card = null;
+    setTimeout(function () { window.__fnHallDragging = false; }, 450);
+  }
+
+  function startDrag(el, y) {
+    if (dragging || !el || !list.contains(el)) return;
+    try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {}
+
+    dragging = true;
+    window.__fnHallDragging = true;
+    card = el;
+    cardH = el.offsetHeight || 80;
+    var rect = el.getBoundingClientRect();
+    originY = y;
+    baseTop = rect.top;
+    baseLeft = rect.left;
+    pendingY = y;
+    dropIndex = -1;
+    homeParent = el.parentNode;
+    homeNext = el.nextSibling;
+
+    scroller.classList.add('is-reordering');
+    list.classList.add('is-reordering');
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'game-box is-drag-placeholder';
+    placeholder.style.height = cardH + 'px';
+    placeholder.style.width = rect.width + 'px';
+    placeholder.style.margin = window.getComputedStyle(el).margin;
+    list.insertBefore(placeholder, el);
+
+    // 把真卡挂到 body 跟手；列表里只留占位符（绝不 remove 丢卡）
+    el.classList.add('is-drag-source');
+    el.style.position = 'fixed';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    el.style.width = rect.width + 'px';
+    el.style.height = cardH + 'px';
+    el.style.margin = '0';
+    el.style.zIndex = '10000';
+    el.style.opacity = '0.97';
+    el.style.pointerEvents = 'none';
+    el.style.transform = 'scale(1.04)';
+    el.style.transition = 'none';
+    el.style.boxShadow = '0 0.2rem 0.45rem rgba(0,0,0,.35)';
+    document.body.appendChild(el);
+
+    bindDoc();
+  }
+
+  function indexFromY(y) {
+    var cards = itemCards();
+    for (var i = 0; i < cards.length; i++) {
+      var r = cards[i].getBoundingClientRect();
+      if (y < r.top + r.height * 0.5) return i;
+    }
+    return cards.length;
+  }
+
+  // FLIP：占位符移动前后，其它卡平滑滑到新位置（桌面图标让位感）
+  function flipShift(mutator) {
+    var cards = itemCards();
+    var first = {};
+    for (var i = 0; i < cards.length; i++) {
+      first[cards[i].getAttribute('data-gid') || i] = cards[i].getBoundingClientRect().top;
+    }
+    mutator();
+    cards = itemCards();
+    for (var j = 0; j < cards.length; j++) {
+      var el = cards[j];
+      var key = el.getAttribute('data-gid') || j;
+      if (first[key] == null) continue;
+      var dy = first[key] - el.getBoundingClientRect().top;
+      if (Math.abs(dy) < 1) continue;
+      el.classList.add('is-shifting');
+      el.style.transition = 'none';
+      el.style.transform = 'translate3d(0,' + dy + 'px,0)';
+      (function (node) {
+        void node.offsetWidth;
+        node.style.transition = 'transform .2s ease';
+        node.style.transform = '';
+        var done = function () {
+          node.style.transition = '';
+          node.classList.remove('is-shifting');
+          node.removeEventListener('transitionend', done);
+        };
+        node.addEventListener('transitionend', done);
+      })(el);
+    }
+  }
+
+  function placePlaceholderByIndex(idx) {
+    if (idx === dropIndex) return;
+    var cards = itemCards();
+    var before = (idx < cards.length) ? cards[idx] : null;
+    if (before) {
+      if (placeholder.nextSibling === before) { dropIndex = idx; return; }
+    } else if (!placeholder.nextSibling) {
+      dropIndex = idx; return;
+    }
+    dropIndex = idx;
+    flipShift(function () {
+      if (before) list.insertBefore(placeholder, before);
+      else list.appendChild(placeholder);
+    });
+  }
+
+  function doMove(y) {
+    if (!dragging || !card || !placeholder) return;
+    card.style.top = (baseTop + (y - originY)) + 'px';
+    card.style.left = baseLeft + 'px';
+    placePlaceholderByIndex(indexFromY(y));
+
+    var lr = scroller.getBoundingClientRect();
+    var edge = 48;
+    if (y < lr.top + edge) {
+      scroller.scrollTop -= 14;
+      dropIndex = -1;
+      placePlaceholderByIndex(indexFromY(y));
+    } else if (y > lr.bottom - edge) {
+      scroller.scrollTop += 14;
+      dropIndex = -1;
+      placePlaceholderByIndex(indexFromY(y));
+    }
+  }
+
+  function onMove(y) {
+    pendingY = y;
+    if (raf) return;
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      doMove(pendingY);
+    });
+  }
+
+  function onDocMove(e) {
+    if (!dragging) return;
+    if (!e.touches || !e.touches.length) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    onMove(e.touches[0].clientY);
+  }
+  function onDocEnd(e) {
+    if (!dragging) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    try { e.stopImmediatePropagation(); } catch (err) {}
+    endDrag(true);
+  }
+  function onDocCancel() {
+    if (!dragging) return;
+    endDrag(false);
+  }
+
+  list.addEventListener('touchstart', function (e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    var el = e.target && e.target.closest ? e.target.closest('.game-box') : null;
+    if (!el || !list.contains(el) || el.classList.contains('is-cat-hidden')) return;
+    if (el.classList.contains('is-drag-placeholder')) return;
+    var t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    clearPress();
+    var target = el;
+    var sy = t.clientY;
+    pressTimer = setTimeout(function () {
+      pressTimer = null;
+      startDrag(target, sy);
+      onMove(sy);
+    }, LONG_MS);
+  }, { passive: true });
+
+  list.addEventListener('touchmove', function (e) {
+    if (dragging) return;
+    if (!e.touches || !e.touches.length) return;
+    var t = e.touches[0];
+    if (Math.abs(t.clientX - startX) > MOVE_CANCEL || Math.abs(t.clientY - startY) > MOVE_CANCEL) {
+      clearPress();
+    }
+  }, { passive: true });
+
+  list.addEventListener('touchend', function () { if (pressTimer) clearPress(); }, { passive: true });
+  list.addEventListener('touchcancel', function () { if (pressTimer) clearPress(); }, { passive: true });
+
+  list.addEventListener('touchend', function (e) {
+    if (window.__fnHallDragging || dragging) {
+      e.preventDefault();
+      e.stopPropagation();
+      try { e.stopImmediatePropagation(); } catch (err) {}
+    }
+  }, true);
+  list.addEventListener('click', function (e) {
+    if (window.__fnHallDragging || dragging) {
+      e.preventDefault();
+      e.stopPropagation();
+      try { e.stopImmediatePropagation(); } catch (err) {}
+    }
+  }, true);
+})();
+</script>
+
+<script type="text/javascript">
+// 最终分类保护：开奖轮询、卡片重绘等后续逻辑不得把两类游戏重新混在一起。
+(function () {
+    var list = document.getElementById('hallGameList');
+    if (!list || !window.MutationObserver) return;
+    var busy = false;
+    function enforce() {
+        if (busy) return;
+        busy = true;
+        var root = document.documentElement;
+        var cat = root.getAttribute('data-hall-cat') || 'sport';
+        if (cat !== 'sport' && cat !== 'lottery') cat = 'sport';
+        var boxes = list.querySelectorAll('.game-box[data-cat]');
+        for (var i = 0; i < boxes.length; i++) {
+            var visible = boxes[i].getAttribute('data-cat') === cat;
+            boxes[i].classList.toggle('is-cat-hidden', !visible);
+            boxes[i].style.setProperty('display', visible ? '' : 'none', 'important');
+        }
+        busy = false;
+    }
+    window.__fnHallCategoryGuard = new MutationObserver(function () { enforce(); });
+    window.__fnHallCategoryGuard.observe(list, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','data-cat']});
+    enforce();
+})();
+</script>
+
+<script type="text/javascript" src="/Style/newjs/user-stats-cache.js?v=20260811stats2"></script>
+</body>
+</html>

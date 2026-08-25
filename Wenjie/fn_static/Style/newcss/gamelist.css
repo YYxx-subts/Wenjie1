@@ -1,0 +1,520 @@
+html, body{
+  background-color: #4a9fe0;
+}
+.mainbox{
+  --fn-safe-top: max(env(safe-area-inset-top, 0px), var(--fn-status-bar, 0px));
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background-color: #0173eb;
+  background: url("../newimg/bj.png?v=20260726y") center bottom / cover no-repeat;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+.mainbox .roomtop{
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  --fn-top-arc-h: calc(100vw * 252 / 1125 * 2 / 3);
+  height: calc(var(--fn-safe-top) + var(--fn-top-arc-h));
+  box-sizing: border-box;
+  background: transparent;
+  overflow: visible;
+}
+.mainbox .roomtop .roomtop-bg{
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  margin: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+.mainbox .roomtop .hall-logo{
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: calc(var(--fn-safe-top) + var(--fn-top-arc-h) / 2);
+  transform: translate(-50%, -50%);
+  width: min(38vw, 220px);
+  max-width: 52%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+.mainbox .roomtop .hall-title{
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: calc(var(--fn-safe-top) + var(--fn-top-arc-h) / 2);
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  font-size: 0.36rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+.roomtop .top-btn{
+  position: absolute;
+  top: calc(var(--fn-safe-top) + var(--fn-top-arc-h) / 2);
+  left: 0.2rem;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: block;
+  width: 0.72rem;
+  height: 0.72rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.roomtop .top-btn img{width: 0.72rem;height: 0.72rem;display: block;}
+
+
+/* 公告栏：深色毛玻璃条（对齐参考图） */
+.notice{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  margin: 0.1rem 0.22rem 0.1rem;
+  padding: 0.1rem 0.18rem 0.1rem 0.14rem;
+  box-sizing: border-box;
+  min-height: 0.64rem;
+  border-radius: 999px;
+  background: rgba(8, 42, 68, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 20, 40, 0.12),
+    0 0.03rem 0.1rem rgba(0, 24, 48, 0.16);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  backdrop-filter: blur(14px) saturate(1.25);
+}
+.notice .leftlaba{
+  margin-left: 0.04rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notice .leftlaba img{
+  width: 0.42rem;
+  height: 0.42rem;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+.notice .rightcon{
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  margin-left: 0.12rem;
+  margin-right: 0.06rem;
+}
+.notice .rightcon marquee{
+  display: block;
+  width: 100%;
+  color: #ffffff;
+  font-size: 0.26rem;
+  line-height: 0.44rem;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(0, 20, 40, 0.35);
+}
+.notice .rightcon li{color: #ffffff}
+
+/* 轮播：始终占位；轨道横向滑动 */
+.home-banner{
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: calc(100% - 0.56rem);
+  height: 0;
+  padding-bottom: 32%;
+  margin: 0.06rem 0.28rem 0.04rem;
+  overflow: hidden;
+  border-radius: 0.2rem;
+  background: transparent;
+  box-shadow: 0 0.04rem 0.1rem rgba(0,0,0,0.14);
+  box-sizing: border-box;
+  z-index: 2;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  /* 用背景同色兜底，万一还有 1px 缝也不显白 */
+  isolation: isolate;
+}
+.home-banner.is-visible{
+  background: transparent;
+}
+.home-banner .banner-track{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  will-change: transform;
+  transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.home-banner .banner-track.is-dragging{
+  transition: none;
+}
+.home-banner .banner-slide{
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  line-height: 0;
+  font-size: 0;
+}
+.home-banner .banner-slide img{
+  position: absolute;
+  left: 0;
+  width: 100%;
+  /* 加高并上移，裁掉素材自带底白边 */
+  top: -3%;
+  height: 110%;
+  object-fit: cover;
+  object-position: center 40%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.home-banner .banner-dots{
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 0.12rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.1rem;
+  pointer-events: auto;
+}
+.home-banner .banner-dot{
+  width: 0.12rem;
+  height: 0.12rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+}
+.home-banner .banner-dot.is-active{background: rgba(255,255,255,0.95)}
+
+/* 轮播下方分类：使用项目原有整图按钮素材 */
+.hall-cat-nav{
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.12rem;
+  padding: 0.12rem 0.28rem 0.06rem;
+  box-sizing: border-box;
+  z-index: 2;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hall-cat-nav::-webkit-scrollbar{ display: none; }
+.hall-cat-btn{
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 calc((100% - 0.36rem) / 4);
+  display: block;
+  position: relative;
+  width: calc((100% - 0.36rem) / 4);
+  max-width: calc((100% - 0.36rem) / 4);
+  height: auto;
+  padding: 0;
+  margin: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  line-height: 0;
+  cursor: pointer;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  opacity: 1;
+  transition: transform .12s ease;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+}
+.hall-cat-btn.is-on{ transform: none; }
+.hall-cat-btn:focus,
+.hall-cat-btn:active{ outline: none !important; }
+.hall-cat-btn img{
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+.hall-cat-btn .hall-cat-on{ display: none; }
+.hall-cat-btn .hall-cat-off{ display: block; }
+.hall-cat-btn.is-on .hall-cat-on{ display: block; }
+.hall-cat-btn.is-on .hall-cat-off{ display: none; }
+.hall-cat-hidden{ display: none !important; }
+
+
+.gamelist{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 0.12rem;
+  -webkit-overflow-scrolling: touch;
+}
+/* 游戏卡略压缩，给轮播让位 */
+.game-box{
+  margin: 0.04rem auto;
+  position: relative;
+  width: 94%;
+  box-sizing: border-box;
+}
+.game-box > img{
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.game-info{position: absolute;left: 0px;top: 0px;width: 100%;height: 100%;}
+.game-info .game-ico{position: absolute;left: 0.3rem;top: 15%;}
+.game-info .game-ico img{width: 1rem}
+.game-info .game-name{position: absolute;left: 1.5rem;top: 18%;}
+.game-info .game-name img{width: 1.55rem;height: auto;display: block;}
+.game-info .game-time{display: flex;flex-direction: row;position: absolute;right: 0.2rem;top: 40%}
+.game-info .game-time b{display: block;background: white;border-radius: 7px;height: 0.4rem; width: 0.4rem;text-align: center;line-height: 0.4rem;font-size: 0.24rem; margin: 2px}
+.game-info .game-time b:nth-child(3){background: none;width:auto;color: white;font-size: 0.3rem;font-weight: bold;margin: 0rem 0.08rem}
+.game-info .game-time b.fping{width: 1rem}
+.game-info .game-time b.fping.is-maintenance{width:1.18rem;color:#e53935;background:#fff;}
+
+.game-info .game-sn{position: absolute;top: 10%;right: 10%;font-size: 0.28rem;color: white}
+/* 期号左移约 1 位数字宽，避免长期号把奖球挤出小屏 */
+.game-info .game-num{position: absolute;bottom: 10%;left: 3%;right: 1.5%;font-size: 0.28rem;color: white;display: flex;flex-direction: row;align-items: center;box-sizing: border-box;max-width: 96%;overflow: hidden}
+.game-num span{width: 0.38rem;height: 0.38rem;flex: 0 0 0.38rem;display: flex;justify-content: center;align-items: center;border-radius: 3px;text-shadow: 0 0 1px #000;color: white;font-weight: 700;margin-left: 1px;}
+.game-num span.sn-num{width: auto;flex: 0 0 auto;margin-right: 0.12rem;margin-left: 0;letter-spacing: -0.01em}
+.n1{background:#e6de00}
+.n2{background:#0092dd}
+.n3{background:#4b4b4b}
+.n4{background:#ff7600}
+.n5{background:#17e2e5}
+.n6{background:#5234ff}
+.n7{background:#bfbfbf}
+.n8{background:#ff2600}
+.n9{background:#780b00}
+.n10{background:#07bf00}
+.n0{background:#07bf00}
+
+/* 时时彩/澳洲5：大厅精灵球（统一 ssc-balls.png 精灵图，消除单独 PNG 间距不均） */
+.game-box[data-kind="ssc"] .game-num{
+  gap: 0.06rem;
+  justify-content: flex-start;
+}
+.game-box[data-kind="ssc"] .game-num span.sn-num{
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+.game-box[data-kind="ssc"] .game-num span:not(.sn-num){
+  display: inline-block;
+  width: 0.48rem;
+  height: 0.44rem;
+  flex: 0 0 0.48rem;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background-color: transparent !important;
+  background-repeat: no-repeat !important;
+  background-size: 500% 200% !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  text-shadow: none !important;
+  overflow: hidden;
+}
+.game-box[data-kind="ssc"] .game-num span.n0{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: -2.47% -6.75% !important; }
+.game-box[data-kind="ssc"] .game-num span.n1{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 23.63% -6.75% !important; }
+.game-box[data-kind="ssc"] .game-num span.n2{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 49.91% -6.75% !important; }
+.game-box[data-kind="ssc"] .game-num span.n3{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 76.10% -6.75% !important; }
+.game-box[data-kind="ssc"] .game-num span.n4{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 102.38% -6.75% !important; }
+.game-box[data-kind="ssc"] .game-num span.n5{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: -2.47% 106.35% !important; }
+.game-box[data-kind="ssc"] .game-num span.n6{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 23.63% 106.35% !important; }
+.game-box[data-kind="ssc"] .game-num span.n7{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 49.91% 106.35% !important; }
+.game-box[data-kind="ssc"] .game-num span.n8{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 76.10% 106.35% !important; }
+.game-box[data-kind="ssc"] .game-num span.n9{ background-image: url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important; background-position: 102.38% 106.35% !important; }
+
+/* 弹珠六合彩：大厅红蓝绿球 */
+.game-box[data-kind="lhc"] .game-num{
+  gap: 0.04rem;
+}
+.game-box[data-kind="lhc"] .game-num span:not(.sn-num):not(.lhc-plus){
+  display: inline-block;
+  width: 0.34rem;
+  height: 0.34rem;
+  flex: 0 0 0.34rem;
+  margin-left: 0;
+  border-radius: 0;
+  background-color: transparent !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  text-shadow: none !important;
+  overflow: hidden;
+}
+.game-box[data-kind="lhc"] .game-num span.lhc-plus{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.18rem;
+  height: 0.34rem;
+  flex: 0 0 0.18rem;
+  margin: 0;
+  border-radius: 0;
+  background: none !important;
+  color: #fff !important;
+  font-size: 0.2rem !important;
+  font-weight: 700;
+  text-indent: 0 !important;
+  text-shadow: none !important;
+}
+
+.game-box[data-kind="lhc"] .game-num span.lhc-n01{ background-image: url(/Style/newimg/lhcballs/01.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n02{ background-image: url(/Style/newimg/lhcballs/02.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n03{ background-image: url(/Style/newimg/lhcballs/03.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n04{ background-image: url(/Style/newimg/lhcballs/04.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n05{ background-image: url(/Style/newimg/lhcballs/05.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n06{ background-image: url(/Style/newimg/lhcballs/06.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n07{ background-image: url(/Style/newimg/lhcballs/07.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n08{ background-image: url(/Style/newimg/lhcballs/08.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n09{ background-image: url(/Style/newimg/lhcballs/09.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n10{ background-image: url(/Style/newimg/lhcballs/10.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n11{ background-image: url(/Style/newimg/lhcballs/11.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n12{ background-image: url(/Style/newimg/lhcballs/12.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n13{ background-image: url(/Style/newimg/lhcballs/13.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n14{ background-image: url(/Style/newimg/lhcballs/14.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n15{ background-image: url(/Style/newimg/lhcballs/15.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n16{ background-image: url(/Style/newimg/lhcballs/16.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n17{ background-image: url(/Style/newimg/lhcballs/17.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n18{ background-image: url(/Style/newimg/lhcballs/18.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n19{ background-image: url(/Style/newimg/lhcballs/19.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n20{ background-image: url(/Style/newimg/lhcballs/20.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n21{ background-image: url(/Style/newimg/lhcballs/21.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n22{ background-image: url(/Style/newimg/lhcballs/22.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n23{ background-image: url(/Style/newimg/lhcballs/23.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n24{ background-image: url(/Style/newimg/lhcballs/24.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n25{ background-image: url(/Style/newimg/lhcballs/25.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n26{ background-image: url(/Style/newimg/lhcballs/26.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n27{ background-image: url(/Style/newimg/lhcballs/27.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n28{ background-image: url(/Style/newimg/lhcballs/28.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n29{ background-image: url(/Style/newimg/lhcballs/29.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n30{ background-image: url(/Style/newimg/lhcballs/30.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n31{ background-image: url(/Style/newimg/lhcballs/31.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n32{ background-image: url(/Style/newimg/lhcballs/32.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n33{ background-image: url(/Style/newimg/lhcballs/33.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n34{ background-image: url(/Style/newimg/lhcballs/34.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n35{ background-image: url(/Style/newimg/lhcballs/35.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n36{ background-image: url(/Style/newimg/lhcballs/36.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n37{ background-image: url(/Style/newimg/lhcballs/37.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n38{ background-image: url(/Style/newimg/lhcballs/38.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n39{ background-image: url(/Style/newimg/lhcballs/39.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n40{ background-image: url(/Style/newimg/lhcballs/40.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n41{ background-image: url(/Style/newimg/lhcballs/41.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n42{ background-image: url(/Style/newimg/lhcballs/42.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n43{ background-image: url(/Style/newimg/lhcballs/43.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n44{ background-image: url(/Style/newimg/lhcballs/44.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n45{ background-image: url(/Style/newimg/lhcballs/45.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n46{ background-image: url(/Style/newimg/lhcballs/46.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n47{ background-image: url(/Style/newimg/lhcballs/47.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n48{ background-image: url(/Style/newimg/lhcballs/48.png) !important; }
+.game-box[data-kind="lhc"] .game-num span.lhc-n49{ background-image: url(/Style/newimg/lhcballs/49.png) !important; }
+
+/* 弹珠28：彩色圆球加法等式（参考加拿大28/PC蛋蛋） */
+.game-box[data-kind="pc28"] .game-num{
+  gap: 0.06rem;
+  overflow: visible;
+}
+.game-box[data-kind="pc28"] .game-num .sn-num{
+  font-size: 0.26rem;
+  font-weight: 600;
+  margin-right: 0.1rem;
+  text-shadow: 0 1px 1px rgba(0,0,0,.25);
+}
+.pc28-ball{
+  width: 0.4rem !important;
+  height: 0.4rem !important;
+  flex: 0 0 0.4rem !important;
+  border-radius: 50% !important;
+  margin: 0 !important;
+  text-shadow: none !important;
+  font-size: 0.22rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,.18);
+}
+.pc28-ball.is-sum{
+  width: 0.44rem !important;
+  height: 0.44rem !important;
+  flex-basis: 0.44rem !important;
+  font-size: 0.2rem;
+}
+.pc28-ball.pc-g{background:#1ec45a !important;}
+.pc28-ball.pc-b{background:#2f86f6 !important;}
+.pc28-ball.pc-r{background:#e53935 !important;}
+.pc28-ball.pc-y{background:#f0b429 !important;}
+.pc28-op{
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  background: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 0.04rem !important;
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,.3) !important;
+  font-size: 0.24rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  justify-content: center;
+  align-items: center;
+  box-sizing: content-box !important;
+}
+.pc28-op.is-light{
+  color: #9aa3af !important;
+  text-shadow: none !important;
+}
+
+.mainbox .room-history{flex-grow: 10}
+.mainbox .btn-bg{flex-grow: 0;flex-shrink: 0;}
+.mainbox .btn-bg img{width: 100%}

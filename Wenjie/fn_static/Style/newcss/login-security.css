@@ -1,0 +1,42 @@
+.fn-security-mask{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));background:rgba(7,35,55,.72);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;overscroll-behavior:contain}
+.fn-security-mask.show{display:flex}
+body.fn-security-open{overflow:hidden!important;touch-action:none}
+.fn-captcha-card,.fn-otp-card{background:#fff;overflow:hidden;color:#333}
+.fn-captcha-dialog{position:relative;width:min(calc(82.56vw + 2px),392px);transform:translateY(-2.35vh)}
+.fn-captcha-card{box-sizing:border-box;width:100%;border:1px solid #dfe3e6;border-radius:2px;box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.fn-captcha-close{position:absolute;z-index:3;right:1px;top:-48px;width:29px;height:29px;border:1.5px solid #fff;border-radius:50%;outline:0;box-shadow:none;background:transparent;display:flex;align-items:center;justify-content:center;padding:0;-webkit-tap-highlight-color:transparent}
+.fn-captcha-close img{display:block;width:16px;height:16px;filter:brightness(0) invert(1);pointer-events:none}
+.fn-otp-card{width:min(90vw,390px);border-radius:8px;box-shadow:0 14px 44px rgba(0,0,0,.28)}
+.fn-security-head{height:58px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eceff2}
+.fn-security-title{font-size:21px;font-weight:650;color:#227fc5}
+.fn-security-close{min-width:48px;height:38px;border:0;background:transparent;color:#7d8992;font-size:14px;line-height:38px;text-align:center;padding:0}
+.fn-captcha-card .fn-security-head{box-sizing:border-box;height:51px;padding:0 16px;border-bottom-color:#dfe3e6}
+.fn-captcha-card .fn-security-title{font-size:17px;font-weight:400;color:#4b4b4b}
+.fn-captcha-body{padding:14px 16px}
+.fn-captcha-picture{position:relative;width:100%;aspect-ratio:2/1;overflow:hidden;background:#d7e8f4 url("/Style/newimg/home_banner_preload.png?v=20260812preload2") center/cover no-repeat;touch-action:none;user-select:none;-webkit-user-select:none}
+.fn-captcha-bg{width:100%;height:100%;display:block;object-fit:cover;pointer-events:none;transition:opacity .12s}
+.fn-captcha-hole,.fn-captcha-piece{position:absolute;width:36px;height:36px;clip-path:path("M5 0H12C11 2 11 3 11 5C11 8 14 11 17 11C20 11 23 8 23 5C23 3 22 2 21 0H31C34 0 36 2 36 5V12C34 11 33 11 31 11C27 11 24 14 24 17C24 21 27 24 31 24C33 24 34 23 36 23V31C36 34 34 36 31 36H5C2 36 0 34 0 31V23C2 24 3 24 5 24C9 24 12 21 12 17C12 14 9 11 5 11C3 11 2 11 0 12V5C0 2 2 0 5 0Z")}
+.fn-captcha-hole{z-index:2;background:rgba(8,15,20,.72);filter:drop-shadow(-2px 0 0 rgba(255,255,255,.98)) drop-shadow(2px 0 0 rgba(255,255,255,.98)) drop-shadow(0 -2px 0 rgba(255,255,255,.98)) drop-shadow(0 2px 0 rgba(255,255,255,.98)) drop-shadow(3px 4px 2px rgba(0,0,0,.76));-webkit-filter:drop-shadow(-2px 0 0 rgba(255,255,255,.98)) drop-shadow(2px 0 0 rgba(255,255,255,.98)) drop-shadow(0 -2px 0 rgba(255,255,255,.98)) drop-shadow(0 2px 0 rgba(255,255,255,.98)) drop-shadow(3px 4px 2px rgba(0,0,0,.76))}
+.fn-captcha-piece{z-index:3;left:0;background-repeat:no-repeat;filter:drop-shadow(-2px 0 0 rgba(255,255,255,.98)) drop-shadow(2px 0 0 rgba(255,255,255,.98)) drop-shadow(0 -2px 0 rgba(255,255,255,.98)) drop-shadow(0 2px 0 rgba(255,255,255,.98)) drop-shadow(3px 4px 2px rgba(0,0,0,.72));-webkit-filter:drop-shadow(-2px 0 0 rgba(255,255,255,.98)) drop-shadow(2px 0 0 rgba(255,255,255,.98)) drop-shadow(0 -2px 0 rgba(255,255,255,.98)) drop-shadow(0 2px 0 rgba(255,255,255,.98)) drop-shadow(3px 4px 2px rgba(0,0,0,.72))}
+.fn-captcha-tools{position:absolute;z-index:5;top:0;right:0;display:flex;height:31px;background:rgba(61,101,184,.78)}
+.fn-captcha-tool{width:34px;height:31px;border:0;border-radius:0;outline:0;box-shadow:none;background:transparent;display:flex;align-items:center;justify-content:center;padding:0;-webkit-tap-highlight-color:transparent}
+.fn-captcha-tool:focus,.fn-captcha-tool:focus-visible,.fn-captcha-close:focus,.fn-captcha-close:focus-visible{outline:0;box-shadow:none}
+.fn-captcha-tool:active{background:rgba(255,255,255,.14)}
+.fn-captcha-tool img{display:block;width:20px;height:20px;filter:brightness(0) invert(1);opacity:.82;pointer-events:none}
+.fn-captcha-audio img{width:19px;height:19px}
+.fn-captcha-slider{box-sizing:border-box;position:relative;height:40px;margin-top:15px;border:1px solid #d9dde1;background:#f4f6f8;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.fn-captcha-progress{position:absolute;inset:0 auto 0 0;width:0;background:#e4f3ff}
+.fn-captcha-tip{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-left:40px;color:#4c4c4c;font-size:16px;font-weight:400;pointer-events:none;white-space:nowrap}
+.fn-captcha-handle{box-sizing:border-box;position:absolute;left:-1px;top:-1px;width:41px;height:40px;border:1px solid #d4d9de;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:1px 0 4px rgba(0,0,0,.14);touch-action:none;-webkit-tap-highlight-color:transparent}
+.fn-captcha-handle img{width:21px;height:21px;object-fit:contain;filter:opacity(.68);pointer-events:none}
+.fn-captcha-status{height:0;overflow:hidden;padding:0;text-align:center;font-size:12px;color:#d73d45;transition:height .15s,padding .15s}
+.fn-captcha-status:not(:empty){height:20px;padding-top:5px}
+.fn-captcha-status.ok{color:#169a57}
+.fn-otp-body{padding:22px 20px 20px}
+.fn-otp-copy{font-size:15px;line-height:1.6;color:#667681;margin-bottom:14px}
+.fn-otp-input{display:block;width:100%;height:52px;border:1px solid #ced7df;border-radius:7px;padding:0 14px;font-size:22px;letter-spacing:7px;text-align:center;outline:none;color:#222;background:#fff}
+.fn-otp-input:focus{border-color:#359fe5;box-shadow:0 0 0 3px rgba(53,159,229,.12)}
+.fn-otp-submit{display:block;width:100%;height:48px;margin-top:16px;border:0;border-radius:7px;color:#fff;font-size:17px;font-weight:600;background:linear-gradient(90deg,#2c7fdd,#49bde9)}
+.fn-otp-error{min-height:22px;padding-top:8px;text-align:center;color:#dc3f48;font-size:14px}
+@media(max-width:380px){.fn-security-mask{padding-left:16px;padding-right:16px}.fn-captcha-dialog{width:calc(82.56vw + 2px)}.fn-captcha-body{padding:13px 14px}.fn-captcha-card .fn-security-head{height:49px;padding:0 14px}.fn-captcha-card .fn-security-title{font-size:16px}.fn-captcha-tip{font-size:15px}.fn-captcha-slider{margin-top:14px}}
+@media(max-height:650px){.fn-captcha-dialog{transform:none}.fn-security-mask{padding-top:50px;padding-bottom:12px}}

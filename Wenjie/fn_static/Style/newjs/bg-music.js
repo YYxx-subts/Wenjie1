@@ -1,0 +1,184 @@
+/**
+ * 游戏背景音乐：/bgMusic.mp3（#Jaudio）
+ * 开关：localStorage.fn_draw_music === '0' 关闭，其余开启（默认开）
+ * 移动端常拦截 autoplay：首次点击页面时再尝试播放。
+ */
+(function (window, document) {
+  var KEY = 'fn_draw_music';
+  var nativePlay = HTMLMediaElement.prototype.play;
+  var unlockBound = false;
+  var lastBootAt = 0;
+  var pausedByBackground = false;
+
+  function enabled() {
+    try {
+      return localStorage.getItem(KEY) !== '0';
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function isBg(el) {
+    if (!el || el.nodeName !== 'AUDIO') return false;
+    if (el.id === 'Jaudio') return true;
+    var src = '';
+    try {
+      src = el.getAttribute('src') || el.currentSrc || el.src || '';
+    } catch (e) {}
+    return /bgMusic\.mp3|M800000aWNp62gDng2\.mp3/i.test(src);
+  }
+
+  function getEl() {
+    return document.getElementById('Jaudio');
+  }
+
+  function tryPlay(el) {
+    el = el || getEl();
+    if (!el || !enabled() || pausedByBackground || document.hidden) return;
+    try {
+      el.muted = false;
+      el.volume = 1;
+      el.loop = true;
+      el.preload = 'auto';
+      if (!el.getAttribute('src') && !el.src) {
+        el.setAttribute('src', '/bgMusic.mp3');
+      }
+      var p = nativePlay.call(el);
+      if (p && typeof p.catch === 'function') {
+        p.catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  function apply(el) {
+    el = el || getEl();
+    if (!el) return;
+    // iOS 原生壳使用唯一的 AVAudioPlayer；网页 audio 永远静音并停止，
+    // 避免点击/切页后多个 HTMLAudioElement 叠加播放。
+    try {
+      el.autoplay = false;
+      el.removeAttribute('autoplay');
+      el.muted = true;
+      el.volume = 0;
+      el.pause();
+    } catch (e) {}
+    if (window.__FN_NATIVE_AUDIO__) return;
+    if (!enabled()) {
+      try {
+        el.autoplay = false;
+        el.removeAttribute('autoplay');
+        el.muted = true;
+        el.pause();
+        if (el.currentTime) el.currentTime = 0;
+      } catch (e) {}
+      return;
+    }
+    try {
+      el.muted = false;
+      // 首屏不抢带宽；首次用户操作或显式开启音乐时再加载音频。
+      el.autoplay = false;
+      el.removeAttribute('autoplay');
+      el.preload = 'none';
+      el.loop = true;
+    } catch (e) {}
+  }
+
+  function bindUnlock() {
+    if (unlockBound) return;
+    unlockBound = true;
+    var unlock = function () {
+      if (!enabled()) return;
+      tryPlay();
+    };
+    document.addEventListener('touchstart', unlock, { passive: true, capture: true });
+    document.addEventListener('click', unlock, true);
+  }
+
+  HTMLMediaElement.prototype.play = function () {
+    if (isBg(this) && window.__FN_NATIVE_AUDIO__) {
+      apply(this);
+      if (typeof Promise !== 'undefined') return Promise.resolve();
+      return undefined;
+    }
+    if (isBg(this) && !enabled()) {
+      apply(this);
+      if (typeof Promise !== 'undefined') return Promise.resolve();
+      return undefined;
+    }
+    return nativePlay.apply(this, arguments);
+  };
+
+  function boot() {
+    var now = Date.now();
+    if (now - lastBootAt < 350) return;
+    lastBootAt = now;
+    apply();
+    bindUnlock();
+    var list = document.querySelectorAll('audio.media-audio, audio#Jaudio');
+    for (var i = 0; i < list.length; i++) apply(list[i]);
+  }
+
+  function pauseForBackground() {
+    pausedByBackground = true;
+    var list = document.querySelectorAll('audio.media-audio, audio#Jaudio, video');
+    for (var i = 0; i < list.length; i++) {
+      try { list[i].pause(); } catch (e) {}
+    }
+  }
+
+  function resumeFromBackground() {
+    pausedByBackground = false;
+    if (enabled()) tryPlay();
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) pauseForBackground();
+    else resumeFromBackground();
+  }, false);
+  window.addEventListener('pagehide', pauseForBackground, false);
+  window.addEventListener('pageshow', resumeFromBackground, false);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+  window.addEventListener('load', boot);
+  setTimeout(boot, 200);
+
+  if (typeof MutationObserver !== 'undefined') {
+    try {
+      var mo = new MutationObserver(function (muts) {
+        for (var i = 0; i < muts.length; i++) {
+          var nodes = muts[i].addedNodes;
+          for (var j = 0; j < nodes.length; j++) {
+            var n = nodes[j];
+            if (n.nodeType !== 1) continue;
+            if (isBg(n)) apply(n);
+            else if (n.querySelectorAll) {
+              var found = n.querySelectorAll('audio#Jaudio, audio.media-audio');
+              for (var k = 0; k < found.length; k++) apply(found[k]);
+            }
+          }
+        }
+      });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
+  }
+
+  window.FeiniaoBgMusic = {
+    KEY: KEY,
+    enabled: enabled,
+    apply: apply,
+    tryPlay: tryPlay,
+    setEnabled: function (on) {
+      try {
+        localStorage.setItem(KEY, on ? '1' : '0');
+      } catch (e) {}
+      apply();
+      if (on) tryPlay();
+    },
+    pauseForBackground: pauseForBackground,
+    resumeFromBackground: resumeFromBackground
+  };
+})(window, document);

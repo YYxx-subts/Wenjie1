@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>【<?php echo get_query_val("fn_room", "roomname", array("roomid" => $_SESSION['roomid']));
+?>】房间</title>
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/common.css" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/chatroom.css?v=20260731fix1" />
+    <script type="text/javascript" src="/Style/newjs/jquery-1.10.1.min.js"></script>
+    <script type="text/javascript" src="/Style/newjs/room-overscroll.js?v=20260730nav1"></script>
+    <script type="text/javascript" src="/Style/newjs/bg-music.js?v=20260726j"></script>
+    <script type="text/javascript" src="/Style/newjs/vip-room.js?v=20260731fix1"></script>
+    <script type="text/javascript" src="/Style/newjs/room-ui.js?v=20260802sourceclock"></script>
+    <script type="text/javascript" src="/Style/newjs/huishui.js?v=20260728vip"></script>
+        <script type="text/javascript">
+    window.ROOM_GAME_CODE=<?=json_encode(isset($ROOM_GAME_CODE)&&$ROOM_GAME_CODE!==''?$ROOM_GAME_CODE:(isset($_COOKIE['game'])?$_COOKIE['game']:''));?>;
+    window.ROOM_HAS_LIVE=<?=(isset($gameId) && function_exists('feiniao_has_live') && feiniao_has_live((int)$gameId)) ? 'true' : 'false';?>;
+    window.ROOM_GAME_ID=<?=isset($gameId)?(int)$gameId:0;?>;
+    window.ROOM_BOOT_OPEN=<?=json_encode(isset($ROOM_BOOT_OPEN)&&is_array($ROOM_BOOT_OPEN)?$ROOM_BOOT_OPEN:null);?>;
+    window.ROOM_BOOT_CHAT=<?=json_encode(isset($ROOM_BOOT_CHAT)&&is_array($ROOM_BOOT_CHAT)?$ROOM_BOOT_CHAT:array());?>;
+    window.ROOM_BOOT_USERID=<?=json_encode(isset($_SESSION['userid'])?$_SESSION['userid']:'');?>;
+    window.ROOM_BOOT_USER=<?=json_encode(isset($ROOM_BOOT_USER)?$ROOM_BOOT_USER:(isset($_SESSION['username'])?$_SESSION['username']:''));?>;
+    window.ROOM_BOOT_HEADIMG=<?=json_encode(isset($_SESSION['headimg'])?$_SESSION['headimg']:'');?>;
+    window.ROOM_ROOMID=<?=isset($_SESSION['roomid'])?(int)$_SESSION['roomid']:0;?>;
+    window.ROOM_UI_FLAGS=<?=json_encode(function_exists('feiniao_ui_flags')?feiniao_ui_flags(isset($_SESSION['roomid'])?$_SESSION['roomid']:0):(object)array());?>;
+var currentShow='';
+    </script>
+<link rel="Stylesheet" type="text/css" href="/Style/pop/css/style.css" />
+    <script type="text/javascript" src="/Style/pop/js/popups.js"></script>
+    <style type="text/css">
+        .chat-input .keyb-input:empty:before{
+            content: '车道/车号/金额';
+            color: gray;
+        }
+		 .btn1{
+		    width: 50px;
+            height: 31px;
+            color: #eee;
+            background: #54aff6;
+            border-radius: 10%;
+            border: none;
+            font-size: 11pt;
+		 }
+        #div {
+            display: none;
+            z-index: 10000;
+            width: 130px;
+            height: 300px;
+            position: fixed;
+            margin: 38% 67%;
+            background: white;
+            border-radius: 5%;
+        }
+        #div ul>li{
+            font-size: 0.3rem;
+            padding: 0 0 0 0.1rem;
+            margin-top: 10px;
+        }
+        .imgst{
+            width: 30px;
+            height: 30px;
+            margin: 0px 4px -5px 0px;
+        }
+        
+    </style>
+<style type="text/css">
+        .keyb-input textarea{background: none;border: 0px none;width: 100%;height: 100%;padding: 0rem 0.1rem;box-sizing: border-box;height: 0.6rem;outline: none;resize: none;line-height: 0.5rem}
+    </style>
+<script type="text/javascript" src="/Style/plus.js"></script>
+ 
+</head>
+<body>
+
+<?php
+$liveUrl = feiniao_live_url((int)$gameId);
+$isMarbleLive = in_array((int)$gameId, array(5, 6, 7, 10), true);
+?>
+<div class="room-side-fabs">
+  <a href="javascript:;" class="fab-btn" onclick="return toggleRoomGameSwitch(event);"><img src="/Style/newimg/fab_dx.png?v=20260724i" alt="切换"></a>
+  <a href="/caiji/168kj/dating.html" class="fab-btn"><img src="/Style/newimg/fab_kj.png?v=20260724i" alt="开奖"></a>
+  <a href="/action.php?do=kefu" class="fab-btn"><img src="/Style/newimg/fab_kf.png?v=20260724i" alt="客服"></a>
+  <?php if ($isMarbleLive): ?>
+  <a href="javascript:;" class="fab-btn is-live" onclick="return toggleRoomLive(event);"><img src="/Style/newimg/fab_live.png?v=20260724i" alt="直播"></a>
+  <?php endif; ?>
+</div>
+
+<div id="roomGameSwitch" class="room-game-switch">
+  <ul>
+    <li><a href="/action.php?do=room&game=4"><img src="/Style/newimg/game_4.png" class="imgst">极速赛车</a></li>
+    <li><a href="/action.php?do=room&game=3"><img src="/Style/newimg/game_3.png" class="imgst">极速飞艇</a></li>
+    <li><a href="/action.php?do=room&game=2"><img src="/Style/newimg/game_2.png" class="imgst">幸运飞艇</a></li>
+    <li><a href="/action.php?do=room&game=1"><img src="/Style/newimg/game_1.png" class="imgst">澳洲幸运10</a></li>
+    <li><a href="/action.php?do=room&game=8"><img src="/Style/newimg/game_8.png?v=20260728d" class="imgst">极速时时彩</a></li>
+    <li><a href="/action.php?do=room&game=9"><img src="/Style/newimg/game_9.png?v=20260728d" class="imgst">澳洲幸运5</a></li>
+    <li><a href="/action.php?do=room&game=6"><img src="/Style/newimg/game_6.png" class="imgst">极速弹珠</a></li>
+    <li><a href="/action.php?do=room&game=7"><img src="/Style/newimg/game_7.png" class="imgst">弹珠PK10</a></li>
+    <li><a href="/action.php?do=room&game=5"><img src="/Style/newimg/game_5.png" class="imgst">弹珠28</a></li>
+    <li><a href="/action.php?do=room&game=10"><img src="/Style/newimg/game_10.png" class="imgst">弹珠六合彩</a></li>
+  </ul>
+</div>
+
+<div class="mainbox max-width">
+    <div class="room-fixed-head">
+        <div class="header-hegith roomtop">
+
+            <div class="back"><img src="/Style/newimg/leftar.png"> <?=getGameTxtNameByCode($_COOKIE['game']);?></div>
+            <div class="show-info">
+                <li>　　积分:<span id="user_money">0.00</span></li>
+                <li>　输赢:<span id="user_earn">0.00</span></li>
+                <li>　　回水:<span id="user_hs">0.00</span></li>
+                <li>　流水:<span id="user_ls">0.00</span></li>
+            </div>
+        </div>
+        
+  
+        
+        <div class="header-hegith newest-sn">
+            <li class="sn-num" id="next_sn">06032</li>
+            <li class="left-time" id="left_time"><b>0</b><b>8</b><b>:</b><b>0</b><b>0</b></li>
+            
+            <!--li class="tvimg" onclick="window.open('./openhistory/png.php','','');"><img src="/GameMenu3.png"></li><!--实况获取png-->
+            
+            
+            <li class="bgzimg" onclick="popShow('pop-zhudan')"><img src="/Style/newimg/zd.png"></li>
+            <li class="bgzimg" onclick="popShow('pop-clong')"><img src="/Style/newimg/cl.png"></li>
+            <li class="bgzimg" onclick="popShow('pop-forecast')"><img src="/Style/newimg/yc.png"></li>
+        </div>
+        <div class="header-hegith current-sn">
+            <li class="sn-num" id="current_sn">06031</li>
+            <li class="num-sn" id="current_num">
+                <span class="n1">1</span>
+                <span class="n2">2</span>
+                <span class="n3">3</span>
+                <span class="n4">4</span>
+                <span class="n5">5</span>
+                <span class="n6">6</span>
+                <span class="n7">7</span>
+                <span class="n8">8</span>
+                <span class="n9">9</span>
+                <span class="n10">10</span>
+            </li>
+            <li class="gyd" onclick="popShow('pop-history')"><p>冠亚和</p><p id="gyhs">9 小 单</p></li>
+            <li class="downimg" onclick="popShow('pop-history')"><img src="/Style/newimg/arrdown.png"></li>
+        </div>
+        <?php if ($isMarbleLive): ?>
+        <div id="roomLivePanel" class="room-live-panel">
+          <?php if ($liveUrl !== ''): ?>
+          <iframe data-src="<?=htmlspecialchars($liveUrl, ENT_QUOTES, 'UTF-8');?>" src="about:blank" allow="autoplay; fullscreen; encrypted-media" allowfullscreen scrolling="no"></iframe>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <div id="iframeBox">
+
+        </div>
+    </div>
+
+
+    <div class="chat-content has-room-head" style="padding-bottom: 1.5rem;width: 100%;">
+        <div class="last-show" id="chat_list">
+
+        </div>
+        <div id="addSpan" style="margin-top: 5rem;display:none"></div>
+        <div id="chatBt" style="height: 1px"></div>
+    </div>
+
+    <div class="room-bottom-dock" style="position: fixed;bottom: 0px;left: 0px;width: 100%;">
+        <div class="bottom-height chat-input">
+            <li class="keyb-left" id="switchkb"><img src="/Style/newimg/switch.png"></li>
+            <li class="keyb-input"><textarea id="msg" placeholder="" readonly inputmode="none"></textarea></li>
+            <li class="keyb-right" type="add" id="sendbtn"><img src="/Style/newimg/add.png"></li>
+        </div>
+        <div style="display: none" id="keyboard2" class="keybaord">
+            <div class="fast-keyboard-url">
+                <li data-url="/Templates/user/paylog.php"><p><img src="/Style/newimg/sqjl.png"></p><p>申请记录</p></li>
+                <li data-url="/Templates/user/orderinfo.php?view=game"><p><img src="/Style/newimg/yxjl.png"></p><p>游戏记录</p></li>
+                <li data-url="/Templates/user/orderinfo.php?view=bet"><p><img src="/Style/newimg/jcbb.png"></p><p>竞猜列表</p></li>
+                <li data-action="huishui"><p><img src="/Style/newimg/sxf.png"></p><p>回水</p></li>
+                <li data-url="/Templates/faq.php"><p><img src="/Style/newimg/yxjl.png"></p><p>常见问题</p></li>
+            </div>
+        </div>
+        <div style="display: none" id="keyboard1" class="bottom-height keybaord">
+
+            <div class="fast-keyboard">
+                <li>上分</li>
+                <li>取消</li>
+                <li>梭哈</li>
+                <li>重复</li>
+                <li>下分</li>
+            </div>
+            <div class="numbaord">
+                <li class="rowstart">大</li>
+                <li>1</li>
+                <li>2</li>
+                <li>3</li>
+                <li class="delimg" ktype="del"><img src="/Style/newimg/del.png"></li>
+                <li class="rowstart">小</li>
+                <li>4</li>
+                <li>5</li>
+                <li>6</li>
+                <li class="zlong">龙</li>
+                <li class="rowstart">单</li>
+                <li>7</li>
+                <li>8</li>
+                <li>9</li>
+                <li class="zhu">虎</li>
+                <li class="rowstart">双</li>
+                <li ktype="sp">空格</li>
+                <li>0</li>
+                <li>/</li>
+                <li class="zgyh">冠亚和</li>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="overflow: hidden;">
+            <audio src="/bgMusic.mp3" id="Jaudio" class="media-audio" autoplay preload loop="loop"></audio>
+        </div>
+        <script type="text/javascript">
+            function audioAutoPlay(id){
+                try { if (localStorage.getItem('fn_draw_music') === '0') return; } catch (e) {}
+                var audio = document.getElementById(id);
+                if (!audio) return;
+                try { audio.muted = false; audio.loop = true; } catch (e) {}
+                var go = function(){
+                  var p = audio.play();
+                  if (p && p.catch) p.catch(function(){});
+                };
+                go();
+                document.addEventListener("WeixinJSBridgeReady", go, false);
+                document.addEventListener('YixinJSBridgeReady', go, false);
+                document.addEventListener('touchstart', go, {once:true, passive:true});
+                document.addEventListener('click', go, {once:true});
+            }
+        audioAutoPlay('Jaudio');
+        </script>
+        
+<script type="text/javascript">
+    var lastSendInfo='';
+    var lastChatFullAt=0;
+    var pendingSendSeq=0;
+    var lastChartID=0; window.lastChartID=0; window.__roomStopPoll=false;
+    var showKeyBord=false;
+    getNewChartInfo();
+        function getNewChartInfo(){
+        var delay = (typeof window.roomPollDelay === 'function') ? window.roomPollDelay() : 1200;
+        setTimeout(function () {
+            getChatInfo();
+        }, delay)
+    }
+    window.getNewChartInfo = getNewChartInfo;
+    function resolveRoomGame(){
+        if(window.ROOM_GAME_CODE) return window.ROOM_GAME_CODE;
+        if(window.ROOM_GAME_ID) return String(window.ROOM_GAME_ID);
+        var m=(location.search||'').match(/[?&]game=(\d+)/);
+        return m?m[1]:'';
+    }
+    function getChatInfo() {
+        if(window.__roomChatPollBusy) return;
+        if(window.__roomStopPoll) return;
+        // 下注请求进行中：暂停轮询，避免占满连接/会话把报表拖到数秒
+        if(window.__sendBusy){ getNewChartInfo(); return; }
+        window.__roomChatPollBusy=true;
+        var sendData={};
+        lastChartID=parseInt(window.lastChartID,10)||parseInt(lastChartID,10)||0;
+        window.lastChartID=lastChartID;
+        sendData['type']=(lastChartID>0)?'update':'first';
+        sendData['id']=lastChartID;
+        sendData['game']=resolveRoomGame();
+        var fullPoll=!lastChatFullAt || (Date.now()-lastChatFullAt>=15000);
+        sendData['light']=fullPoll?'0':'1';
+        if(!sendData['game']){ window.__roomChatPollBusy=false; getNewChartInfo(); return; }
+        window.__roomLastPollSentMs = Date.now();
+        $.ajax({
+            url:'/Application/ajax_chat.php',
+            method:'get',
+            dataType:'json',
+            data:sendData,
+            success:function (res) {
+                if(!res){ return; }
+                if(res.success===false){
+                    if(res.code==='SESSION_EXPIRED'){ window.__roomStopPoll=true; window.location.href='/action.php?do=login'; return; }
+                    return;
+                }
+                var chatList=res.chat_list||[];
+                var openInfo=res.open_info;
+                if(typeof res.user_money!=='undefined'){ $('#user_money').html(res.user_money); }
+                if(typeof res.user_earn!=='undefined'){ $('#user_earn').html(res.user_earn); }
+                if(typeof res.user_ls!=='undefined'){ $('#user_ls').html(res.user_ls); }
+                if(typeof res.user_hs!=='undefined'){ $('#user_hs').html(res.user_hs); lastChatFullAt=Date.now(); }
+                if(chatList.length>0){
+                    var chatHtml='';
+                    for (i=0;i<chatList.length;i++){
+                        var row=chatList[i];
+                        var rid=parseInt(row['id'],10)||0;
+                        if(rid>lastChartID){ lastChartID=rid; window.lastChartID=lastChartID; }
+                        if(rid && document.getElementById('msg'+rid)) continue;
+                        if(window.FeiniaoVipRoom&&window.FeiniaoVipRoom.bubbleHtml){
+                            chatHtml+=window.FeiniaoVipRoom.bubbleHtml(row,res.username);
+                        }else{
+                            var headerType=res.username!=row['nickname']?'left-header':'right-header';
+                            var escChat=window.pendingChatEscape||function(v){
+                              return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                            };
+                            var safeHead=escChat(row.headimg||'');
+                            var leftHeader=headerType=='left-header'?'<img src="'+safeHead+'">':'';
+                            var rightHeader=headerType=='right-header'?'<img src="'+safeHead+'">':'';
+                            var nickName='';
+                            var safeNick=escChat(row.nickname||'');
+                            var safeTime=escChat(row.addtime||'');
+                            if(headerType=='left-header') nickName=safeNick+'  '+safeTime;
+                            else nickName=safeTime+'  '+safeNick;
+                            var safeContent=(window.FeiniaoVipRoom&&window.FeiniaoVipRoom.renderChatContent)
+                              ? window.FeiniaoVipRoom.renderChatContent(row)
+                              : escChat(row.content==null?'':String(row.content));
+                            chatHtml+='<div id="msg'+escChat(row.id)+'" class="'+headerType+'">\n' +
+                                '                <div class="lheader">'+leftHeader+'</div>\n' +
+                                '                <div class="content-box">\n' +
+                                '                    <div class="nick-name">'+nickName+'</div>\n' +
+                                '                    <div class="content-info">\n' +
+                                '                        <div class="chatnarr"></div>\n' +
+                                '                        <div class="info-content">'+safeContent+'</div>\n' +
+                                '                    </div>\n' +
+                                '                </div>\n' +
+                                '                <div class="rheader">'+rightHeader+'</div>\n' +
+                                '            </div>';
+                        }
+                    }
+                    try{ $(chatHtml).appendTo('#chat_list'); scrollToBt(); }catch(e){}
+                }
+                try{
+                  if(openInfo){
+                      showOpenInfo(openInfo);
+                      if(typeof currentShow!=='undefined' && currentShow=='pop-forecast') popShow('pop-forecast',true);
+                  }
+                }catch(e){}
+            },
+            complete:function(){ window.__roomChatPollBusy=false; if(!window.__roomStopPoll) getNewChartInfo(); },
+            error:function (xhr) {
+                var body={};
+                try{ body=JSON.parse(xhr.responseText||'{}'); }catch(e){}
+                if (xhr.status === 401 && body.code==='SESSION_EXPIRED') {
+                    window.__roomStopPoll=true;
+                    window.location.href = '/action.php?do=login';
+                    return;
+                }
+            }
+        })
+    }
+    function showOpenInfo(row) {
+        if(!row) return;
+        window.__roomLeftSec=parseInt(row.letf_time,10)||0;
+        window.__roomFpSec=parseInt(row.fp_time,10)||1;
+        // status=2 到 status=0 的间隔没有 next_sn；保留正在开奖的期号，不能清空左侧。
+        $('#next_sn').html(row.next_sn||row.current_sn||$('#next_sn').text()||'');
+        $('#current_sn').html(row.current_sn||$('#current_sn').text()||'');
+        var numArr=String(row.open_num||'').split(',');
+        var numHtml='';
+        for (i=0;i<numArr.length;i++){
+            if(numArr[i]==='') continue;
+            // 上游会给 01/07；展示保留前导零，CSS 类必须使用 n1/n7。
+            var ballNo=parseInt(numArr[i],10);
+            if(isNaN(ballNo)||ballNo<0) continue;
+            numHtml+='<span class="n'+ballNo+'">'+ballNo+'</span>';
+        }
+        $('#current_num').html(numHtml);
+        $('#left_time').html(buildTime(window.__roomLeftSec,window.__roomFpSec));
+        $('#gyhs').html(row.gyh||'');
+    }
+    function buildTime(leftSec,fpSec) {
+        var totalSec=parseInt(leftSec,10);
+        if(isNaN(totalSec)||totalSec<0) totalSec=0;
+        // 开奖中：不显示倒计时数字，只显示文案
+        if(window.__roomWaitingDraw || (totalSec<=0 && !window.__roomSealed)){
+            return '<b class="fping is-drawing">开奖中</b>';
+        }
+        // 封盘后：不显示倒计时数字，只显示封盘中
+        if(window.__roomSealed){
+            return '<b class="fping is-sealed">封盘中</b>';
+        }
+        var min  =   Math.floor(totalSec/60);
+        var sec = totalSec%60;
+        min=(min<10)?'0'+min:min+"";
+        sec=(sec<10)?'0'+sec:sec+"";
+        var lastStr='';
+        lastStr+='<b>'+min[0]+'</b>';
+        lastStr+='<b>'+min[1]+'</b>';
+        lastStr+='<b>:</b>';
+        lastStr+='<b>'+sec[0]+'</b>';
+        lastStr+='<b>'+sec[1]+'</b>';
+        return lastStr;
+    }
+    window.buildTime=buildTime;
+    window.showOpenInfo=showOpenInfo;
+    var __sendBusy=false;
+    function pendingChatEscape(value){
+        return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>');
+    }
+    function appendPendingChat(content){
+        var id='pending-chat-'+(++pendingSendSeq);
+        var pendingHead=window.ROOM_BOOT_HEADIMG?'<img src="'+pendingChatEscape(window.ROOM_BOOT_HEADIMG)+'">':'';
+        var html='<div id="'+id+'" class="right-header fn-chat-pending">' +
+            '<div class="lheader"></div><div class="content-box"><div class="nick-name">'+
+            '现在  '+pendingChatEscape(window.ROOM_BOOT_USER||'我')+'</div>'+
+            '<div class="content-info"><div class="chatnarr"></div><div class="info-content">'+pendingChatEscape(content)+'</div></div></div><div class="rheader">'+pendingHead+'</div></div>';
+        try{ $(html).appendTo('#chat_list'); scrollToBt(); }catch(e){}
+        return id;
+    }
+    function finishPendingChat(pendingId, chatId, ok){
+        var pending=$('#'+pendingId);
+        if(!ok){ pending.remove(); return; }
+        if(!pending.length) return;
+        var cid=parseInt(chatId,10)||0;
+        if(!cid || $('#msg'+cid).length){ pending.remove(); return; }
+        pending.attr('id','msg'+cid).removeClass('fn-chat-pending').find('.chat-pending-status').remove();
+    }
+    function refreshChatNow(){
+        try{ window.__roomChatPollBusy=false; getChatInfo(); }catch(e){}
+    }
+    function appendAnnounceList(list, myName){
+        if(!list || !list.length) return;
+        var chatHtml='';
+        var me=myName||window.ROOM_BOOT_USER||'';
+        for(var i=0;i<list.length;i++){
+            var row=list[i]||{};
+            var rid=parseInt(row.id,10)||0;
+            if(rid && document.getElementById('msg'+rid)) continue;
+            if(rid && rid>(parseInt(window.lastChartID,10)||0)){ lastChartID=rid; window.lastChartID=rid; }
+            if(window.FeiniaoVipRoom&&window.FeiniaoVipRoom.bubbleHtml){
+                chatHtml+=window.FeiniaoVipRoom.bubbleHtml(row, me);
+                continue;
+            }
+            var escChat=window.pendingChatEscape||function(v){
+              return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            };
+            var headerType=(me && me===row.nickname)?'right-header':'left-header';
+            var safeHead=escChat(row.headimg||'');
+            var leftHeader=headerType=='left-header'?'<img src="'+safeHead+'">':'';
+            var rightHeader=headerType=='right-header'?'<img src="'+safeHead+'">':'';
+            var safeNick=escChat(row.nickname||'');
+            var safeTime=escChat(row.addtime||'');
+            var nickName=headerType=='left-header'?(safeNick+'  '+safeTime):(safeTime+'  '+safeNick);
+            var safeContent=(window.FeiniaoVipRoom&&window.FeiniaoVipRoom.renderChatContent)
+              ? window.FeiniaoVipRoom.renderChatContent(row)
+              : (row.type==='S1' || row.type==='S2' || row.type==='S3' || /<[^>]+>/.test(String(row.content||''))
+                  ? String(row.content||'')
+                  : escChat(row.content==null?'':String(row.content)));
+            chatHtml+='<div id="msg'+escChat(row.id)+'" class="'+headerType+'">'+
+                '<div class="lheader">'+leftHeader+'</div>'+
+                '<div class="content-box"><div class="nick-name">'+nickName+'</div>'+
+                '<div class="content-info"><div class="chatnarr"></div><div class="info-content">'+safeContent+'</div></div></div>'+
+                '<div class="rheader">'+rightHeader+'</div></div>';
+        }
+        if(!chatHtml) return;
+        try{ $(chatHtml).appendTo('#chat_list'); scrollToBt(); }catch(e){}
+    }
+    function sendMsg(content) {
+        if(content=="") return jqtoast('发送内容不能为空');
+        if(typeof roomGuardSendBet==='function' && !roomGuardSendBet(content)) return;
+        if(__sendBusy) return;
+        __sendBusy=true;
+        window.__sendBusy=true;
+        var __sendStartedAt=Date.now();
+        lastSendInfo=content;
+        var pendingId=appendPendingChat(content);
+        // 瞬间出报表：本地先插 @ + 注单卡，回包再换成正式消息
+        try{ if(window.appendOptimisticBetReport) window.appendOptimisticBetReport(content); }catch(e){}
+        $('.keyb-input textarea').val('');
+        try{ if(typeof checkInputValue==='function') checkInputValue(); }catch(e){}
+        // 同一内容未确认成功前复用 bet_req_id，超时重试不会双扣
+        if(!window.__pendingBetReq || window.__pendingBetReq.content !== content){
+            var rid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/\W/g,'') : (String(Date.now())+Math.random().toString(16).slice(2));
+            window.__pendingBetReq = { content: content, bet_req_id: rid, game: resolveRoomGame() };
+        }
+        window.__lastBetReqId = window.__pendingBetReq.bet_req_id;
+        $.ajax({
+            url: '/Application/ajax_chat.php?type=send',
+            method: 'post',
+            dataType: 'json',
+            data:{
+                'content':content,
+                'game':window.__pendingBetReq.game,
+                'bet_req_id':window.__pendingBetReq.bet_req_id,
+                // 封盘在途保护：点发送时的剩余秒/期号，服务端据此不因排队延迟误拒
+                'bet_left_at_send': (typeof window.__roomLeftSec==='number'?window.__roomLeftSec:0),
+                'bet_next_sn': (window.__roomNextSn||(document.getElementById('next_sn')&&document.getElementById('next_sn').textContent)||''),
+                'bet_sent_at': Date.now()
+            },
+            success: function (res) {
+                if(!res.success){
+                    try{ if(window.clearOptimisticBetReport) window.clearOptimisticBetReport(); }catch(e){}
+                    finishPendingChat(pendingId, 0, false);
+                    // 业务明确拒绝才丢弃幂等键，便于用户改内容重发
+                    window.__pendingBetReq = null;
+                    if(typeof res.msg!="undefined") jqtoast(res.msg)
+                    return;
+                }
+                window.__pendingBetReq = null;
+                finishPendingChat(pendingId, parseInt(res.chat_id,10)||0, true);
+                // 正式回包替换乐观报表
+                try{ if(window.clearOptimisticBetReport) window.clearOptimisticBetReport(); }catch(e){}
+                appendAnnounceList(res.announce_list, res.username||window.ROOM_BOOT_USER);
+                if(typeof res.user_money!=='undefined'){ try{ $('#user_money').html(res.user_money); }catch(e){} }
+                if(window.console){ try{ console.log('[bet]', 'rtt='+(Date.now()-__sendStartedAt)+'ms', 'bet_ms='+res.bet_ms, 'total_ms='+res.total_ms, 'ann='+(res.announce_list||[]).length); }catch(e){} }
+                if(!(res.announce_list&&res.announce_list.length)){ setTimeout(refreshChatNow, 1000); }
+                else { setTimeout(refreshChatNow, 1500); }
+            },
+            error: function(){
+                try{ if(window.clearOptimisticBetReport) window.clearOptimisticBetReport(); }catch(e){}
+                finishPendingChat(pendingId, 0, false);
+                // 保留 __pendingBetReq，用户再点发送会复用同一 bet_req_id
+                jqtoast('发送失败，请重试（不会重复扣款）');
+            },
+            complete: function(){ __sendBusy=false; window.__sendBusy=false; }
+        });
+    }
+    
+    /* popup removed */
+    function scrollToBt() {
+        try{
+          if(showKeyBord) $('#addSpan').show();
+          else $('#addSpan').hide();
+          var bt=$('#chatBt')[0];
+          if(bt && bt.scrollIntoView) bt.scrollIntoView(false);
+          if(showKeyBord){
+              setTimeout(function () { $('#addSpan').hide(); },100)
+          }
+        }catch(e){}
+    }
+    window.scrollToBt=scrollToBt;
+    // 点击输入栏直接出下注键盘；闲聊键才临时放开系统键盘
+    var allowSystemKb=false;
+    function enterChatInputMode(){
+        hideKeyBordMain();
+        $('#keyboard2').hide();
+        allowSystemKb=true;
+        var $ta = $('.keyb-input textarea');
+        $ta.prop('readonly', false).removeAttr('readonly').attr('inputmode','text');
+        setTimeout(function(){
+            try { $ta[0].focus(); } catch(e) {}
+        }, 30);
+    }
+    function enterBetKeyboardMode(){
+        allowSystemKb=false;
+        $('#keyboard2').hide();
+        hideIframe();
+        showKeyBord=true;
+        $('.chat-content').css('padding-bottom','5.5rem');
+        $('#keyboard1').show();
+        var $ta=$('.keyb-input textarea');
+        $ta.prop('readonly', true).attr('readonly', 'readonly').attr('inputmode','none');
+        try { $ta[0].blur(); } catch(e) {}
+        setTimeout(function(){ scrollToBt(); }, 300);
+    }
+    $('.keyb-input, #msg').on('click touchend', function(e){
+        if(allowSystemKb) return;
+        e.preventDefault();
+        try { if(e.target && e.target.blur) e.target.blur(); } catch(err) {}
+        if (!$('#keyboard1').is(':visible')) {
+            enterBetKeyboardMode();
+        }
+    });
+    $('#msg').on('focus', function(e){
+        if(allowSystemKb) return;
+        e.preventDefault();
+        try { this.blur(); } catch(err) {}
+        if (!$('#keyboard1').is(':visible')) {
+            enterBetKeyboardMode();
+        }
+    });
+</script>
+<script type="text/javascript">
+$('#switchkb').on('click',function () {
+    $('#keyboard2').hide();
+    hideIframe();
+    if($('#keyboard1').is(":hidden")){
+        enterBetKeyboardMode();
+    }else{
+        hideKeyBordMain();
+        allowSystemKb=false;
+        var $ta=$('.keyb-input textarea');
+        $ta.prop('readonly', true).attr('readonly','readonly').attr('inputmode','none');
+        try { $ta[0].blur(); } catch(e) {}
+    }
+});
+$(function () {
+    $('.chat-content .last-show').removeAttr('style');
+    try{
+      if(window.ROOM_BOOT_OPEN && typeof showOpenInfo==='function'){
+        showOpenInfo(window.ROOM_BOOT_OPEN);
+      }
+    }catch(e){}
+    // 默认锁定系统键盘，只走下注键盘
+    allowSystemKb=false;
+    $('#msg').prop('readonly', true).attr('readonly','readonly').attr('inputmode','none').attr('placeholder','');
+    // 聊天轮询只由 getNewChartInfo 启动，避免双通道并发导致同一条消息插两次
+});
+$('.back').on('click',function () {
+    //window.history.back();
+    window.location.href='/action.php?do=gamelist';
+});
+function hideKeyBordMain() {
+    showKeyBord=false;
+    $('.chat-content').css('padding-bottom','1.5rem');
+    $('#keyboard1').hide();
+}
+</script>
+<script type="text/javascript">
+    var currentInputKey='';
+    var longPressTimer;
+    var mouseDownType='ontouchstart' in document.documentElement?'touchstart':'mousedown';
+    var mouseUpType='ontouchstart' in document.documentElement?'touchend':'mouseup';
+    $('.last-show').on('click',function () {
+        hideKeyBordMain();
+    });
+    $('.numbaord li,.fast-keyboard li').on(mouseDownType,function (e) {
+        console.log(mouseDownType,e);
+        var oldValue=$('.keyb-input textarea').val();
+        var newValue=oldValue;
+        var type=$(this)[0].hasAttribute('ktype')?$(this).attr('ktype'):$(this).html();
+        if(type=='del'){
+            newValue=newValue.substr(0,newValue.length-1);
+            currentInputKey=type;
+        }else if(type=='sp'){
+            newValue=newValue+" ";
+        }else if(type=='发送'){
+            sendMsg(newValue);
+        }else if(type=='重复'){
+            newValue=lastSendInfo;
+        }
+        else{
+            newValue=newValue+type;
+        }
+        $('.keyb-input textarea').val(newValue);
+        checkInputValue();
+        startLongPress();
+
+    }).on(mouseUpType,function (e) {
+        currentInputKey='';
+        clearInterval(longPressTimer);
+    });
+    $('.keyb-right').on('click',function () {
+        var type=$(this).attr('type');
+        var newValue=$('.keyb-input textarea').val();
+        if(type=='send'){
+            sendMsg(newValue);
+        }else{
+            hideIframe();
+            $('#keyboard1').hide();
+            if($('#keyboard2').is(":hidden")){
+                $('#keyboard2').show();
+                showKeyBord=true;
+                $('.chat-content').css('padding-bottom','2.5rem');
+                setTimeout(function(){
+                    scrollToBt();
+                },500);
+            }
+            else{
+                showKeyBord=false;
+                $('.chat-content').css('padding-bottom','1.5rem');
+                $('#keyboard2').hide();
+            }
+
+        }
+    });
+    $('.keyb-input').on('input',function () {
+        checkInputValue();
+    });
+    $('.fast-keyboard-url li[data-url]').on('click',function () {
+        var url=$(this).data('url');
+        window.location.href=url;
+    });
+    $('.fast-keyboard-url li[data-txt]').on('click',function () {
+        var txt=$(this).data('txt');
+        sendMsg(txt);
+    });
+    function checkInputValue() {
+        var val=$('.keyb-input textarea').val();
+        if(val!==""){
+            $('#sendbtn img').attr('src','/Style/newimg/send.png');
+            $('#sendbtn').attr('type','send');
+        }else{
+            $('#sendbtn img').attr('src','/Style/newimg/add.png');
+            $('#sendbtn').attr('type','add');
+        }
+        $('.keyb-input textarea')[0].scrollTop = $('.keyb-input textarea')[0].scrollHeight;
+    }
+    function startLongPress() {
+        longPressTimer=setInterval(function () {
+            if(currentInputKey=='del'){
+                var oldValue=$('.keyb-input textarea').val();
+                var newValue=oldValue.substr(0,oldValue.length-1);
+                $('.keyb-input textarea').val(newValue);
+            }
+        },100);
+    }
+</script>
+<script type="text/javascript">
+    var currentShow='';
+    function popShow(type,dontShow) {
+        var dontShow=dontShow||false;
+        $.ajax({
+            url:'/action.php?do='+type,
+            method:'get',
+            dataType:'JSON',
+            success:function (res) {
+                if(dontShow) $('#iframeBox').html(res.html);
+                else showIframe(res.html,type)
+            }
+        })
+    }
+    function showIframe(content,type) {
+        if(currentShow==type){
+            currentShow='';
+            $('#iframeBox').hide();
+        }else{
+            currentShow=type;
+            $('#iframeBox').html(content).show();
+        }
+
+    }
+    function hideIframe() {
+        currentShow='';
+        $('#iframeBox').hide();
+    }
+    
+</script>
+</body>
+</html>

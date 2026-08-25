@@ -1,0 +1,62 @@
+@media screen and (min-width: 320px) {html{font-size:50px;}}
+@media screen and (min-width: 360px) {html{font-size:56.25px;}}
+@media screen and (min-width: 375px) {html{font-size:58.59375px;}}
+@media screen and (min-width: 400px) {html{font-size:62.5px;}}
+@media screen and (min-width: 414px) {html{font-size:64.6875px;}}
+@media screen and (min-width: 440px) {html{font-size:68.75px;}}
+@media screen and (min-width: 480px) {html{font-size:75px;}}
+@media screen and (min-width: 520px) {html{font-size:81.25px;}}
+@media screen and (min-width: 560px) {html{font-size:87.5px;}}
+@media screen and (min-width: 600px) {html{font-size:93.75px;}}
+@media screen and (min-width: 640px) {html{font-size:100px;}}
+@media screen and (min-width: 680px) {html{font-size:106.25px;}}
+@media screen and (min-width: 720px) {html{font-size:112.5px;}}
+@media screen and (min-width: 760px) {html{font-size:118.75px;}}
+/*@media screen and (min-width: 800px) {html{font-size:125px;}}
+@media screen and (min-width: 960px) {html{font-size:150px;}}*/
+*{margin: 0px; padding: 0px;font-size: 0.14rem;list-style: none;font-family: "Microsoft YaHei", 微软雅黑, "MicrosoftJhengHei", 华文细黑, STHeiti, MingLiu}
+a{text-underline: none;text-decoration: none;}
+body,html{width: 100%;height: 100%;margin: 0 auto;min-height: 100%;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+html.fn-page-locked,body.fn-page-locked{position:fixed;left:0;top:0;right:0;bottom:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
+.clearfix:after,.clearfix:before{content:"";display: table;}
+.clearfix:after{clear: both;}
+input{outline:none}
+
+body *{font-size: inherit}
+.max-width{max-width: 990px; margin: 0 auto}
+.fl{float: left}
+.fr{float: right}
+
+.common-box{width: 100%;margin: 0 auto;position: relative}
+.common-header .back-btn{position: absolute;left: 0.3rem;top: 0.3rem;z-index: 2}
+.common-header .back-btn img{max-height: 0.4rem}
+.common-header .left-menu{position: absolute;left: 0.3rem;top: 0.3rem;z-index: 2}
+.common-header .gohome{margin-left: 0.2rem}
+.common-header .gohome img{max-height: 0.4rem}
+.common-header .goback img{max-height: 0.4rem}
+
+*{
+    moz-user-select: -moz-none;
+    -moz-user-select: auto;
+    -o-user-select:auto;
+    -khtml-user-select:auto;
+    -webkit-user-select:auto;
+    -ms-user-select:auto;
+    user-select:auto;
+}
+
+/* 全 App 最终兜底：禁止长按出现选中框、复制/查询菜单和图片拖拽。 */
+html, body, html *, body *{
+    -webkit-user-select:none!important;
+    user-select:none!important;
+    -webkit-touch-callout:none!important;
+    -webkit-user-drag:none!important;
+}
+
+/* 禁止复制不能覆盖真正的输入控件，否则会出现能聚焦但无法移动光标/退格。 */
+input, textarea, [contenteditable="true"]{
+    -webkit-user-select:text!important;
+    user-select:text!important;
+    -webkit-touch-callout:none!important;
+    caret-color:currentColor!important;
+}

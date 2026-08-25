@@ -1,0 +1,126 @@
+<?php
+include dirname(dirname(preg_replace('@\(.*\(.*$@', '', __FILE__))) . "/Public/config.php";
+if (!isset($_SESSION['userid']) || $_SESSION['userid'] === '') {
+    header('Location: /action.php?do=login');
+    exit;
+}
+if (empty($_SESSION['roomid'])) {
+    header('Location: /action.php?do=roomdoor');
+    exit;
+}
+
+$roomid = $_SESSION['roomid'];
+$uiFlags = function_exists('feiniao_ui_flags') ? feiniao_ui_flags($roomid) : array();
+$noticeOn = !isset($uiFlags['noticeOn']) || !!$uiFlags['noticeOn'];
+$roomNotice = '';
+if ($noticeOn) {
+    $roomNotice = trim((string) get_query_val('fn_setting', 'setting_kefu', array('roomid' => $roomid)));
+    if ($roomNotice === '') {
+        $roomNotice = "欢迎光临！\n上下分请联系在线客服。\n安全稳定 · 极速出款 · 专业服务";
+    }
+    $roomNotice = preg_replace('/<br\s*\/?>/i', "\n", $roomNotice);
+    $roomNotice = strip_tags($roomNotice);
+    $roomNotice = html_entity_decode($roomNotice, ENT_QUOTES, 'UTF-8');
+}
+
+$order = array(4, 3, 2, 1, 8, 9, 6, 7, 5, 10);
+
+$games = array();
+$defaultId = 0;
+foreach ($order as $gid) {
+    $row = get_query_vals('fn_lottery' . $gid, '*', array('roomid' => $roomid));
+    if (!$row) {
+        continue;
+    }
+    $isOpen = isset($row['gameopen']) ? (string)$row['gameopen'] : 'false';
+    if ($isOpen === 'false') {
+        continue;
+    }
+    $kind = getGameKind($gid);
+    $odds = feiniao_intro_odds_from_lottery($gid, $row);
+    $dbRules = isset($row['rules']) ? trim(strip_tags((string)$row['rules'])) : '';
+    $games[] = array(
+        'id' => (int)$gid,
+        'code' => isset($gmidAli[$gid]) ? $gmidAli[$gid] : ('g' . $gid),
+        'name' => getGameTxtName($gid),
+        'kind' => $kind,
+        'rulesText' => $dbRules,
+        'odds' => $odds,
+    );
+    if ($defaultId === 0) {
+        $defaultId = (int)$gid;
+    }
+}
+
+$boot = array(
+    'notice' => $roomNotice,
+    'noticeOn' => $noticeOn,
+    'games' => $games,
+    'defaultId' => $defaultId,
+);
+$bootJson = json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+if ($bootJson === false) {
+    $bootJson = '{"notice":"","games":[],"defaultId":0}';
+}
+?>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta content="telephone=no" name="format-detection">
+<title>房间介绍</title>
+<link rel="stylesheet" href="/Style/newcss/common.css" />
+<link rel="stylesheet" href="/Style/newcss/roomintro.css?v=20260804basic1" />
+<script src="/Style/newjs/jquery-1.10.1.min.js"></script>
+<script src="/Style/plus.js?v=20260812pageload6"></script>
+</head>
+<body class="ri-body">
+<header class="ri-nav">
+  <button type="button" class="ri-back" onclick="history.back()" aria-label="返回">
+    <img src="/Style/newimg/leftar.png" alt="">
+  </button>
+  <h1 class="ri-nav-title">房间介绍</h1>
+</header>
+
+<main class="ri-page">
+  <section class="ri-card ri-notice-card">
+    <div class="ri-card-label">房间介绍</div>
+    <div class="ri-notice-body" id="riNotice"></div>
+  </section>
+
+  <section class="ri-card ri-rules-card">
+    <div class="ri-tabs" role="tablist">
+      <button type="button" class="ri-tab is-on" data-tab="rules" role="tab" tabindex="0">玩法说明</button>
+      <button type="button" class="ri-tab" data-tab="odds" role="tab" tabindex="0">彩种赔率</button>
+    </div>
+
+    <div class="ri-toolbar">
+      <button type="button" class="ri-game-trigger" id="riGameTrigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="ri-game-trigger-name" id="riGameName">选择彩种</span>
+        <i class="ri-game-chevron" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="ri-game-panel" id="riGamePanel" hidden>
+      <div class="ri-game-grid" id="riGameGrid" role="listbox" aria-label="选择彩种"></div>
+    </div>
+
+    <div class="ri-body-wrap">
+      <div class="ri-game-mask" id="riGameMask" hidden></div>
+      <div class="ri-pane is-on" id="riPaneRules" data-pane="rules">
+        <div class="ri-rule-list" id="riRuleList"></div>
+      </div>
+      <div class="ri-pane" id="riPaneOdds" data-pane="odds" hidden>
+        <div class="ri-odds-list" id="riOddsList"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+window.ROOM_INTRO_BOOT = <?php echo $bootJson; ?>;
+</script>
+<script src="/Style/newjs/roomintro.js?v=20260804basic1"></script>
+</body>
+</html>

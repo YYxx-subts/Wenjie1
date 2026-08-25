@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>在线客服</title>
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/common.css" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/kefu.css?v=20260728c" />
+    <script type="text/javascript" src="/Style/newjs/jquery-1.10.1.min.js"></script>
+    <link rel="Stylesheet" type="text/css" href="/Style/pop/css/style.css" />
+    <script type="text/javascript" src="/Style/pop/js/popups.js"></script>
+    <style type="text/css">
+        .keyb-input textarea{background: none;border: 0px none;width: 100%;height: 100%;padding: 0rem 0.1rem;box-sizing: border-box;height: 0.6rem;outline: none;resize: none;line-height: 0.5rem}
+        .kefu-back-link{
+            display:flex;align-items:center;color:#fff!important;text-decoration:none!important;
+            font-size:0.3rem;font-weight:bold;cursor:pointer;-webkit-tap-highlight-color:transparent;
+            min-height:0.72rem;padding:0;position:relative;z-index:20;
+        }
+        .kefu-back-link img{width:0.2rem;margin-right:0.2rem;pointer-events:none;}
+    </style>
+    <script type="text/javascript">
+        var lastChartID=0;
+    </script>
+<script type="text/javascript" src="/Style/plus.js?v=20260811nativeonly1"></script>
+</head>
+<body>
+<div class="mainbox max-width">
+    <div class="kefu-topbar">
+        <div class="header-hegith roomtop">
+            <a class="back kefu-back-link" id="kefuBackLink" href="/action.php?do=gamelist">
+                <img src="/Style/newimg/leftar.png" alt=""> 在线客服
+            </a>
+        </div>
+        <?php
+        $kefuVipFx = function_exists('feiniao_vip_effects')
+            ? feiniao_vip_effects($_SESSION['userid'], $_SESSION['roomid'])
+            : array('priorityCs' => false, 'vipLevel' => 0);
+        if (!empty($kefuVipFx['priorityCs'])):
+        ?>
+        <div class="kefu-vip-priority">您是 VIP<?php echo (int)$kefuVipFx['vipLevel']; ?>，享有优先客服接待</div>
+        <?php endif; ?>
+    </div>
+
+    <div class="chat-content kefu-chat-content<?php echo !empty($kefuVipFx['priorityCs']) ? ' has-vip-tip' : ''; ?>" style="padding-bottom: 1.5rem;width: 100%;">
+        <div class="last-show" id="chat_list"></div>
+        <div id="chatBt" style="height: 1px"></div>
+    </div>
+
+    <div style="position: fixed;bottom: 0px;left: 0px;width: 100%;">
+        <div id="kefuQuickReplies" class="kefu-quick-replies" style="display:none;padding:6px 8px;background:#f3f6f9;border-top:1px solid #e4ebf0;overflow-x:auto;white-space:nowrap;"></div>
+        <div class="bottom-height chat-input">
+            <li style="display: none" class="keyb-left" id="switchkb"><img src="/Style/newimg/switch.png"></li>
+            <li class="keyb-input"><textarea id="msg"></textarea></li>
+            <li class="keyb-right" type="add" id="butSend"><img src="/Style/newimg/send.png"></li>
+        </div>
+    </div>
+</div>
+<script type = "text/javascript">
+    var headimg = "<?php echo $_SESSION['headimg'];?>";
+    var nickname = "<?php echo $_SESSION['username']?>";
+</script>
+<script src="/Style/Old/js/kefu.js?v=20260804faq1"></script>
+
+</body>
+</html>

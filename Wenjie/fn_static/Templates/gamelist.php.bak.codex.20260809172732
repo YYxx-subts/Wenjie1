@@ -1,0 +1,842 @@
+<?php
+// 允许模板被 action.php 或直接URL加载，避免直接访问时缺少基础函数导致空白页。
+include_once(dirname(dirname(__FILE__)) . '/Public/config.php');
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#5babeb" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=20260727a" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260727a" />
+    <title>欢迎来到【<?php echo get_query_val("fn_room", "roomname", array("roomid" => $_SESSION['roomid']));
+?>】房间</title>
+
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/common.css?v=20260806select2" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/gamelist.css?v=20260806hallback1" />
+    <link rel="Stylesheet" type="text/css" href="/Style/pop/css/style.css?v=20260806hallalert1" />
+    <style>
+        .footer_menu2{display:flex;position:relative;flex:0 0 auto;width:100%;justify-content:space-around;align-items:center;gap:0.04rem;padding:0.06rem 0.1rem calc(0.1rem + env(safe-area-inset-bottom,0px));box-sizing:border-box;z-index:20;pointer-events:auto;background:transparent;min-height:calc(0.86rem + 0.16rem + env(safe-area-inset-bottom,0px))}
+        .footer_menu2 li{display:flex;flex:1 1 0;justify-content:center;align-items:center;min-width:0;pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent}
+        .footer_menu2 li img{width:auto;height:0.86rem;max-width:92%;display:block;object-fit:contain}
+        html,body{background-color:#4a9fe0!important;}
+    </style>
+    <script type="text/javascript" src="/Style/newjs/jquery-1.10.1.min.js"></script>
+    <script type="text/javascript" src="/Style/pop/js/popups.js?v=20260806hallalert1"></script>
+    <script type="text/javascript" src="/Style/newjs/pc28-balls.js?v=20260726a"></script>
+    <script type="text/javascript" src="/Style/newjs/bg-music.js?v=20260726j"></script>
+    <script type="text/javascript">var gimdIDS=[];</script>
+<script type="text/javascript" src="/Style/plus.js?v=20260807routefix1"></script>
+</head>
+<body>
+<script>
+(function(){
+  try{
+    var root=document.documentElement;
+    var probe=document.createElement("div");
+    probe.style.cssText="position:fixed;top:0;left:0;height:env(safe-area-inset-top);width:0;visibility:hidden;pointer-events:none;";
+    document.documentElement.appendChild(probe);
+    var inset=probe.getBoundingClientRect().height||0;
+    probe.remove();
+    if(inset<1){
+      inset=Math.round((window.devicePixelRatio>2?48:32));
+    }
+    root.style.setProperty("--fn-status-bar", inset+"px");
+  }catch(e){}
+})();
+</script>
+<div class="mainbox max-width">
+
+    <div class="roomtop">
+        <img class="roomtop-bg" src="/Style/newimg/ic_game_list_top_bg.webp?v=20260724x" alt="">
+        <div class="hall-title">游戏大厅</div>
+        <a class="top-btn" id="goback" href="/action.php?do=roomdoor" aria-label="返回">
+            <img src="/Style/newimg/ic_game_list_back.webp?v=20260724p" alt="返回">
+        </a>
+    </div>
+   
+    <div class="notice">
+        <div class="leftlaba"><img src="/Style/newimg/laba.png"></div>
+        <div class="rightcon"><marquee behavior="scroll" direction="left" scrollamount="4" scrolldelay="40"><?php
+            $roomNotice = '';
+            if (!empty($_SESSION['roomid'])) {
+                $roomNotice = trim((string) get_query_val('fn_setting', 'setting_kefu', array('roomid' => $_SESSION['roomid'])));
+                if ($roomNotice === '') {
+                    $roomNotice = trim((string) get_query_val('fn_welcome', 'content', array('roomid' => $_SESSION['roomid'])));
+                }
+            }
+            if ($roomNotice === '') {
+                $roomNotice = '欢迎光临，请联系在线客服上分！';
+            }
+            // Pad so short notices still enter from the right edge and scroll LTR→RTL.
+            $marqueeText = $roomNotice . str_repeat('　', 28) . $roomNotice . str_repeat('　', 18);
+            echo htmlspecialchars($marqueeText, ENT_QUOTES, 'UTF-8');
+        ?></marquee></div>
+    </div>
+
+    <section class="home-banner" id="homeBanner" aria-label="活动轮播图"></section>
+
+    <nav class="hall-cat-nav" aria-label="游戏分类">
+        <button type="button" class="hall-cat-btn is-on" data-cat="sport" aria-pressed="true" aria-label="弹珠">
+            <img class="hall-cat-on" src="/Style/newimg/hall_cat_marble_on.png?v=20260730h1" alt="弹珠">
+            <img class="hall-cat-off" src="/Style/newimg/hall_cat_marble_off.png?v=20260730h1" alt="">
+        </button>
+        <button type="button" class="hall-cat-btn" data-cat="lottery" aria-pressed="false" aria-label="彩票">
+            <img class="hall-cat-on" src="/Style/newimg/hall_cat_lottery_on.png?v=20260806lottery" alt="彩票">
+            <img class="hall-cat-off" src="/Style/newimg/hall_cat_lottery_off.png?v=20260806lottery" alt="">
+        </button>
+    </nav>
+
+    <div class="gamelist">
+        <div class="last-show" id="hallGameList" style="display: none">
+            <?php $gameIndex = 0; foreach($list as $gm):
+                if($gm['is_open']=='false') continue;
+                $ballCount = isset($gm['ball_count']) ? (int)$gm['ball_count'] : getGameBallCount($gm['game_id']);
+                $kind = isset($gm['kind']) ? $gm['kind'] : getGameKind($gm['game_id']);
+                $nextSn = isset($gm['opinfo']['next_sn']) ? trim((string)$gm['opinfo']['next_sn']) : '';
+            ?>
+            <div class="game-box" id="game-id-<?=$gm['game_id'];?>" data-gid="<?=$gm['game_id'];?>" data-kind="<?=htmlspecialchars($kind, ENT_QUOTES, 'UTF-8');?>" data-balls="<?=$ballCount;?>" data-left="<?=$gm['opinfo']['letf_time'];?>">
+                <img src="/Style/newimg/gamebg.png" loading="<?=$gameIndex < 2 ? 'eager' : 'lazy';?>" decoding="async" fetchpriority="<?=$gameIndex < 2 ? 'high' : 'low';?>" alt="">
+                <div class="game-info">
+                    <li class="game-ico"><img src="/Style/newimg/game_<?=$gm['game_id'];?>.png?v=20260728d" loading="<?=$gameIndex < 2 ? 'eager' : 'lazy';?>" decoding="async" fetchpriority="<?=$gameIndex < 2 ? 'high' : 'low';?>" alt=""></li>
+                    <li class="game-name"><img src="/Style/newimg/game_name_<?=$gm['game_id'];?>.png?v=20260728d" loading="<?=$gameIndex < 2 ? 'eager' : 'lazy';?>" decoding="async" fetchpriority="<?=$gameIndex < 2 ? 'high' : 'low';?>" alt=""></li>
+                    <li class="game-sn"><b>第<span id="next_num_<?=$gm['game_id'];?>"><?php echo htmlspecialchars($nextSn !== '' ? $nextSn : '——', ENT_QUOTES, 'UTF-8'); ?></span>期</b></li>
+                    <li class="game-time"><b>-</b><b>-</b><b>:</b><b>-</b><b>-</b></li>
+                    <li class="game-num" id="current_num_<?=$gm['game_id'];?>">
+                        <span class="sn-num aaa"><b>--</b></span>
+                        <?php for ($bi = 1; $bi <= $ballCount; $bi++): ?>
+                        <span class="n<?=$bi;?>"><?=$bi;?></span>
+                        <?php endfor; ?>
+                    </li>
+                </div>
+            </div>
+            <script type="text/javascript">gimdIDS.push(<?=$gm['game_id'];?>)</script>
+            <?php $gameIndex++; ?>
+            <?php endforeach;?>
+        </div>
+    </div>
+
+<div class="btn-bg" style="width:50px; height:50px"><img src="/Style/newimg/loginbt-dark.png"></div>
+<div class="footer_menu2">
+    <li data-url="/action.php?do=kefu"><img src="/Style/newimg/m_icon_zxfk.png?v=20260726u" loading="eager" decoding="async" fetchpriority="high" alt="在线客服"></li>
+    <li data-action="vip"><img src="/Style/newimg/m_icon_vipdj.png?v=20260726u" loading="eager" decoding="async" fetchpriority="high" alt="VIP等级"></li>
+    <li data-action="promo"><img src="/Style/newimg/m_icon_yhhd.png?v=20260726u" loading="lazy" decoding="async" fetchpriority="low" alt="优惠活动"></li>
+    <li data-action="roomintro"><img src="/Style/newimg/m_icon_fjjs.png?v=20260726u" loading="lazy" decoding="async" fetchpriority="low" alt="房间介绍"></li>
+    <li data-url="/Templates/user/"><img src="/Style/newimg/m_icon_grzx.png?v=20260726u" loading="lazy" decoding="async" fetchpriority="low" alt="个人中心"></li>
+</div>
+</div>
+
+<script type="text/javascript">
+    var FEINIAO_ROOM_ID = <?php echo json_encode((string)($_SESSION['roomid'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    var FEINIAO_ROOM_NOTICE = <?php echo json_encode((string)$roomNotice, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+
+    function normalizeBannerImage(value) {
+        var src = String(value || '').trim();
+        if (!src) return '';
+        // 废弃的本地默认图（北京赛车PK10），一律忽略
+        if (/home_banner_default\.(jpg|png|webp)/i.test(src)) return '';
+        // 防御性过滤：轮播只接受服务器静态图片，禁止页面再次渲染 Base64。
+        if (/^(data:image\/|blob:)/i.test(src)) return '';
+        // 旧后台返回的静态资源域名不能直接用于 H5，统一切到实际静态域名。
+        src = src.replace(/^https?:\/\/fnagent\.atmyx\.app(\/assets\/)/i, 'https://wjagent.atmyx.app$1');
+        src = src.replace(/^https?:\/\/(?:wjagent|fnagent|fnh5)\.atmyx\.app(\/upload\/)/i, 'https://wjh5.atmyx.app$1');
+        if (/^http:\/\//i.test(src)) src = 'https://' + src.slice(7);
+        if (/^(data:image\/|https:\/\/|\/\/)/i.test(src)) return src;
+        // 本站 H5 静态资源
+        if (/^\/Style\//i.test(src)) return src;
+        // H5 上传图片保留在 H5 站点，不要拼到后台域名
+        if (/^\/upload\//i.test(src)) return 'https://wjh5.atmyx.app' + src;
+        // 房主后台 /assets 图必须走 fnagent，不能当 H5 相对路径
+        if (src.charAt(0) === '/') return 'https://wjagent.atmyx.app' + src;
+        return 'https://wjagent.atmyx.app/' + src;
+    }
+
+    function filterBannerRows(payload) {
+        var rows = [];
+        if (payload && payload.data && Array.isArray(payload.data.banners)) rows = payload.data.banners;
+        else if (payload && Array.isArray(payload.banners)) rows = payload.banners;
+        else if (payload && payload.data && Array.isArray(payload.data)) rows = payload.data;
+        else if (Array.isArray(payload)) rows = payload;
+        return rows.filter(function (row) {
+            var status = String(row && row.status == null ? 'enabled' : (row && row.status || '')).toLowerCase();
+            var enabled = row && row.enabled !== false && ['disabled', 'disable', 'off', 'closed', 'close', '停用', '关闭'].indexOf(status) < 0;
+            if (!enabled) return false;
+            var image = normalizeBannerImage(row.image || row.imageUrl || row.url || row.src || row.path || row.banner);
+            if (!image) return false;
+            row.__normalizedImage = image;
+            return true;
+        }).sort(function (a, b) { return Number(a.sort || 0) - Number(b.sort || 0); });
+    }
+
+    function renderHomeBanners(payload) {
+        var rows = filterBannerRows(payload);
+        var box = $('#homeBanner').empty();
+        // 无可用轮播：只留中性占位，绝不回退到已删的北京PK10图
+        if (!rows.length) {
+            box.removeClass('is-visible');
+            return;
+        }
+        box.addClass('is-visible');
+        var track = $('<div class="banner-track"></div>');
+        rows.forEach(function (row, index) {
+            var image = row.__normalizedImage || normalizeBannerImage(row.image || row.imageUrl || row.url || row.src || row.path || row.banner);
+            if (!image) return;
+            var slide = $('<a class="banner-slide" target="_blank" rel="noopener"></a>');
+            if (row.link || row.href) slide.attr('href', row.link || row.href);
+            else slide.attr('href', 'javascript:void(0)');
+            var img = $('<img alt="" draggable="false" unselectable="on">');
+            img.attr('decoding', 'async');
+            if (index === 0) {
+                img.attr('src', image).attr('fetchpriority', 'high').attr('loading', 'eager');
+            } else {
+                // 其他轮播先不写 src，避免 WebKit 在首屏同时建立多个图片请求。
+                img.attr('data-src', image).attr('loading', 'lazy');
+            }
+            // 后台图片失效时移除当前轮播项，不能显示与后台无关的旧 fallback 图片。
+            img.on('error', function () {
+                var slideNode = this.parentNode;
+                if (slideNode && slideNode.parentNode) slideNode.parentNode.removeChild(slideNode);
+                if (!track.children().length) box.removeClass('is-visible');
+            });
+            slide.append(img);
+            track.append(slide);
+        });
+        if (!track.children().length) {
+            box.removeClass('is-visible');
+            return;
+        }
+        box.append(track);
+
+        var total = track.children().length;
+        var current = 0;
+        var timer = null;
+        var dragging = false;
+        var startX = 0;
+        var startY = 0;
+        var deltaX = 0;
+        var locked = false;
+        var ignoreClick = false;
+
+        function ensureSlideImage(index) {
+            var node = track.children().eq(index).find('img')[0];
+            if (!node || node.getAttribute('src')) return;
+            var pending = node.getAttribute('data-src');
+            if (!pending) return;
+            node.setAttribute('src', pending);
+            node.removeAttribute('data-src');
+        }
+
+        function goTo(index, animate) {
+            if (total <= 0) return;
+            current = (index % total + total) % total;
+            ensureSlideImage(current);
+            if (animate === false) track.addClass('is-dragging');
+            else track.removeClass('is-dragging');
+            track.css('transform', 'translate3d(' + (-current * 100) + '%,0,0)');
+            box.find('.banner-dot').removeClass('is-active').eq(current).addClass('is-active');
+            if (animate === false) {
+                // 强制回流后再恢复 transition，避免拖拽结束闪一下
+                void track[0].offsetWidth;
+                track.removeClass('is-dragging');
+            }
+        }
+
+        function nextSlide() { goTo(current + 1, true); }
+        function prevSlide() { goTo(current - 1, true); }
+
+        function startAuto() {
+            stopAuto();
+            if (total < 2) return;
+            timer = setInterval(nextSlide, 4000);
+        }
+        function stopAuto() {
+            if (timer) { clearInterval(timer); timer = null; }
+        }
+
+        if (total >= 2) {
+            var dots = $('<div class="banner-dots"></div>');
+            for (var i = 0; i < total; i++) {
+                (function (idx) {
+                    dots.append(
+                        $('<button type="button" class="banner-dot' + (idx === 0 ? ' is-active' : '') + '" aria-label="第' + (idx + 1) + '张"></button>')
+                            .on('click', function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                goTo(idx, true);
+                                startAuto();
+                            })
+                    );
+                })(i);
+            }
+            box.append(dots);
+        }
+
+        goTo(0, false);
+        startAuto();
+
+        function onPointerDown(clientX, clientY) {
+            if (total < 2) return;
+            dragging = true;
+            locked = false;
+            ignoreClick = false;
+            startX = clientX;
+            startY = clientY;
+            deltaX = 0;
+            stopAuto();
+            track.addClass('is-dragging');
+        }
+        function onPointerMove(clientX, clientY, evt) {
+            if (!dragging) return;
+            var dx = clientX - startX;
+            var dy = clientY - startY;
+            if (!locked) {
+                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    dragging = false;
+                    track.removeClass('is-dragging');
+                    startAuto();
+                    return;
+                }
+                locked = true;
+            }
+            if (evt && evt.cancelable) evt.preventDefault();
+            deltaX = dx;
+            var width = box.width() || 1;
+            var percent = (-current * 100) + (deltaX / width * 100);
+            track.css('transform', 'translate3d(' + percent + '%,0,0)');
+        }
+        function onPointerUp() {
+            if (!dragging) return;
+            dragging = false;
+            track.removeClass('is-dragging');
+            var width = box.width() || 1;
+            var threshold = width * 0.18;
+            if (Math.abs(deltaX) > 12) ignoreClick = true;
+            if (deltaX <= -threshold) goTo(current + 1, true);
+            else if (deltaX >= threshold) goTo(current - 1, true);
+            else goTo(current, true);
+            deltaX = 0;
+            startAuto();
+        }
+
+        var el = box[0];
+        el.addEventListener('touchstart', function (e) {
+            if (!e.touches || !e.touches.length) return;
+            onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        el.addEventListener('touchmove', function (e) {
+            if (!e.touches || !e.touches.length) return;
+            onPointerMove(e.touches[0].clientX, e.touches[0].clientY, e);
+        }, { passive: false });
+        el.addEventListener('touchend', onPointerUp);
+        el.addEventListener('touchcancel', onPointerUp);
+
+        el.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) return;
+            onPointerDown(e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', function (e) {
+            onPointerMove(e.clientX, e.clientY, e);
+        });
+        window.addEventListener('mouseup', onPointerUp);
+
+        track.on('click', 'a.banner-slide', function (e) {
+            if (ignoreClick) {
+                e.preventDefault();
+                e.stopPropagation();
+                ignoreClick = false;
+                return false;
+            }
+            var href = $(this).attr('href') || '';
+            if (!href || href.indexOf('javascript:') === 0) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    function loadHomeBanners() {
+        // 轮播只认接口返回的启用图片；接口返回前保持空白，不读取旧 sessionStorage 或本地 fallback。
+        renderHomeBanners(null);
+
+        // 后台直连接口优先，避免同域 PHP 代理的冷启动/跨站 TLS 等待拖慢首屏；失败再回退代理。
+        var request = {
+            method: 'get',
+            dataType: 'json',
+            cache: false,
+            data: { roomid: FEINIAO_ROOM_ID, _: Date.now() },
+            timeout: 3500
+        };
+        $.ajax($.extend({}, request, {
+            url: 'https://wjagent.atmyx.app/api/public/room-promos'
+        }))
+            .then(null, function () {
+                return $.ajax($.extend({}, request, {
+                    url: '/api_room_promos.php'
+                }));
+            })
+            .done(function (payload) {
+                renderHomeBanners(payload);
+            });
+    }
+    // 让大厅骨架、首屏游戏卡片先完成绘制，再启动轮播接口请求。
+    (function scheduleHomeBanners() {
+        var start = function () { window.setTimeout(loadHomeBanners, 80); };
+        if (window.requestAnimationFrame) window.requestAnimationFrame(start);
+        else window.setTimeout(start, 80);
+    })();
+
+    // 游戏分类栏：只控制卡片显示，不改开奖数据和进入游戏地址。
+    (function bindHallCategories() {
+        var $nav = $('.hall-cat-nav');
+        var $boxes = $('#hallGameList .game-box');
+        if (!$nav.length || !$boxes.length) return;
+        var sportIds = { '5': true, '6': true, '7': true, '10': true };
+        var key = 'fn_hall_cat';
+        function saved() {
+            try { var c = localStorage.getItem(key); if (c === 'lottery' || c === 'sport') return c; } catch (e) {}
+            return 'sport';
+        }
+        function apply(cat) {
+            cat = cat === 'lottery' ? 'lottery' : 'sport';
+            var visible = 0;
+            $boxes.each(function () {
+                var gameCat = sportIds[String($(this).data('gid'))] ? 'sport' : 'lottery';
+                var show = gameCat === cat;
+                $(this).toggleClass('hall-cat-hidden', !show).attr('data-cat', gameCat);
+                if (show) visible++;
+            });
+            $nav.find('.hall-cat-btn').removeClass('is-on').attr('aria-pressed', 'false');
+            $nav.find('.hall-cat-btn[data-cat="' + cat + '"]').addClass('is-on').attr('aria-pressed', 'true');
+            try { localStorage.setItem(key, cat); } catch (e2) {}
+            return visible;
+        }
+        window.__hallApplyCat = apply;
+        apply(saved());
+        $nav.off('.hallcat').on('click.hallcat', '.hall-cat-btn', function (e) {
+            e.preventDefault();
+            apply($(this).attr('data-cat'));
+        });
+    })();
+
+    setTimeout(function () {
+        // 只解开列表隐藏，不再写死 max-height（会把轮播挤出可视区）
+        $('.gamelist').css('max-height', '');
+        $('.gamelist .last-show').removeAttr('style');
+        if (window.__hallApplyCat) {
+            try {
+                var savedCat = localStorage.getItem('fn_hall_cat');
+                window.__hallApplyCat(savedCat === 'lottery' ? 'lottery' : 'sport');
+            } catch (e) {
+                window.__hallApplyCat('sport');
+            }
+        }
+    }, 500);
+    function footerAction($li) {
+        if (window.__fnNavigating) return;
+        var action = $li.data('action');
+        if (action === 'vip') {
+            window.__fnNavigating = true;
+            window.location.href = '/Templates/user/vip.php';
+            return;
+        }
+        if (action === 'promo') {
+            var banner = document.getElementById('homeBanner');
+            if (banner) {
+                banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+        if (action === 'roomintro') {
+            window.__fnNavigating = true;
+            window.location.href = '/Templates/roomintro.php';
+            return;
+        }
+        var url = $li.data('url');
+        if (url) {
+            window.__fnNavigating = true;
+            window.location.href = url;
+        }
+    }
+    $('.footer_menu2 li').off('.fnfooter').on('click.fnfooter', function (e) {
+        if (window.__fnFooterTouchAt && Date.now() - window.__fnFooterTouchAt < 700) {
+            e.preventDefault();
+            return;
+        }
+        footerAction($(this));
+    }).on('touchend.fnfooter', function (e) {
+        window.__fnFooterTouchAt = Date.now();
+        e.preventDefault();
+        footerAction($(this));
+    });
+    // 返回大厅只保留一条触摸/click 事件链，避免 touchend、pointerup、click
+    // 多次竞争导致 preventDefault 后既不弹窗也不跳转。
+    (function bindHallBack() {
+        var hallBackBusy = false;
+        var lastTouchAt = 0;
+        var backUrl = '/action.php?do=roomdoor';
+        function goBack() {
+            if (hallBackBusy || window.__fnNavigating) return;
+            hallBackBusy = true;
+            window.__fnExitPromptOpen = true;
+            var leave = function () {
+                window.__fnNavigating = true;
+                window.__fnExitPromptOpen = false;
+                window.location.href = backUrl;
+            };
+            var cancel = function () {
+                hallBackBusy = false;
+                window.__fnExitPromptOpen = false;
+            };
+            try {
+                if (typeof jqalert === 'function') {
+                    jqalert({
+                        content: '退出房间吗？',
+                        yestext: '确定',
+                        notext: '取消',
+                        click_bg: false,
+                        yesfn: leave,
+                        nofn: cancel
+                    });
+                    // jqalert 正常情况下同步创建弹窗；若组件未挂载，立即使用
+                    // 原生链接返回，避免移动端出现“点击无反应”。
+                    if (!document.getElementById('jq-alert')) leave();
+                    return;
+                }
+            } catch (err) {}
+            if (window.confirm) {
+                if (window.confirm('退出房间吗？')) leave();
+                else cancel();
+            } else {
+                leave();
+            }
+        }
+        window.fnHallBack = function (e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            goBack();
+            return false;
+        };
+        $('.top-btn, #goback').off('.fnnav').on('touchend.fnnav click.fnnav', function (e) {
+            if (e.type === 'click' && Date.now() - lastTouchAt < 700) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.type === 'touchend') lastTouchAt = Date.now();
+            goBack();
+            return false;
+        });
+    })();
+    $('.game-box').on('click',function () {
+        var gmid=$(this).data('gid');
+        window.location.href='/action.php?do=room&game='+gmid;
+        
+        
+    });
+
+    // 大厅倒计时：本地每秒刷新 UI，服务器 5 秒同步一次（原先每秒 AJAX+整段重绘会卡 WebView）
+    var hallTimers = {};
+    var hallFp = {};
+    var hallLastOpen = {};
+    var hallPollBusy = false;
+
+    function paintHallTime(gid) {
+        var left = parseInt(hallTimers[gid], 10);
+        if (isNaN(left)) return;
+        var fp = parseInt(hallFp[gid], 10) || 0;
+        $('#game-id-' + gid).find('.game-time').html(buildTime(left, fp));
+    }
+
+    function tickHallTimers() {
+        Object.keys(hallTimers).forEach(function (gid) {
+            if (hallTimers[gid] > 0) hallTimers[gid] -= 1;
+            paintHallTime(gid);
+        });
+    }
+
+    function syncHallTimers() {
+        if (hallPollBusy) return;
+        hallPollBusy = true;
+        $.ajax({
+            url: "/action.php?do=upop",
+            method: 'get',
+            dataType: 'json',
+            data: {'gid': gimdIDS},
+            success: function (res) {
+                if (!res || !res.list) return;
+                for (var i = 0; i < res.list.length; i++) {
+                    var row = res.list[i];
+                    if (!row.current_sn) {
+                        // 开奖切换瞬间可能先返回 next_sn、稍后才补 current_sn；不能因此把下一期期号清空。
+                        if (row.next_sn || row.next_term) {
+                            $('#next_num_' + row.gameid).text(row.next_sn || row.next_term);
+                        }
+                        continue;
+                    }
+                    var gid = String(row.gameid);
+                    hallTimers[gid] = parseInt(row.letf_time, 10) || 0;
+                    hallFp[gid] = parseInt(row.fp_time, 10) || 0;
+                    paintHallTime(gid);
+
+                    var openKey = row.current_sn + '|' + row.open_num;
+                    if (hallLastOpen[gid] !== openKey) {
+                        hallLastOpen[gid] = openKey;
+                        var numArr = String(row.open_num || '').split(',');
+                        var box = $('#game-id-' + row.gameid);
+                        var kind = box.attr('data-kind') || '';
+                        var numHtml = '';
+                        if (kind === 'pc28' && typeof window.pc28EquationHtml === 'function') {
+                            numHtml = '<span class="sn-num">' + row.current_sn + '期</span>' + window.pc28EquationHtml(numArr, { light: false });
+                        } else if (kind === 'lhc') {
+                            numHtml = '<span class="sn-num">' + row.current_sn + '</span>';
+                            var lhcBalls = [];
+                            for (var j = 0; j < numArr.length; j++) {
+                                if (numArr[j] === '') continue;
+                                var ln = parseInt(numArr[j], 10);
+                                if (isNaN(ln) || ln < 1) continue;
+                                lhcBalls.push(ln);
+                                if (lhcBalls.length >= 7) break;
+                            }
+                            while (lhcBalls.length < 7) lhcBalls.push(1);
+                            for (var k = 0; k < 6; k++) {
+                                var lpad = ('0' + lhcBalls[k]).slice(-2);
+                                numHtml += '<span class="lhc-ball lhc-n' + lpad + '">' + lpad + '</span>';
+                            }
+                            numHtml += '<span class="lhc-plus">+</span>';
+                            var ltpad = ('0' + lhcBalls[6]).slice(-2);
+                            numHtml += '<span class="lhc-ball lhc-n' + ltpad + '">' + ltpad + '</span>';
+                        } else {
+                            numHtml = '<span class="sn-num">' + row.current_sn + '</span>';
+                            for (var j = 0; j < numArr.length; j++) {
+                                if (numArr[j] === '') continue;
+                                var ballNo = parseInt(numArr[j], 10);
+                                if (isNaN(ballNo) || ballNo < 0) continue;
+                                numHtml += '<span class="n' + ballNo + '">' + ballNo + '</span>';
+                            }
+                        }
+                        $('#current_num_' + row.gameid).html(numHtml);
+                        $('#next_num_' + row.gameid).html(row.next_sn);
+                    }
+                }
+            },
+            complete: function () {
+                hallPollBusy = false;
+            }
+        });
+    }
+    syncHallTimers();
+    setInterval(tickHallTimers, 1000);
+    setInterval(syncHallTimers, 5000);
+
+    function buildTime(leftSec,fpSec) {
+        var totalSec=parseInt(leftSec);
+        if(isNaN(totalSec)||totalSec<=0) return '<b class="fping">封盘中</b>';
+        var min  =   Math.floor(totalSec/60);
+        var sec = totalSec%60;
+        min=(min<10)?'0'+min:min+"";
+        sec=(sec<10)?'0'+sec:sec+"";
+        var lastStr='';
+        lastStr+='<b>'+min[0]+'</b>';
+        lastStr+='<b>'+min[1]+'</b>';
+        lastStr+='<b>:</b>';
+        lastStr+='<b>'+sec[0]+'</b>';
+        lastStr+='<b>'+sec[1]+'</b>';
+        return lastStr;
+    }
+</script>
+<div style="overflow: hidden;">
+            <audio src="/bgMusic.mp3" id="Jaudio" class="media-audio" preload="none" loop="loop"></audio>
+        </div>
+        <script type="text/javascript">
+            function audioAutoPlay(id){
+                try { if (localStorage.getItem('fn_draw_music') === '0') return; } catch (e) {}
+                var audio = document.getElementById(id);
+                if (!audio) return;
+                try { audio.muted = false; audio.loop = true; } catch (e) {}
+                var go = function(){
+                  var p = audio.play();
+                  if (p && p.catch) p.catch(function(){});
+                };
+                document.addEventListener("WeixinJSBridgeReady", go, false);
+                document.addEventListener('YixinJSBridgeReady', go, false);
+                document.addEventListener('touchstart', go, {once:true, passive:true});
+                document.addEventListener('click', go, {once:true});
+            }
+        audioAutoPlay('Jaudio');
+</script>
+<style>
+  html,body,html *,body *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-user-drag:none!important;}
+  html,body{ -webkit-tap-highlight-color:transparent; }
+  #hallGameList.is-reordering{touch-action:none;}
+  #hallGameList .is-drag-placeholder{visibility:hidden!important;pointer-events:none!important;}
+  #hallGameList .is-drag-source{opacity:.96;box-shadow:0 .2rem .45rem rgba(0,0,0,.35);}
+</style>
+<script>
+(function () {
+  // 大厅不提供文本选择、复制或系统长按菜单；点击、滚动和卡片排序仍由下方逻辑处理。
+  function clearSelection() {
+    try { var sel = window.getSelection && window.getSelection(); if (sel && sel.rangeCount) sel.removeAllRanges(); } catch (e) {}
+  }
+  ['contextmenu', 'selectstart', 'dragstart'].forEach(function (type) {
+    document.addEventListener(type, function (e) { e.preventDefault(); e.stopPropagation(); clearSelection(); }, true);
+  });
+  ['copy', 'cut'].forEach(function (type) {
+    document.addEventListener(type, function (e) { e.preventDefault(); e.stopPropagation(); clearSelection(); }, true);
+  });
+  document.addEventListener('selectionchange', clearSelection, true);
+  document.addEventListener('touchstart', clearSelection, true);
+  document.addEventListener('touchend', clearSelection, true);
+  try { document.documentElement.style.webkitUserSelect = 'none'; } catch (e) {}
+  try { document.documentElement.style.userSelect = 'none'; } catch (e) {}
+  try { document.body.style.webkitTouchCallout = 'none'; } catch (e) {}
+
+  var list = document.getElementById('hallGameList');
+  if (!list) return;
+  var orderKey = 'fn_hall_game_order_v2';
+  var pressTimer = null, drag = null, raf = 0, pendingY = 0;
+  var startX = 0, startY = 0, moved = false;
+
+  function cards() {
+    return Array.prototype.filter.call(list.querySelectorAll('.game-box'), function (el) {
+      return !el.classList.contains('hall-cat-hidden') && !el.classList.contains('is-drag-placeholder');
+    });
+  }
+  function readOrder() { try { return JSON.parse(localStorage.getItem(orderKey) || '[]'); } catch (e) { return []; } }
+  function saveOrder() {
+    var ids = cards().map(function (el) { return String(el.getAttribute('data-gid') || ''); }).filter(Boolean);
+    try { localStorage.setItem(orderKey, JSON.stringify(ids)); } catch (e) {}
+  }
+  function applyOrder() {
+    var order = readOrder(); if (!order.length) return;
+    var byId = {};
+    Array.prototype.forEach.call(list.querySelectorAll('.game-box[data-gid]'), function (el) { byId[String(el.getAttribute('data-gid'))] = el; });
+    order.forEach(function (id) { if (byId[id]) list.appendChild(byId[id]); });
+  }
+  function clearTimer() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
+  function stopDoc() {
+    document.removeEventListener('touchmove', move, true);
+    document.removeEventListener('touchend', end, true);
+    document.removeEventListener('touchcancel', cancel, true);
+  }
+  function reset(el) {
+    if (!el) return;
+    el.classList.remove('is-drag-source');
+    ['position','left','top','width','height','margin','zIndex','pointerEvents','transform','transition'].forEach(function (p) { el.style[p] = ''; });
+  }
+  function finish(commit) {
+    clearTimer(); stopDoc();
+    if (!drag) return;
+    var d = drag; drag = null;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (d.placeholder && d.placeholder.parentNode === list) {
+      if (commit) {
+        list.insertBefore(d.card, d.placeholder);
+        saveOrder();
+      } else if (d.originalNext && d.originalNext.parentNode === list) {
+        list.insertBefore(d.card, d.originalNext);
+      } else {
+        list.appendChild(d.card);
+      }
+      d.placeholder.parentNode.removeChild(d.placeholder);
+    }
+    reset(d.card); list.classList.remove('is-reordering');
+    setTimeout(function () { window.__fnHallDragging = false; }, 450);
+  }
+  function cancel() { finish(false); }
+  function shiftOthers(mutator) {
+    var before = {};
+    cards().forEach(function (el) {
+      before[String(el.getAttribute('data-gid') || '')] = el.getBoundingClientRect().top;
+      el.style.transition = 'none';
+      el.style.transform = '';
+    });
+    mutator();
+    cards().forEach(function (el) {
+      var id = String(el.getAttribute('data-gid') || '');
+      var first = before[id];
+      if (first == null) return;
+      var delta = first - el.getBoundingClientRect().top;
+      if (Math.abs(delta) < 1) return;
+      el.style.transform = 'translate3d(0,' + delta + 'px,0)';
+      requestAnimationFrame(function () {
+        el.style.transition = 'transform .2s ease';
+        el.style.transform = '';
+      });
+    });
+  }
+  function place(y) {
+    if (!drag) return;
+    var target = null;
+    cards().some(function (el) {
+      var r = el.getBoundingClientRect();
+      if (y < r.top + r.height / 2) { target = el; return true; }
+      return false;
+    });
+    if (target && drag.placeholder.nextSibling === target) return;
+    if (!target && !drag.placeholder.nextSibling) return;
+    shiftOthers(function () {
+      if (target) list.insertBefore(drag.placeholder, target); else list.appendChild(drag.placeholder);
+    });
+  }
+  function move(e) {
+    if (!drag || !e.touches || !e.touches.length) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    pendingY = e.touches[0].clientY;
+    if (raf) return;
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      if (!drag) return;
+      drag.card.style.top = (drag.top + pendingY - drag.startY) + 'px';
+      place(pendingY);
+    });
+  }
+  function end(e) {
+    if (!drag) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    try { e.stopImmediatePropagation(); } catch (x) {}
+    finish(true);
+  }
+  function begin(el, touch) {
+    var r = el.getBoundingClientRect();
+    var originalNext = el.nextSibling;
+    var ph = document.createElement('div');
+    ph.className = 'game-box is-drag-placeholder';
+    ph.style.height = r.height + 'px'; ph.style.width = r.width + 'px'; ph.style.margin = getComputedStyle(el).margin;
+    list.insertBefore(ph, el);
+    drag = { card: el, placeholder: ph, originalNext: originalNext, startY: touch.clientY, top: r.top };
+    document.body.appendChild(el);
+    window.__fnHallDragging = true; list.classList.add('is-reordering');
+    el.classList.add('is-drag-source');
+    el.style.position = 'fixed'; el.style.left = r.left + 'px'; el.style.top = r.top + 'px';
+    el.style.width = r.width + 'px'; el.style.height = r.height + 'px'; el.style.margin = '0';
+    el.style.zIndex = '10000'; el.style.pointerEvents = 'none'; el.style.transform = 'scale(1.03)'; el.style.transition = 'none';
+    document.addEventListener('touchmove', move, { capture: true, passive: false });
+    document.addEventListener('touchend', end, { capture: true, passive: false });
+    document.addEventListener('touchcancel', cancel, { capture: true, passive: false });
+  }
+  list.addEventListener('touchstart', function (e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    var el = e.target.closest ? e.target.closest('.game-box') : null;
+    if (!el || el.classList.contains('hall-cat-hidden')) return;
+    var t = e.touches[0]; startX = t.clientX; startY = t.clientY; moved = false; clearTimer();
+    pressTimer = setTimeout(function () { pressTimer = null; begin(el, t); }, 360);
+  }, { passive: true });
+  list.addEventListener('touchmove', function (e) {
+    if (drag || !e.touches || !e.touches.length) return;
+    var t = e.touches[0];
+    if (Math.abs(t.clientX - startX) > 12 || Math.abs(t.clientY - startY) > 12) { moved = true; clearTimer(); }
+  }, { passive: true });
+  list.addEventListener('touchend', function () { if (!drag) clearTimer(); }, { passive: true });
+  list.addEventListener('click', function (e) {
+    if (window.__fnHallDragging || drag) { e.preventDefault(); e.stopPropagation(); try { e.stopImmediatePropagation(); } catch (x) {} }
+  }, true);
+  applyOrder();
+})();
+</script>
+</body>
+</html>

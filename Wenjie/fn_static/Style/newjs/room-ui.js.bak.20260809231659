@@ -1,0 +1,892 @@
+/**
+ * 房间页公共 UI：侧栏、直播、本地倒计时、首屏消息渲染
+ * 背景音乐开关见 /Style/newjs/bg-music.js（#Jaudio / bgMusic.mp3）
+ */
+(function (window, document) {
+  // App WebView 常无 safe-area：探测后写入 CSS 变量，顶栏下移避开状态栏
+  try {
+    var root = document.documentElement;
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;left:0;height:env(safe-area-inset-top);width:0;visibility:hidden;pointer-events:none;';
+    root.appendChild(probe);
+    var inset = probe.getBoundingClientRect().height || 0;
+    probe.parentNode && probe.parentNode.removeChild(probe);
+    if (inset < 1) {
+      inset = Math.round((window.devicePixelRatio > 2 ? 40 : 28));
+    }
+    root.style.setProperty('--fn-status-bar', inset + 'px');
+  } catch (e) {}
+
+  function qs(sel, root) { return (root || document).querySelector(sel); }
+
+  // 房间内任何区域都不显示 iOS 选中框、Copy/Look Up/Translate 菜单。
+  // 输入框仍可正常输入；这里同时拦截系统选择、复制和拖拽事件。
+  (function disableSystemSelection() {
+    function isEditable(target) {
+      return !!(target && target.closest && target.closest('input, textarea, [contenteditable="true"]'));
+    }
+    ['contextmenu', 'selectstart', 'dragstart', 'copy', 'cut'].forEach(function (type) {
+      document.addEventListener(type, function (ev) {
+        if (isEditable(ev.target) && type !== 'contextmenu' && type !== 'copy' && type !== 'cut') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+      }, true);
+    });
+    try {
+      document.documentElement.style.webkitUserSelect = 'none';
+      document.documentElement.style.userSelect = 'none';
+      document.documentElement.style.webkitTouchCallout = 'none';
+      document.body && (document.body.style.webkitTouchCallout = 'none');
+      document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(function (el) {
+        el.style.webkitUserSelect = 'text';
+        el.style.userSelect = 'text';
+        el.style.caretColor = 'currentColor';
+      });
+    } catch (e) {}
+  })();
+
+  window.__roomLeftSec = 0;
+  window.__roomFpSec = 1;
+  window.__roomTickStarted = false;
+  window.__roomDeadlineMs = 0;
+  window.__roomNextSn = '';
+  window.__roomWaitingDraw = false;
+
+  window.__roomLivePlayer = null;
+
+  function syncRoomLiveTop() {
+    var panel = qs('#roomLivePanel');
+    var head = qs('.room-fixed-head');
+    if (!panel || !head) return;
+    var bottom = head.getBoundingClientRect().bottom;
+    if (bottom > 0) panel.style.top = Math.ceil(bottom) + 'px';
+  }
+
+  function bindRoomLiveEdgeBack(panel) {
+    if (!panel || panel.__fnEdgeBackBound) return;
+    var edge = document.createElement('span');
+    edge.className = 'room-live-edge-back';
+    edge.setAttribute('aria-hidden', 'true');
+    panel.appendChild(edge);
+    var sx = 0, sy = 0, active = false;
+    edge.addEventListener('touchstart', function (ev) {
+      var t = ev.touches && ev.touches[0];
+      active = !!t;
+      if (active) { sx = t.clientX; sy = t.clientY; }
+    }, { passive: true });
+    edge.addEventListener('touchend', function (ev) {
+      if (!active) return;
+      active = false;
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      var dx = t.clientX - sx, dy = Math.abs(t.clientY - sy);
+      if (dx > 72 && dy < 48) {
+        window.__fnNavigating = true;
+        window.location.replace('/action.php?do=gamelist');
+      }
+    }, { passive: true });
+    panel.__fnEdgeBackBound = true;
+  }
+
+  function createRoomLiveFrame(panel, src) {
+    if (!panel || !src) return null;
+    var frame = document.createElement('iframe');
+    frame.setAttribute('data-src', src);
+    frame.setAttribute('src', src);
+    frame.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+    frame.setAttribute('allowfullscreen', '');
+    frame.setAttribute('scrolling', 'no');
+    var edge = panel.querySelector('.room-live-edge-back');
+    if (edge) panel.insertBefore(frame, edge);
+    else panel.appendChild(frame);
+    return frame;
+  }
+
+  function destroyRoomLiveFrame(panel, frame) {
+    if (!panel) return;
+    var media = panel.querySelectorAll('video, audio');
+    for (var i = 0; i < media.length; i++) {
+      try { media[i].pause(); } catch (pauseErr) {}
+      try { media[i].removeAttribute('src'); media[i].load(); } catch (loadErr) {}
+    }
+    if (frame) {
+      try { frame.contentWindow.postMessage({ type: 'pause', action: 'destroy' }, '*'); } catch (messageErr) {}
+      try { frame.setAttribute('src', 'about:blank'); } catch (stopErr) {}
+      try { frame.removeAttribute('data-src'); } catch (dataErr) {}
+      try { frame.contentWindow.location.replace('about:blank'); } catch (navErr) {}
+      if (frame.parentNode) frame.parentNode.removeChild(frame);
+    }
+  }
+
+  window.__fnStopRoomLive = function () {
+    var panel = qs('#roomLivePanel');
+    if (!panel) return;
+    var frame = panel.querySelector('iframe');
+    if (frame) destroyRoomLiveFrame(panel, frame);
+    panel.classList.remove('is-open');
+    window.__roomLivePlayer = null;
+  };
+
+  window.toggleRoomLive = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var panel = qs('#roomLivePanel');
+    if (!panel) return false;
+    bindRoomLiveEdgeBack(panel);
+    var opening = !panel.classList.contains('is-open');
+    panel.classList.toggle('is-open', opening);
+    syncRoomLiveTop();
+    var frame = panel.querySelector('iframe');
+    if (!opening && frame) {
+      // iOS WebView 可能在移除 src 后仍保留 iframe 的媒体上下文。
+      // 关闭时彻底移除 iframe，销毁其中的 video/flv.js 文档和声音连接。
+      var closeSrc = frame.getAttribute('data-src') || frame.getAttribute('src') || '';
+      if (closeSrc) panel.setAttribute('data-live-src', closeSrc);
+      destroyRoomLiveFrame(panel, frame);
+      window.__roomLivePlayer = null;
+    } else if (opening) {
+      var src = panel.getAttribute('data-live-src') || (frame && (frame.getAttribute('data-src') || frame.getAttribute('src'))) || '';
+      if (!frame && src) frame = createRoomLiveFrame(panel, src);
+      if (frame && src && !frame.getAttribute('src')) frame.setAttribute('src', src);
+    }
+    return false;
+  };
+
+  window.addEventListener('pagehide', window.__fnStopRoomLive, false);
+  window.addEventListener('beforeunload', window.__fnStopRoomLive, false);
+
+  window.addEventListener('resize', syncRoomLiveTop, false);
+  window.addEventListener('orientationchange', function () {
+    window.setTimeout(syncRoomLiveTop, 80);
+  }, false);
+  document.addEventListener('DOMContentLoaded', function () {
+    syncRoomLiveTop();
+    bindRoomLiveEdgeBack(qs('#roomLivePanel'));
+    window.requestAnimationFrame(syncRoomLiveTop);
+  }, false);
+
+  // 直播打开时，iOS 边缘左滑只执行一次房间返回，不先关闭直播层。
+  // 仅处理左侧 32px 的水平手势，不影响聊天区上下滚动。
+  (function bindSingleSwipeBack() {
+    var sx = 0, sy = 0, tracking = false;
+    document.addEventListener('touchstart', function (ev) {
+      var panel = qs('#roomLivePanel');
+      var t = ev.touches && ev.touches[0];
+      tracking = !!(panel && panel.classList.contains('is-open') && t && t.clientX <= 32);
+      if (tracking) { sx = t.clientX; sy = t.clientY; }
+    }, true);
+    document.addEventListener('touchend', function (ev) {
+      if (!tracking) return;
+      tracking = false;
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      var dx = t.clientX - sx, dy = Math.abs(t.clientY - sy);
+      if (dx > 72 && dy < 48) window.location.replace('/action.php?do=gamelist');
+    }, true);
+  })();
+
+  window.toggleRoomGameSwitch = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var panel = qs('#roomGameSwitch');
+    if (!panel) return false;
+    panel.classList.toggle('is-open');
+    return false;
+  };
+
+  document.addEventListener('click', function () {
+    var sw = qs('#roomGameSwitch');
+    if (sw) sw.classList.remove('is-open');
+  }, false);
+
+  function localLeftSec() {
+    if (window.__roomDeadlineMs > 0) {
+      return Math.max(0, Math.round((window.__roomDeadlineMs - Date.now()) / 1000));
+    }
+    return Math.max(0, parseInt(window.__roomLeftSec, 10) || 0);
+  }
+
+  function paintLeftTime() {
+    if (typeof window.buildTime !== 'function') return;
+    var el = document.getElementById('left_time');
+    if (!el) return;
+    window.__roomLeftSec = localLeftSec();
+    el.innerHTML = window.buildTime(window.__roomLeftSec, window.__roomFpSec);
+  }
+
+  /**
+   * Sync countdown from server without hard-reset every poll.
+   * Blind overwrite + collector rewriting next_time caused 10s↔封盘中 jumping.
+   */
+  function applyOpenCountdown(row) {
+    if (!row || row.letf_time == null || row.letf_time === '') return;
+    var serverLeft = parseInt(row.letf_time, 10);
+    if (isNaN(serverLeft)) return;
+    if (serverLeft < 0) serverLeft = 0;
+    var serverFp = parseInt(row.fp_time, 10);
+    if (isNaN(serverFp) || serverFp < 1) serverFp = 1;
+    var nextSn = String(row.next_sn || '');
+    window.__roomWaitingDraw = String(row.draw_status || '') === 'processing' || parseInt(row.waiting_draw, 10) === 1;
+    var localLeft = localLeftSec();
+    var termChanged = !!(nextSn && nextSn !== window.__roomNextSn);
+    var diff = Math.abs(serverLeft - localLeft);
+    // 期号变化 / 偏差≥2s / 服务器已封盘 → 强制对齐
+    var shouldApply = !window.__roomDeadlineMs || termChanged || diff >= 2 || serverLeft === 0;
+    if (shouldApply) {
+      window.__roomLeftSec = serverLeft;
+      window.__roomFpSec = serverFp;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      window.__roomDeadlineMs = Date.now() + serverLeft * 1000;
+    } else {
+      window.__roomFpSec = serverFp;
+      window.__roomLeftSec = localLeft;
+    }
+    row.letf_time = window.__roomLeftSec;
+    row.fp_time = window.__roomFpSec;
+  }
+
+  /** 临近封盘加快轮询，平时略降频减卡顿 */
+  window.roomPollDelay = function () {
+    if (document.hidden) return 5000;
+    if (window.__roomWaitingDraw) return 1500;
+    var left = localLeftSec();
+    if (left <= 0) return 1200;
+    if (left <= 40) return 1200;
+    return 3000;
+  };
+
+  function syncLiveTipVisibility() {
+    var hasLive = !!(document.querySelector('.fab-btn.is-live') || document.getElementById('roomLivePanel'));
+    // 澳洲10 / 幸运飞艇：强制无直播、彻底去掉 Live 提示
+    var gid = parseInt(window.ROOM_GAME_ID, 10) || 0;
+    if (gid === 1 || gid === 2) hasLive = false;
+    document.body.classList.toggle('room-has-live', hasLive);
+    document.body.classList.toggle('room-no-live', !hasLive);
+    document.body.classList.toggle('room-force-hide-live-tip', gid === 1 || gid === 2);
+    scrubOpenResultTips();
+  }
+
+  function stripLiveTipHtml(html) {
+    var s = String(html == null ? '' : html);
+    s = s.replace(/<[^>]*>\s*点击\s*Liv?e?\s*[直自]播开奖[!！]*\s*<\/[^>]*>/gi, '');
+    s = s.replace(/点击\s*Liv?e?\s*[直自]播开奖[!！]*/gi, '');
+    s = s.replace(/Liv?e?\s*[直自]播开奖[!！]*/gi, '');
+    s = s.replace(/<img[^>]*(?:live[_-]?tip|live[_-]?arrow|livetip|直播提示|直播箭头)[^>]*>/gi, '');
+    return s;
+  }
+
+  /**
+   * 清洗聊天里的 Live 提示文案；开奖结果图不再做右侧裁剪。
+   * 旧逻辑在 room-no-live 下对 openhistory 图 clip/canvas 裁 35%，
+   * 时时彩等无右侧提示的模板会被裁成一条竖条（已确认）。
+   */
+  function scrubOpenResultTips() {
+    var texts = document.querySelectorAll('.info-content');
+    for (var t = 0; t < texts.length; t++) {
+      var node = texts[t];
+      if (node.dataset.liveTipStripped === '1') continue;
+      var before = node.innerHTML;
+      var after = stripLiveTipHtml(before);
+      if (after !== before) node.innerHTML = after;
+      node.dataset.liveTipStripped = '1';
+    }
+
+    // 封盘核对卡：强制气泡与长通知同宽（内容短时也不收缩）
+    var seals = document.querySelectorAll('.info-content .fn-seal-card');
+    for (var s = 0; s < seals.length; s++) {
+      var seal = seals[s];
+      var inner = seal.closest ? seal.closest('.info-content') : seal.parentNode;
+      var box = seal.closest ? seal.closest('.content-info') : (inner && inner.parentNode);
+      if (inner && inner.classList) {
+        inner.classList.add('fn-seal-inner');
+        inner.style.width = '100%';
+        inner.style.maxWidth = '100%';
+        inner.style.display = 'block';
+        inner.style.boxSizing = 'border-box';
+      }
+      if (box && box.classList) {
+        box.classList.add('fn-seal-wrap');
+        box.style.width = '78%';
+        box.style.maxWidth = '78%';
+        box.style.minWidth = '78%';
+        box.style.display = 'block';
+        box.style.float = 'left';
+        box.style.boxSizing = 'border-box';
+      }
+      seal.style.width = '100%';
+      seal.style.maxWidth = '100%';
+      seal.style.minWidth = '100%';
+      seal.style.display = 'block';
+      seal.style.boxSizing = 'border-box';
+    }
+
+    // 下注详情卡：同宽 + 禁止左侧标题竖排折行（覆盖旧消息内联 46vw）
+    var bets = document.querySelectorAll('.info-content .fn-bet-card');
+    for (var b = 0; b < bets.length; b++) {
+      var bet = bets[b];
+      var bInner = bet.closest ? bet.closest('.info-content') : bet.parentNode;
+      var bBox = bet.closest ? bet.closest('.content-info') : (bInner && bInner.parentNode);
+      if (bInner && bInner.classList) {
+        bInner.classList.add('fn-bet-inner');
+        bInner.style.width = '100%';
+        bInner.style.maxWidth = '100%';
+        bInner.style.wordBreak = 'normal';
+      }
+      if (bBox && bBox.classList) {
+        bBox.classList.add('fn-bet-wrap');
+        bBox.style.width = '78%';
+        bBox.style.maxWidth = '78%';
+        bBox.style.minWidth = '78%';
+        bBox.style.display = 'block';
+        bBox.style.float = 'left';
+        bBox.style.boxSizing = 'border-box';
+      }
+      bet.style.width = '100%';
+      bet.style.maxWidth = '100%';
+      bet.style.minWidth = '100%';
+      bet.style.display = 'block';
+      bet.style.boxSizing = 'border-box';
+      var titles = bet.querySelectorAll('.fn-bet-line > b');
+      for (var ti = 0; ti < titles.length; ti++) {
+        titles[ti].style.whiteSpace = 'nowrap';
+        titles[ti].style.overflow = 'hidden';
+        titles[ti].style.textOverflow = 'ellipsis';
+        titles[ti].style.wordBreak = 'keep-all';
+      }
+    }
+
+    var imgs = document.querySelectorAll('.info-content img, #chat_list img, .content-info img');
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i];
+      var src = img.getAttribute('src') || '';
+      if (/live[_-]?tip|live[_-]?arrow|livetip|直播提示|直播箭头|livearrow/i.test(src)) {
+        img.style.display = 'none';
+        continue;
+      }
+      var isResult = /\/openhistory\//i.test(src) && !/recent_|trend_/.test(src);
+      if (!isResult) continue;
+      img.classList.add('open-result-img');
+      var parent = img.parentNode;
+      if (!parent) continue;
+      var wrap = parent;
+      if (!(parent.classList && parent.classList.contains('open-result-wrap'))) {
+        wrap = document.createElement('span');
+        wrap.className = 'open-result-wrap';
+        parent.insertBefore(wrap, img);
+        wrap.appendChild(img);
+      }
+      // 去掉历史裁剪标记，恢复完整开奖图
+      wrap.classList.remove('is-clip-live-tip');
+      if (img.dataset.liveCropped === '1' && /^data:image\//i.test(src) && img.dataset.liveSrcOrig) {
+        img.src = img.dataset.liveSrcOrig;
+        delete img.dataset.liveCropped;
+      }
+    }
+  }
+
+  function startRoomTick() {
+    if (window.__roomTickStarted) return;
+    window.__roomTickStarted = true;
+    setInterval(function () {
+      if (typeof window.buildTime !== 'function') return;
+      paintLeftTime();
+    }, 250);
+  }
+
+  /** 包装页面里的 showOpenInfo，写入本地剩余秒并驱动秒表 */
+  function hookShowOpenInfo() {
+    if (typeof window.showOpenInfo !== 'function') return false;
+    if (window.showOpenInfo.__roomHooked) return true;
+    var raw = window.showOpenInfo;
+    window.showOpenInfo = function (row) {
+      try {
+        applyOpenCountdown(row);
+        return raw.apply(this, arguments);
+      } catch (e) {
+        if (window.console && console.warn) console.warn('showOpenInfo', e);
+      }
+    };
+    window.showOpenInfo.__roomHooked = true;
+    startRoomTick();
+    return true;
+  }
+
+  function renderBootChat() {
+    var list = window.ROOM_BOOT_CHAT;
+    if (!list || !list.length || typeof window.jQuery === 'undefined') return;
+    var $ = window.jQuery;
+    var username = window.ROOM_BOOT_USER || '';
+    var chatHtml = '';
+    var lastId = 0;
+    var build = window.FeiniaoVipRoom && window.FeiniaoVipRoom.bubbleHtml;
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      var id = parseInt(row.id, 10) || 0;
+      if (id > lastId) lastId = id;
+      if (build) {
+        chatHtml += build(row, username);
+        continue;
+      }
+      var headerType = username !== row.nickname ? 'left-header' : 'right-header';
+      var leftHeader = headerType === 'left-header' ? '<img src="' + (row.headimg || '') + '">' : '';
+      var rightHeader = headerType === 'right-header' ? '<img src="' + (row.headimg || '') + '">' : '';
+      var nickName = headerType === 'left-header'
+        ? (row.nickname + '  ' + row.addtime)
+        : (row.addtime + '  ' + row.nickname);
+      chatHtml += '<div id="msg' + id + '" class="' + headerType + '">' +
+        '<div class="lheader">' + leftHeader + '</div>' +
+        '<div class="content-box">' +
+        '<div class="nick-name">' + nickName + '</div>' +
+        '<div class="content-info"><div class="chatnarr"></div>' +
+        '<div class="info-content">' + (row.content || '') + '</div></div></div>' +
+        '<div class="rheader">' + rightHeader + '</div></div>';
+    }
+    if (chatHtml) {
+      // 已渲染过的消息不再重复插入
+      var $wrap = $('<div></div>').html(chatHtml);
+      $wrap.children().each(function () {
+        var id = this.id;
+        if (id && document.getElementById(id)) {
+          $(this).remove();
+        }
+      });
+      var html = $wrap.html();
+      if (html) $(html).appendTo('#chat_list');
+      if (typeof window.trimRoomChatDom === 'function') window.trimRoomChatDom();
+      // 首屏消息可能被服务端裁剪；不要把轮询游标推进到首屏最大 ID，
+      // 让第一次轮询重新取回完整内容并替换占位卡。
+      try {
+        if (typeof window.scrollToBt === 'function') window.scrollToBt();
+      } catch (e) {}
+    }
+  }
+
+  function boot() {
+    hookShowOpenInfo();
+    try {
+      if (window.ROOM_BOOT_OPEN && typeof window.showOpenInfo === 'function') {
+        window.showOpenInfo(window.ROOM_BOOT_OPEN);
+      }
+    } catch (e) {}
+    try { renderBootChat(); } catch (e) {}
+    try {
+      if (window.FeiniaoVipRoom && typeof window.FeiniaoVipRoom.tryEntry === 'function') {
+        window.FeiniaoVipRoom.tryEntry();
+      }
+    } catch (e) {}
+    startRoomTick();
+    bindChatImageZoom();
+    syncLiveTipVisibility();
+  }
+
+  function ensureLightbox() {
+    var box = qs('#roomImgLightbox');
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'roomImgLightbox';
+    box.className = 'room-img-lightbox';
+    box.innerHTML = '<img alt="preview">';
+    box.addEventListener('click', function () {
+      box.classList.remove('is-open');
+      var img = box.querySelector('img');
+      if (img) img.removeAttribute('src');
+    });
+    document.body.appendChild(box);
+    return box;
+  }
+
+  function bindChatImageZoom() {
+    var root = qs('.chat-content') || document;
+    if (root.__roomImgZoomBound) return;
+    root.__roomImgZoomBound = true;
+    root.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.tagName || t.tagName.toLowerCase() !== 'img') return;
+      if (!t.closest || !t.closest('.info-content')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var box = ensureLightbox();
+      var big = box.querySelector('img');
+      big.src = t.currentSrc || t.src;
+      box.classList.add('is-open');
+    }, false);
+  }
+
+  // 新消息追加后也要能点图放大
+  var _moTimer = null;
+  function watchChatList() {
+    var list = qs('#chat_list');
+    if (!list || typeof MutationObserver === 'undefined') return;
+    var mo = new MutationObserver(function () {
+      clearTimeout(_moTimer);
+      _moTimer = setTimeout(function () {
+        bindChatImageZoom();
+        scrubOpenResultTips();
+      }, 30);
+    });
+    mo.observe(list, { childList: true, subtree: true });
+  }
+
+
+  function syncFabUnderKeyboard() {
+    var fabs = document.querySelector('.room-side-fabs');
+    if (!fabs) return;
+    var k1 = document.getElementById('keyboard1');
+    var k2 = document.getElementById('keyboard2');
+    var open = (k1 && k1.style.display !== 'none' && window.getComputedStyle(k1).display !== 'none')
+      || (k2 && k2.style.display !== 'none' && window.getComputedStyle(k2).display !== 'none');
+    // 键盘打开时彻底避开，避免半透明穿透点击
+    fabs.style.visibility = open ? 'hidden' : '';
+    fabs.style.pointerEvents = open ? 'none' : '';
+  }
+
+  function watchKeyboard() {
+    ['keyboard1', 'keyboard2'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || el.__roomFabWatch) return;
+      el.__roomFabWatch = true;
+      var mo = new MutationObserver(syncFabUnderKeyboard);
+      mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
+    document.addEventListener('click', function () {
+      setTimeout(syncFabUnderKeyboard, 0);
+    }, true);
+    syncFabUnderKeyboard();
+  }
+
+  function ensureBetDetailModal() {
+    var mask = qs('#fnBetDetailMask');
+    if (mask) return mask;
+    mask = document.createElement('div');
+    mask.id = 'fnBetDetailMask';
+    mask.className = 'fn-bet-detail-mask';
+    mask.innerHTML =
+      '<div class="fn-bet-detail-dialog" role="dialog" aria-modal="true">' +
+      '  <div class="fn-bet-detail-hd">' +
+      '    <span class="fn-bet-detail-title">注单详情</span>' +
+      '    <button type="button" class="fn-bet-detail-close" aria-label="关闭">×</button>' +
+      '  </div>' +
+      '  <div class="fn-bet-detail-body">' +
+      '    <table class="fn-bet-detail-table">' +
+      '      <thead><tr><th>位置</th><th>号码</th><th>金额</th></tr></thead>' +
+      '      <tbody></tbody>' +
+      '    </table>' +
+      '  </div>' +
+      '</div>';
+    document.body.appendChild(mask);
+    mask.addEventListener('click', function (e) {
+      if (e.target === mask) closeBetDetail();
+    });
+    var closeBtn = mask.querySelector('.fn-bet-detail-close');
+    if (closeBtn) closeBtn.addEventListener('click', closeBetDetail);
+    return mask;
+  }
+
+  function closeBetDetail() {
+    var mask = qs('#fnBetDetailMask');
+    if (mask) mask.classList.remove('is-open');
+  }
+
+  function escapeDetailText(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderBetDetailRows(rows) {
+    if (!rows || !rows.length) {
+      return '<tr><td colspan="3" class="fn-bet-detail-empty">暂无注单</td></tr>';
+    }
+    return rows.map(function (row) {
+      var money = row.money;
+      if (typeof money === 'number') {
+        money = (Math.round(money * 100) / 100).toString();
+      }
+      return '<tr><td>' + escapeDetailText(row.pos) + '</td><td>' + escapeDetailText(row.num) + '</td><td>' + escapeDetailText(money) + '</td></tr>';
+    }).join('');
+  }
+
+  function feiniaoOpenBetDetail(el) {
+    try {
+      if (!el) return false;
+      var username = el.getAttribute('data-user') || '';
+      var term = el.getAttribute('data-term') || '';
+      var gid = el.getAttribute('data-gid') || (window.ROOM_GAME_ID || '');
+      if (!username || !term) return false;
+      var mask = ensureBetDetailModal();
+      var tbody = mask.querySelector('tbody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="fn-bet-detail-empty">加载中…</td></tr>';
+      mask.classList.add('is-open');
+      var url = '/Application/ajax_bet_detail.php?username=' + encodeURIComponent(username) +
+        '&term=' + encodeURIComponent(term) +
+        '&gid=' + encodeURIComponent(gid);
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState !== 4) return;
+        var data = {};
+        try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) {}
+        if (!tbody) return;
+        if (!data || !data.ok) {
+          tbody.innerHTML = '<tr><td colspan="3" class="fn-bet-detail-empty">' + escapeDetailText((data && data.message) || '加载失败') + '</td></tr>';
+          return;
+        }
+        tbody.innerHTML = renderBetDetailRows(data.rows || []);
+      };
+      xhr.send();
+    } catch (e) {}
+    return false;
+  }
+
+  window.feiniaoOpenBetDetail = feiniaoOpenBetDetail;
+  window.feiniaoCloseBetDetail = closeBetDetail;
+
+  /** ---------- 一键返回底部 + 未读角标（对齐名爵 unreadMessage / _toBottom） ---------- */
+  var chatStickBottom = true;
+  var chatUnread = 0;
+  var chatScrollBound = false;
+  var chatScrollAnim = 0;
+  var lastMsgCount = 0;
+
+  function chatScrollEl() {
+    return qs('.chat-content');
+  }
+
+  function chatBottomGap(el) {
+    el = el || chatScrollEl();
+    if (!el) return 0;
+    return Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop);
+  }
+
+  function isChatNearBottom(el, offset) {
+    el = el || chatScrollEl();
+    if (!el) return true;
+    var gap = Math.max(8, Number(offset) || 12);
+    return chatBottomGap(el) <= gap;
+  }
+
+  function currentMsgCount() {
+    var list = qs('#chat_list');
+    if (!list) return 0;
+    return list.querySelectorAll('.left-header, .right-header').length;
+  }
+
+  function syncLastMsgCount() {
+    lastMsgCount = currentMsgCount();
+  }
+
+  /** 有新消息且未贴底时立刻累加角标（不依赖 stick 标记） */
+  function absorbNewMessagesAsUnread() {
+    var now = currentMsgCount();
+    var added = Math.max(0, now - lastMsgCount);
+    lastMsgCount = now;
+    if (added <= 0) return 0;
+    if (isChatNearBottom(null, 24)) return 0;
+    chatStickBottom = false;
+    chatUnread = Math.min(999, chatUnread + added);
+    paintToBottomBtn();
+    return added;
+  }
+
+  /** 硬滚到底：直接写 scrollTop，并短时重试（详情卡/图片撑高后仍能贴底） */
+  function forceScrollChatBottom() {
+    var el = chatScrollEl();
+    if (!el) return;
+    var apply = function () {
+      try {
+        el.scrollTop = el.scrollHeight;
+      } catch (e) {}
+      try {
+        var bt = document.getElementById('chatBt');
+        if (bt && bt.scrollIntoView) bt.scrollIntoView({ block: 'end', inline: 'nearest' });
+      } catch (e2) {
+        try {
+          var bt2 = document.getElementById('chatBt');
+          if (bt2 && bt2.scrollIntoView) bt2.scrollIntoView(false);
+        } catch (e3) {}
+      }
+      try {
+        el.scrollTop = el.scrollHeight;
+      } catch (e4) {}
+    };
+    apply();
+    chatScrollAnim += 1;
+    var token = chatScrollAnim;
+    [30, 80, 160, 280, 450].forEach(function (ms) {
+      setTimeout(function () {
+        if (token !== chatScrollAnim) return;
+        apply();
+        if (isChatNearBottom(el, 12)) {
+          chatStickBottom = true;
+          chatUnread = 0;
+          syncLastMsgCount();
+        }
+        paintToBottomBtn();
+      }, ms);
+    });
+  }
+
+  function ensureToBottomBtn() {
+    var btn = qs('#fnChatToBottom');
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'fnChatToBottom';
+    btn.className = 'fn-chat-to-bottom';
+    btn.setAttribute('aria-label', '返回底部');
+    btn.innerHTML = '<span class="fn-chat-unread" id="fnChatUnread"></span>';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      chatUnread = 0;
+      chatStickBottom = true;
+      syncLastMsgCount();
+      paintToBottomBtn(true);
+      forceScrollChatBottom();
+      if (typeof window.scrollToBt === 'function') {
+        window.scrollToBt(true);
+      }
+    }, false);
+    document.body.appendChild(btn);
+    return btn;
+  }
+
+  function paintToBottomBtn(forceShow) {
+    var btn = ensureToBottomBtn();
+    var badge = qs('#fnChatUnread', btn) || qs('#fnChatUnread');
+    var near = isChatNearBottom(null, 12);
+    var show = !!forceShow || chatUnread > 0 || !near;
+    btn.classList.toggle('is-show', show);
+    if (badge) {
+      if (chatUnread > 0) {
+        badge.textContent = chatUnread > 99 ? '99+' : String(chatUnread);
+        badge.classList.add('is-on');
+      } else {
+        badge.textContent = '';
+        badge.classList.remove('is-on');
+      }
+    }
+    syncToBottomUnderKeyboard();
+  }
+
+  function syncToBottomUnderKeyboard() {
+    var btn = qs('#fnChatToBottom');
+    if (!btn) return;
+    var k1 = document.getElementById('keyboard1');
+    var k2 = document.getElementById('keyboard2');
+    var open = (k1 && k1.style.display !== 'none' && window.getComputedStyle(k1).display !== 'none')
+      || (k2 && k2.style.display !== 'none' && window.getComputedStyle(k2).display !== 'none')
+      || !!window.showKeyBord;
+    btn.classList.toggle('is-kb-open', !!open);
+  }
+
+  function onChatScroll() {
+    var el = chatScrollEl();
+    if (!el) return;
+    var gap = chatBottomGap(el);
+    if (gap <= 12) {
+      chatStickBottom = true;
+      if (chatUnread > 0) chatUnread = 0;
+      syncLastMsgCount();
+    } else {
+      // 一旦离开贴底就停止跟滚，新消息改记未读
+      chatStickBottom = false;
+    }
+    paintToBottomBtn();
+  }
+
+  function bindChatScrollWatch() {
+    if (chatScrollBound) return;
+    var el = chatScrollEl();
+    if (!el) return;
+    chatScrollBound = true;
+    el.addEventListener('scroll', onChatScroll, { passive: true });
+    ensureToBottomBtn();
+    syncLastMsgCount();
+    // 进入房间默认贴底跟滚
+    chatStickBottom = isChatNearBottom(el, 24);
+    paintToBottomBtn();
+  }
+
+  function hookScrollToBt() {
+    var raw = window.scrollToBt;
+    if (typeof raw !== 'function' || raw.__fnToBottomHooked) return false;
+    window.scrollToBt = function (force) {
+      var forced = force === true;
+      // 贴底跟滚用 stick 标记：append 后 gap 会变大，不能再用「当前是否贴底」判断
+      if (forced || chatStickBottom) {
+        syncLastMsgCount();
+        chatStickBottom = true;
+        if (forced) chatUnread = 0;
+        forceScrollChatBottom();
+        paintToBottomBtn();
+        return;
+      }
+      // 用户已上滑：立刻按新增条数刷新角标
+      absorbNewMessagesAsUnread();
+      paintToBottomBtn();
+    };
+    window.scrollToBt.__fnToBottomHooked = true;
+    window.scrollToBt.__fnRaw = raw;
+    return true;
+  }
+
+  function watchChatListForUnread() {
+    var list = qs('#chat_list');
+    if (!list || typeof MutationObserver === 'undefined') return;
+    if (list.__fnUnreadWatch) return;
+    list.__fnUnreadWatch = true;
+    var mo = new MutationObserver(function () {
+      if (chatStickBottom) {
+        // 贴底时有新消息继续跟到底
+        syncLastMsgCount();
+        forceScrollChatBottom();
+        return;
+      }
+      absorbNewMessagesAsUnread();
+    });
+    mo.observe(list, { childList: true, subtree: false });
+  }
+
+  // 覆盖原 syncFabUnderKeyboard，顺带抬高回底按钮
+  var _syncFab = syncFabUnderKeyboard;
+  syncFabUnderKeyboard = function () {
+    try { _syncFab(); } catch (e) {}
+    try { syncToBottomUnderKeyboard(); } catch (e2) {}
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var live = qs('#roomLivePanel');
+    bindRoomLiveEdgeBack(live);
+    // 直播层不再注册左滑关闭手势；否则第一下左滑只会关闭直播，
+    // iOS WebView 需要第二下才返回。iframe 已禁止接管触摸，边缘返回交给系统处理。
+    if (live) live.addEventListener('click', function (e) { e.stopPropagation(); }, false);
+    var sw = qs('#roomGameSwitch');
+    if (sw) sw.addEventListener('click', function (e) { e.stopPropagation(); }, false);
+
+    // showOpenInfo 定义在靠后的 script，延迟挂钩
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      hookScrollToBt();
+      bindChatScrollWatch();
+      if (hookShowOpenInfo() || tries > 40) {
+        clearInterval(timer);
+        boot();
+        watchChatList();
+        watchChatListForUnread();
+        watchKeyboard();
+        hookScrollToBt();
+        bindChatScrollWatch();
+        syncLastMsgCount();
+        paintToBottomBtn();
+      }
+    }, 50);
+  });
+})(window, document);

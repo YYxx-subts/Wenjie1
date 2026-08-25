@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>登录</title>
+    <link rel="icon" type="image/png" href="/favicon.png?v=20260727a" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260727a" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/common.css?v=20260807editablefix1" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/login.css?v=20260815logincompact4" />
+    <link rel="preload" as="image" href="/Style/newimg/home_banner_preload.png?v=20260812preload2" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/login-security.css?v=20260816captchabuffer1" />
+    <script type="text/javascript" src="/Style/newjs/jquery-1.10.1.min.js"></script>
+<link rel="Stylesheet" type="text/css" href="/Style/pop/css/style.css" />
+    <script type="text/javascript" src="/Style/pop/js/popups.js"></script>
+    <script type="text/javascript" src="/Style/newjs/login-security.js?v=20260816captchaopt1"></script>
+    <script type="text/javascript" src="/Style/plus.js?v=20260812pageload8"></script>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(feiniao_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>" />
+</head>
+<body>
+<div class="mainbox max-width login-screen">
+    <div class="toplogo brand-lockup"><img src="/Style/newimg/zylogo.png?v=20260727a" alt="问界"></div>
+
+    <div class="main-content login-panel" id="loginPanel">
+        <div class="login-tab-spacer" aria-hidden="true"></div>
+        <button type="button" class="login-two-factor-entry" id="loginTwoFactorEntry" aria-label="提前输入二次验证码">
+            <img src="/Style/newimg/mj-ui/login-two-factor.png" alt="二次验证">
+        </button>
+        <div class="input-box login-input">
+            <span class="left-icon"><img src="/Style/newimg/mj-ui/login-user.png" alt=""></span>
+            <span class="right-input"><input id="uname" type="text" placeholder="请输入账号" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next"></span>
+        </div>
+        <div class="input-box login-input">
+            <span class="left-icon"><img src="/Style/newimg/mj-ui/login-lock.png" class="lock-icon" alt=""></span>
+            <span class="right-input"><input id="pass" type="password" placeholder="请输入密码" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="done"></span>
+            <span class="eye-btn" id="togglePass" role="button" tabindex="0" aria-label="显示或隐藏密码">
+                <img class="eye-open is-on" src="/Style/newimg/eye-open.svg" alt="">
+                <img class="eye-closed" src="/Style/newimg/eye-closed.svg" alt="">
+            </span>
+        </div>
+        <div class="input-box login-input login-totp-input" id="loginTotpBox" aria-hidden="true">
+            <span class="left-icon"><img src="/Style/newimg/mj-ui/login-shield.png" alt=""></span>
+            <span class="right-input"><input id="totp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="请输入6位动态验证码"></span>
+        </div>
+        <div class="remember"><b id="reck" class="toremember check"></b><span class="toremember">记住密码</span></div>
+        <button type="button" class="toreg primary-login" id="dologin" aria-label="登录"><span>登录</span></button>
+    </div>
+
+    <nav class="reg-way social-login">
+        <button type="button" class="social-btn" id="btnWechat" aria-label="微信登录">
+            <img src="/Style/newimg/ic_wechat_login.webp" alt="微信登录">
+        </button>
+        <button type="button" class="social-btn" id="btnDouyin" aria-label="抖音登录">
+            <img src="/Style/newimg/ic_tiktok_login.webp" alt="抖音登录">
+        </button>
+        <button type="button" class="social-btn" id="btnOwner" aria-label="房主登录">
+            <img src="/Style/newimg/ic_admin_login.webp" alt="房主登录">
+        </button>
+        <button type="button" class="social-btn" id="doreg" aria-label="会员注册">
+            <img src="/Style/newimg/ic_member_register.webp" alt="会员注册">
+        </button>
+    </nav>
+</div>
+<script type="text/javascript">
+(function () {
+    var OWNER_URL = 'https://wjagent.atmyx.app';
+    var passVisible = false;
+    var pendingCaptchaToken = '';
+
+    function rememberKey() { return 'fn_login_remember'; }
+    function loadRemember() {
+        try {
+            var raw = localStorage.getItem(rememberKey());
+            if (!raw) return;
+            var data = JSON.parse(raw);
+            if (data && data.userName) {
+                $('#uname').val(data.userName);
+                $('#pass').val(data.pass || '');
+                $('#reck').addClass('check');
+            }
+        } catch (e) {}
+    }
+    function saveRemember() {
+        if ($('#reck').hasClass('check')) {
+            localStorage.setItem(rememberKey(), JSON.stringify({
+                userName: $('#uname').val(),
+                pass: $('#pass').val()
+            }));
+        } else {
+            localStorage.removeItem(rememberKey());
+        }
+    }
+
+    loadRemember();
+
+    $('.toremember').on('click', function () {
+        if ($('#reck').hasClass('check')) $('#reck').removeClass('check');
+        else $('#reck').addClass('check');
+    });
+
+    function togglePassVisibility() {
+        passVisible = !passVisible;
+        $('#pass').attr('type', passVisible ? 'text' : 'password');
+        $('#togglePass').find('.eye-open').toggleClass('is-on', !passVisible);
+        $('#togglePass').find('.eye-closed').toggleClass('is-on', passVisible);
+    }
+    $('#togglePass').on('click', togglePassVisibility);
+    $('#togglePass').on('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            togglePassVisibility();
+        }
+    });
+
+    $('#doreg').on('click', function () {
+        window.location.href = '/action.php?do=reg';
+    });
+    $('#btnWechat').on('click', function () { jqtoast('微信登录暂时关闭！'); });
+    $('#btnDouyin').on('click', function () { jqtoast('抖音登录暂时关闭！'); });
+    $('#btnOwner').on('click', function () { window.location.href = OWNER_URL; });
+
+    $('#loginTwoFactorEntry').on('click', function () {
+        var box = $('#loginTotpBox');
+        var show = !box.hasClass('is-visible');
+        box.toggleClass('is-visible', show).attr('aria-hidden', show ? 'false' : 'true');
+    });
+    $('#totp').on('input', function () { this.value = String(this.value || '').replace(/\D/g, '').slice(0, 6); });
+
+    function submitLogin(captchaToken, totpCode) {
+        var userName = $('#uname').val();
+        var pass = $('#pass').val();
+        if (window.fnShowPageLoading) window.fnShowPageLoading('正在登录');
+        $.ajax({
+            url: 'action.php?do=dologin',
+            dataType: 'json',
+            method: 'post',
+            headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '' },
+            data: {
+                'userName': userName,
+                'pass': pass,
+                'captcha_token': captchaToken,
+                'totp_code': totpCode || '',
+                '_csrf': (document.querySelector('meta[name="csrf-token"]') || {}).content || ''
+            },
+            success: function (res) {
+                if (res.status == 1) {
+                    window.location.replace('/action.php?do=roomdoor');
+                } else if (res && res.require_totp == 1) {
+                    if (window.fnHidePageLoading) window.fnHidePageLoading();
+                    pendingCaptchaToken = captchaToken || pendingCaptchaToken;
+                    $('#loginTotpBox').addClass('is-visible').attr('aria-hidden', 'false');
+                    jqtoast('您已开启二次验证，请输入6位动态验证码');
+                    setTimeout(function () { $('#totp').trigger('focus'); }, 80);
+                } else {
+                    if (window.fnHidePageLoading) window.fnHidePageLoading();
+                    pendingCaptchaToken = '';
+                    jqtoast((res && res.msg) || '登录失败，请重试');
+                }
+            }, error: function () { if (window.fnHidePageLoading) window.fnHidePageLoading(); jqtoast('网络繁忙，请稍后重试'); }
+        });
+    }
+
+    $('#dologin').on('click', function () {
+        var userName = $('#uname').val();
+        var pass = $('#pass').val();
+        if (userName === '') return jqtoast('账号不能为空');
+        if (pass.length < 6) return jqtoast('密码最少6位');
+        saveRemember();
+        var code = String($('#totp').val() || '').replace(/\D/g, '');
+        if ($('#loginTotpBox').hasClass('is-visible')) {
+            if (code.length !== 6) return jqtoast('请输入6位动态验证码');
+            if (pendingCaptchaToken) return submitLogin(pendingCaptchaToken, code);
+        }
+        if (!window.FnLoginSecurity) return jqtoast('安全验证加载失败，请刷新页面');
+        window.FnLoginSecurity.open(function (captchaToken) {
+            pendingCaptchaToken = captchaToken || '';
+            submitLogin(captchaToken, code);
+        });
+    });
+})();
+</script>
+<script type="text/javascript">
+(function () {
+    // iOS 必须让系统原生点击直接聚焦 input；在 touchstart/pointerdown 捕获阶段
+    // 强行 focus 会与 WKWebView 键盘调度竞争，导致密码框没有键盘。
+    // 仅在点击输入框外壳但没有命中 input 时补一次 click 聚焦。
+    function focusInputFromShell(target) {
+        var box = target && target.closest ? target.closest('.input-box') : null;
+        if (!box || (target.matches && target.matches('input'))) return;
+        var input = box.querySelector('input');
+        if (input) input.focus();
+    }
+    document.addEventListener('click', function (e) { focusInputFromShell(e.target); }, false);
+
+    // 仅兼容旧 Android WebView；iOS/WKWebView 和现代 Android 走系统原生输入，
+    // 防止一个 keydown 被脚本和系统输入法各写入一次而出现“双字符”。
+    if (!/Android/i.test(navigator.userAgent || '')) return;
+    document.addEventListener('keydown', function (e) {
+        var input = e.target && e.target.matches && e.target.matches('input[type="text"],input[type="password"]') ? e.target : null;
+        if (!input || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+        var start = typeof input.selectionStart === 'number' ? input.selectionStart : input.value.length;
+        var end = typeof input.selectionEnd === 'number' ? input.selectionEnd : start;
+        var value = input.value || '';
+        if (e.key === 'Backspace') {
+            if (start === end && start > 0) start -= 1;
+            input.value = value.slice(0, start) + value.slice(end);
+            input.setSelectionRange(start, start);
+        } else if (e.key === 'Delete') {
+            input.value = value.slice(0, start) + value.slice(end + 1);
+            input.setSelectionRange(start, start);
+        } else if (e.key && e.key.length === 1) {
+            input.value = value.slice(0, start) + e.key + value.slice(end);
+            start += e.key.length;
+            input.setSelectionRange(start, start);
+        } else {
+            return;
+        }
+        e.preventDefault();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }, true);
+})();
+</script>
+</body>
+</html>

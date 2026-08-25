@@ -1,0 +1,155 @@
+// App 物理返回：HTML5+(plus) 与普通 WebView 都能尽量回上一页
+var plusReady = function (callback) {
+    if (window.plus) {
+        callback();
+    } else {
+        document.addEventListener('plusready', callback);
+    }
+};
+
+function feiniaoNavigateBack() {
+    try {
+        if (window.fnPrepareRouteBack) window.fnPrepareRouteBack();
+        var path = (location.pathname || '') + (location.search || '');
+        var href = location.href || '';
+        // 与 App 壳、页内返回按钮一致的业务回退
+        if (/do=room(?!door)/i.test(href) || /Templates\/room/i.test(path)) {
+            location.href = '/action.php?do=gamelist';
+            return;
+        }
+        if (/Templates\/user\//i.test(path)) {
+            location.href = '/action.php?do=gamelist';
+            return;
+        }
+        if (/do=gamelist/i.test(href) || /do=kefu/i.test(href)) {
+            location.href = '/action.php?do=roomdoor';
+            return;
+        }
+        if (/do=roomdoor/i.test(href)) {
+            location.href = '/action.php?do=login';
+            return;
+        }
+        if (window.history && history.length > 1) {
+            history.back();
+            return;
+        }
+        location.href = '/action.php?do=gamelist';
+    } catch (e) {
+        try { history.back(); } catch (e2) {}
+    }
+}
+
+// 全 App 统一拦截 iOS 长按选择框和系统菜单。
+(function disableLongPressSelection() {
+    function isEditable(target) {
+        return !!(target && target.closest && target.closest('input, textarea, [contenteditable="true"]'));
+    }
+    function clearSelection() {
+        if (isEditable(document.activeElement)) return;
+        try {
+            var sel = window.getSelection && window.getSelection();
+            if (sel && sel.rangeCount) sel.removeAllRanges();
+        } catch (e) {}
+    }
+    ['contextmenu', 'selectstart', 'dragstart'].forEach(function (type) {
+        document.addEventListener(type, function (ev) {
+            // 输入框必须保留插入光标、选区和退格编辑；其他区域继续禁止复制/拖拽。
+            if (isEditable(ev.target) && type !== 'contextmenu') return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            clearSelection();
+        }, true);
+    });
+    document.addEventListener('touchstart', clearSelection, true);
+    document.addEventListener('touchend', clearSelection, true);
+    document.addEventListener('selectionchange', clearSelection, true);
+    try {
+        document.documentElement.style.webkitUserSelect = 'none';
+        document.documentElement.style.userSelect = 'none';
+        document.documentElement.style.webkitTouchCallout = 'none';
+        function enableEditableCaret() {
+            document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(function (el) {
+                el.style.webkitUserSelect = 'text';
+                el.style.userSelect = 'text';
+                el.style.webkitTouchCallout = 'none';
+                el.style.caretColor = 'currentColor';
+            });
+        }
+        enableEditableCaret();
+        document.addEventListener('DOMContentLoaded', enableEditableCaret, false);
+    } catch (e) {}
+})();
+
+// 统一页面转场：新路由从右侧进入；物理返回时当前页向右退出。
+(function installRouteTransition() {
+    var style = document.createElement('style');
+    style.textContent =
+        '@keyframes fnRouteEnter{from{transform:translate3d(100%,0,0);opacity:.96}to{transform:translate3d(0,0,0);opacity:1}}' +
+        '@keyframes fnRouteBack{from{transform:translate3d(0,0,0);opacity:1}to{transform:translate3d(100%,0,0);opacity:1}}' +
+        'html.fn-route-enter body{animation:fnRouteEnter .26s cubic-bezier(.22,.61,.36,1) both;will-change:transform}' +
+        'html.fn-route-back body{animation:fnRouteBack .24s ease-in both;will-change:transform}' +
+        '@media(prefers-reduced-motion:reduce){html.fn-route-enter body,html.fn-route-back body{animation:none!important}}';
+    (document.head || document.documentElement).appendChild(style);
+    document.documentElement.classList.add('fn-route-enter');
+    function clearEnter() {
+        document.documentElement.classList.remove('fn-route-enter');
+    }
+    window.addEventListener('load', function () { setTimeout(clearEnter, 280); }, false);
+    setTimeout(clearEnter, 900);
+    window.fnPrepareRouteBack = function () {
+        document.documentElement.classList.remove('fn-route-enter');
+        document.documentElement.classList.add('fn-route-back');
+    };
+})();
+
+window.feiniaoNavigateBack = feiniaoNavigateBack;
+
+// App 登录后在空闲时预热全站静态壳（游戏、客服、个人中心的 CSS/JS/图标）。
+// Service Worker 明确排除 PHP、聊天、余额、下注、开奖和 /upload 用户头像，实时业务永远直连服务器。
+(function warmFeiniaoStaticAssets() {
+    if (!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
+    var schedule = window.requestIdleCallback || function (fn) { return setTimeout(fn, 1800); };
+    schedule(function () {
+        navigator.serviceWorker.register('/fn-static-sw.js', { scope: '/' })
+            .then(function () { return navigator.serviceWorker.ready; })
+            .then(function (registration) {
+                var target = registration.active || registration.waiting || registration.installing;
+                if (target) target.postMessage({ type: 'FN_WARM_STATIC_ASSETS' });
+            })
+            .catch(function () {});
+    }, { timeout: 3500 });
+})();
+
+plusReady(function () {
+    var firstBack = 0;
+    var handleBack = function () {
+        var now = Date.now || function () {
+            return new Date().getTime();
+        };
+        try {
+            var currentWebview = plus.webview.currentWebview();
+            currentWebview.canBack(function (evt) {
+                if (evt && evt.canBack) {
+                    history.back();
+                    return;
+                }
+                // 无 WebView 历史时走业务回退；入口页双击退出
+                var href = location.href || '';
+                if (/do=login/i.test(href)) {
+                    if (!firstBack) {
+                        firstBack = now();
+                        plus.nativeUI.toast('再按一次退出应用');
+                        setTimeout(function () { firstBack = 0; }, 2000);
+                    } else if (now() - firstBack < 2000) {
+                        plus.runtime.quit();
+                    }
+                    return;
+                }
+                feiniaoNavigateBack();
+            });
+        } catch (e) {
+            feiniaoNavigateBack();
+        }
+    };
+    plus.key.addEventListener('backbutton', handleBack);
+});

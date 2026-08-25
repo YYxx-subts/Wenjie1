@@ -1,0 +1,32 @@
+/* 问界 H5/App 开奖球统一素材（2026-08-19）：PK10/飞艇/赛车使用 ATM 方块球；SSC/澳洲5与弹珠28使用名爵素材。 */
+.mj-open-ball-base{background-repeat:no-repeat!important;background-position:center!important;background-size:100% 100%!important}
+
+/* SSC/澳洲5历史列表三列平均分布 */
+.history-row.is-ssc .col-qh,.history-row.titlehi.is-ssc .col-qh{flex:1 1 0!important;width:auto!important;min-width:0;text-align:center}
+.history-row.is-ssc .col-num.numrow,.history-row.titlehi.is-ssc .col-num.numrow{flex:2 1 0!important;width:auto!important;min-width:0}
+.history-row.is-ssc .col-gy-ssc{flex:1 1 0!important;width:auto!important;min-width:0;text-align:center}
+.history-row.titlehi.is-ssc .col-gy{flex:1 1 0!important;width:auto!important;min-width:0;text-align:center}
+
+/* SSC / 澳洲5：使用同一张 0-9 正式素材雪碧图（按球实际中心修正定位） */
+.game-box[data-kind="ssc"] .game-num span:not(.sn-num),
+.current-sn.is-ssc .num-sn span[class^="n"],
+.history-row.is-ssc .ssc-ball,
+#orTabs[data-kind="ssc"] ~ #orList .or-ball{background-image:url(/Style/newimg/mj-open-20260819/ssc-balls.png?v=20260820c)!important;background-size:500% 200%!important;background-repeat:no-repeat!important;background-color:transparent!important;color:transparent!important;font-size:0!important;text-shadow:none!important;border-radius:50%!important;width:0.48rem!important;height:0.44rem!important;flex:0 0 0.48rem!important}
+
+/* 弹珠28：正式红/绿/蓝渐变球；数字仍由实时开奖结果渲染 */
+.pc28-ball.pc-r,.pc28-ball.pc-y,.or-pc28-ball.pc-r,.or-pc28-ball.pc-y{background-image:url(/Style/newimg/mj-open-20260819/pc28-red.png?v=20260819a)!important}
+.pc28-ball.pc-g,.or-pc28-ball.pc-g{background-image:url(/Style/newimg/mj-open-20260819/pc28-green.png?v=20260819a)!important}
+.pc28-ball.pc-b,.or-pc28-ball.pc-b{background-image:url(/Style/newimg/mj-open-20260819/pc28-blue.png?v=20260819a)!important}
+.pc28-ball,.or-pc28-ball{background-repeat:no-repeat!important;background-position:center!important;background-size:100% 100%!important;background-color:transparent!important;border-radius:50%!important;color:#fff!important;text-shadow:0 1px 1px rgba(0,0,0,.35)!important;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.or-pc28-ball{width:22px;height:22px;font-size:11px;line-height:22px;box-sizing:border-box}
+.game-box[data-kind="ssc"] .game-num span.n0,.current-sn.is-ssc .num-sn span.n0,.history-row.is-ssc .ssc-ball.n0,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n0{background-position:-2.47% -6.75%!important}
+.game-box[data-kind="ssc"] .game-num span.n1,.current-sn.is-ssc .num-sn span.n1,.history-row.is-ssc .ssc-ball.n1,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n1{background-position:23.63% -6.75%!important}
+.game-box[data-kind="ssc"] .game-num span.n2,.current-sn.is-ssc .num-sn span.n2,.history-row.is-ssc .ssc-ball.n2,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n2{background-position:49.91% -6.75%!important}
+.game-box[data-kind="ssc"] .game-num span.n3,.current-sn.is-ssc .num-sn span.n3,.history-row.is-ssc .ssc-ball.n3,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n3{background-position:76.10% -6.75%!important}
+.game-box[data-kind="ssc"] .game-num span.n4,.current-sn.is-ssc .num-sn span.n4,.history-row.is-ssc .ssc-ball.n4,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n4{background-position:102.38% -6.75%!important}
+.game-box[data-kind="ssc"] .game-num span.n5,.current-sn.is-ssc .num-sn span.n5,.history-row.is-ssc .ssc-ball.n5,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n5{background-position:-2.47% 106.35%!important}
+.game-box[data-kind="ssc"] .game-num span.n6,.current-sn.is-ssc .num-sn span.n6,.history-row.is-ssc .ssc-ball.n6,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n6{background-position:23.63% 106.35%!important}
+.game-box[data-kind="ssc"] .game-num span.n7,.current-sn.is-ssc .num-sn span.n7,.history-row.is-ssc .ssc-ball.n7,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n7{background-position:49.91% 106.35%!important}
+.game-box[data-kind="ssc"] .game-num span.n8,.current-sn.is-ssc .num-sn span.n8,.history-row.is-ssc .ssc-ball.n8,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n8{background-position:76.10% 106.35%!important}
+.game-box[data-kind="ssc"] .game-num span.n9,.current-sn.is-ssc .num-sn span.n9,.history-row.is-ssc .ssc-ball.n9,#orTabs[data-kind="ssc"] ~ #orList .or-ball.n9{background-position:102.38% 106.35%!important}
+

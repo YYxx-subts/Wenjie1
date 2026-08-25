@@ -1,0 +1,67 @@
+.um-body { margin: 0; background: #f2f3f5; color: #222; -webkit-tap-highlight-color: transparent; }
+.um-page { min-height: 100vh; box-sizing: border-box; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+.um-nav {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 44px;
+  padding: calc(max(env(safe-area-inset-top, 0px), 20px) + 6px) 12px 10px;
+  background-image: linear-gradient(90deg, #2b7adb 0%, #3aa6e8 52%, #4fc0f0 100%);
+  color: #fff;
+}
+.um-back {
+  position: absolute; left: 8px; bottom: 4px;
+  width: 40px; height: 40px; border: 0; background: transparent; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.um-back img { width: 22px; height: 22px; }
+.um-title { margin: 0; font-size: 17px; font-weight: 600; color: #fff; }
+.um-tabs {
+  display: flex; background: #fff; border-bottom: 1px solid #e8eef3;
+}
+.um-tab {
+  flex: 1; height: 44px; border: 0; background: #fff; font-size: 15px; color: #666;
+}
+.um-tab.is-on {
+  color: #2b7adb; font-weight: 700;
+  box-shadow: inset 0 -2px 0 #2b7adb;
+}
+.um-card {
+  margin: 12px; padding: 16px 14px 18px;
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(20, 40, 60, 0.06);
+}
+.um-label { display: block; font-size: 14px; color: #333; margin-bottom: 10px; }
+.um-input-row {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid #dce5ee; border-radius: 8px;
+  padding: 10px 12px; background: #fafcfe;
+}
+.um-yen { color: #2b7adb; font-size: 20px; font-weight: 700; }
+#umAmount {
+  flex: 1; border: 0; outline: 0; background: transparent;
+  font-size: 18px; color: #222; min-width: 0;
+}
+#umAmount::placeholder { color: #a8b3c0; font-size: 14px; }
+.um-balance { margin-top: 10px; font-size: 13px; color: #5aa0e8; }
+.um-quick {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-top: 16px;
+}
+.um-quick button {
+  height: 38px; border: 1px solid #d5e2ef; border-radius: 6px;
+  background: #fff; color: #333; font-size: 15px;
+}
+.um-quick button.is-on {
+  border-color: #2b7adb; color: #2b7adb; background: #eef6ff; font-weight: 700;
+}
+.um-footer {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(242,243,245,0), #f2f3f5 28%);
+}
+.um-submit {
+  width: 100%; height: 46px; border: 0; border-radius: 999px;
+  color: #fff; font-size: 16px; font-weight: 700;
+  background-image: linear-gradient(90deg, #2b7adb 0%, #3aa6e8 55%, #4fc0f0 100%);
+}
+.um-submit:disabled { opacity: 0.6; }

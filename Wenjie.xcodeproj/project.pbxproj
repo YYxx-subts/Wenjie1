@@ -1,0 +1,110 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* AppDelegate.swift */; };
+		A00000000000000000000012 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* SceneDelegate.swift */; };
+		A00000000000000000000013 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* WebViewController.swift */; };
+		A00000000000000000000014 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A00000000000000000000021 /* UIKit.framework */; };
+		A00000000000000000000015 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A00000000000000000000022 /* WebKit.framework */; };
+		A00000000000000000000016 /* Icon-60@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000006 /* Icon-60@3x.png */; };
+		A00000000000000000000018 /* fn_static in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* fn_static */; };
+		A00000000000000000000019 /* offline-shell.html in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* offline-shell.html */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A00000000000000000000002 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		A00000000000000000000003 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
+		A00000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A00000000000000000000005 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A00000000000000000000006 /* Icon-60@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-60@3x.png"; sourceTree = "<group>"; };
+		A00000000000000000000008 /* fn_static */ = {isa = PBXFileReference; lastKnownFileType = folder; path = fn_static; sourceTree = "<group>"; };
+		A00000000000000000000009 /* offline-shell.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = offline-shell.html; sourceTree = "<group>"; };
+		A00000000000000000000020 /* Wenjie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wenjie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000021 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		A00000000000000000000022 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000030 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (A00000000000000000000014 /* UIKit.framework in Frameworks */, A00000000000000000000015 /* WebKit.framework in Frameworks */);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000040 = {
+			isa = PBXGroup;
+			children = (A00000000000000000000041 /* Wenjie */, A00000000000000000000042 /* Frameworks */, A00000000000000000000043 /* Products */);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000041 /* Wenjie */ = {
+			isa = PBXGroup;
+			children = (A00000000000000000000001 /* AppDelegate.swift */, A00000000000000000000002 /* SceneDelegate.swift */, A00000000000000000000003 /* WebViewController.swift */, A00000000000000000000004 /* Info.plist */, A00000000000000000000005 /* LaunchScreen.storyboard */, A00000000000000000000006 /* Icon-60@3x.png */, A00000000000000000000008 /* fn_static */, A00000000000000000000009 /* offline-shell.html */);
+			path = Wenjie;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000042 /* Frameworks */ = { isa = PBXGroup; children = (A00000000000000000000021 /* UIKit.framework */, A00000000000000000000022 /* WebKit.framework */); name = Frameworks; sourceTree = "<group>"; };
+		A00000000000000000000043 /* Products */ = { isa = PBXGroup; children = (A00000000000000000000020 /* Wenjie.app */); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000050 /* Wenjie */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000060 /* Build configuration list for PBXNativeTarget "Wenjie" */;
+			buildPhases = (A00000000000000000000031 /* Sources */, A00000000000000000000030 /* Frameworks */, A00000000000000000000032 /* Resources */);
+			buildRules = ();
+			dependencies = ();
+			name = Wenjie;
+			productName = Wenjie;
+			productReference = A00000000000000000000020 /* Wenjie.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000070 /* Project object */ = {
+			isa = PBXProject;
+			attributes = { BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 2660; TargetAttributes = { A00000000000000000000050 = { CreatedOnToolsVersion = 26.6; }; }; };
+			buildConfigurationList = A00000000000000000000061 /* Build configuration list for PBXProject "Wenjie" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base, "zh-Hans");
+			mainGroup = A00000000000000000000040;
+			productRefGroup = A00000000000000000000043 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (A00000000000000000000050 /* Wenjie */);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000032 /* Resources */ = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000016 /* Icon-60@3x.png in Resources */, A00000000000000000000018 /* fn_static in Resources */, A00000000000000000000019 /* offline-shell.html in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000031 /* Sources */ = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000011 /* AppDelegate.swift in Sources */, A00000000000000000000012 /* SceneDelegate.swift in Sources */, A00000000000000000000013 /* WebViewController.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000080 /* Debug */ = { isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; SWIFT_VERSION = 5.0; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SDKROOT = iphoneos; }; name = Debug; };
+		A00000000000000000000081 /* Release */ = { isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; SWIFT_VERSION = 5.0; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SDKROOT = iphoneos; }; name = Release; };
+		A00000000000000000000082 /* Debug */ = { isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 83; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Wenjie/Info.plist; PRODUCT_BUNDLE_IDENTIFIER = app.atmyx.wenjie; PRODUCT_NAME = Wenjie; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
+		A00000000000000000000083 /* Release */ = { isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 83; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Wenjie/Info.plist; PRODUCT_BUNDLE_IDENTIFIER = app.atmyx.wenjie; PRODUCT_NAME = Wenjie; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000060 /* Build configuration list for PBXNativeTarget "Wenjie" */ = { isa = XCConfigurationList; buildConfigurations = (A00000000000000000000082 /* Debug */, A00000000000000000000083 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A00000000000000000000061 /* Build configuration list for PBXProject "Wenjie" */ = { isa = XCConfigurationList; buildConfigurations = (A00000000000000000000080 /* Debug */, A00000000000000000000081 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000070 /* Project object */;
+}

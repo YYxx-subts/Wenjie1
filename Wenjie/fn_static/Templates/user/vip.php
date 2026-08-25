@@ -1,0 +1,120 @@
+<?php
+include dirname(dirname(dirname(preg_replace('@\(.*\(.*$@', '', __FILE__)))) . "/Public/config.php";
+if (!isset($_SESSION['userid']) || $_SESSION['userid'] === '') {
+    header('Location: /action.php?do=login');
+    exit;
+}
+if (empty($_SESSION['roomid'])) {
+    header('Location: /action.php?do=roomdoor');
+    exit;
+}
+$boot = feiniao_vip_info($_SESSION['userid'], $_SESSION['roomid']);
+$bootJson = json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+if ($bootJson === false) {
+    $bootJson = '{}';
+}
+?>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta content="telephone=no" name="format-detection">
+<title>VIP等级</title>
+<link rel="stylesheet" href="/Style/newcss/common.css" />
+<link rel="stylesheet" href="css/vip.css?v=20260814vipmetrics1" />
+<script src="/Style/newjs/jquery-1.10.1.min.js"></script>
+<script src="/Style/newjs/user-page-lock.js?v=20260812pcenterlock5"></script>
+<script src="/Style/plus.js?v=20260812pageload8"></script>
+</head>
+<body class="vip-body">
+<header class="vip-nav">
+  <button type="button" class="vip-back" onclick="history.back()" aria-label="返回">
+    <img src="/Style/newimg/leftar.png" alt="">
+  </button>
+  <h1 class="vip-nav-title">VIP等级</h1>
+  <button type="button" class="vip-nav-link" id="vipLogsBtn">领取记录</button>
+</header>
+<div class="vip-page">
+  <section class="vip-progress-card">
+    <div class="vip-progress-need" id="vipNeedText">升级还需0流水</div>
+    <div class="vip-progress-totals" aria-label="VIP累计进度">
+      <span>充值累计：<b id="vipDepositTotal">0 / 0</b></span>
+      <span>流水累计：<b id="vipTurnoverTotal">0 / 0</b></span>
+    </div>
+    <div class="vip-progress-row">
+      <div class="vip-side">
+        <div class="vip-side-badge" id="vipCurBadge"><img src="images/vip/0-9.png" alt="V0"></div>
+        <div class="vip-side-lv" id="vipCurLvText">VIP0</div>
+        <div class="vip-side-label">当前等级</div>
+      </div>
+      <div class="vip-progress-mid">
+        <div class="vip-progress-bar"><i id="vipProgressFill"></i></div>
+      </div>
+      <div class="vip-side">
+        <div class="vip-side-badge next" id="vipNextBadge"><img src="images/vip/0-9.png" alt="V0"></div>
+        <div class="vip-side-lv" id="vipTargetLvText">VIP0</div>
+        <div class="vip-side-label">目标等级</div>
+      </div>
+    </div>
+    <button type="button" class="vip-detail-btn" id="vipDetailBtn">详情</button>
+  </section>
+
+  <section class="vip-wheel-wrap">
+    <div class="vip-wheel" id="vipWheel" aria-label="VIP等级选择">
+      <div class="vip-wheel-items" id="vipWheelItems"></div>
+    </div>
+  </section>
+
+  <section class="vip-panel" id="vipPanel">
+    <div class="vip-panel-title" id="vipPanelTitle">· VIP0 ·</div>
+    <p class="vip-panel-desc" id="vipPanelDesc"></p>
+
+    <div class="vip-reward-list">
+      <div class="vip-reward-item">
+        <div class="vip-reward-meta">
+          <b>晋级彩金</b>
+          <span id="vipUpgradeAmount">0 积分</span>
+        </div>
+        <button type="button" class="vip-claim-btn" id="vipClaimUpgrade" data-type="upgrade">领取</button>
+      </div>
+      <div class="vip-reward-item">
+        <div class="vip-reward-meta">
+          <b>周礼金</b>
+          <span id="vipWeeklyAmount">0 积分</span>
+        </div>
+        <button type="button" class="vip-claim-btn" id="vipClaimWeekly" data-type="weekly">领取</button>
+      </div>
+    </div>
+
+    <div class="vip-festival" id="vipFestivalBox" hidden>
+      <div class="vip-festival-head">节日礼包</div>
+      <div class="vip-festival-list" id="vipFestivalList"></div>
+    </div>
+
+    <div class="vip-perk-head">
+      <span id="vipPerkTitle">专属特权</span>
+      <em id="vipPerkCount">0/9</em>
+      <!-- 特权数随目录动态更新 -->
+    </div>
+    <div class="vip-perk-grid" id="vipPerkGrid"></div>
+  </section>
+</div>
+
+<div class="vip-sheet" id="vipLogSheet" hidden>
+  <div class="vip-sheet-mask" data-close="1"></div>
+  <div class="vip-sheet-panel">
+    <div class="vip-sheet-head">
+      <b>领取记录</b>
+      <button type="button" class="vip-sheet-close" data-close="1">关闭</button>
+    </div>
+    <div class="vip-sheet-body" id="vipLogBody"></div>
+  </div>
+</div>
+
+<script>
+window.VIP_BOOT = <?php echo $bootJson; ?>;
+</script>
+<script src="js/vip.js?v=20260814vipmetrics1"></script>
+</body>
+</html>

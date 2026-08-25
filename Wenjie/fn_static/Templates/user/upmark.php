@@ -1,0 +1,130 @@
+<?php
+include dirname(dirname(dirname(preg_replace('@\(.*\(.*$@', '', __FILE__)))) . "/Public/config.php";
+require_once dirname(dirname(dirname(preg_replace('@\(.*\(.*$@', '', __FILE__)))) . "/Public/csrf.php";
+if (empty($_SESSION['userid']) || empty($_SESSION['roomid'])) {
+    header('Location: /action.php?do=login');
+    exit;
+}
+$money = get_query_val("fn_user", "money", array("roomid" => $_SESSION['roomid'], 'userid' => $_SESSION['userid']));
+$moneyFmt = number_format((float)$money, 2, '.', '');
+$tab = (isset($_GET['tab']) && $_GET['tab'] === 'down') ? 'down' : 'up';
+$csrf = htmlspecialchars(feiniao_csrf_token(), ENT_QUOTES, 'UTF-8');
+?>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <meta name="csrf-token" content="<?php echo $csrf; ?>" />
+    <title>上下分</title>
+    <link rel="stylesheet" type="text/css" href="css/common.css?v=1.2" />
+    <link rel="stylesheet" type="text/css" href="css/upmark.css?v=20260801a" />
+    <script type="text/javascript" src="/Style/newjs/jquery-1.10.1.min.js"></script>
+    <script type="text/javascript" src="/Style/newjs/user-page-lock.js?v=20260812pcenterlock5"></script>
+<script type="text/javascript" src="/Style/plus.js?v=20260812pageload8"></script>
+    <link rel="Stylesheet" type="text/css" href="/Style/pop/css/style.css" />
+    <script type="text/javascript" src="/Style/pop/js/popups.js"></script>
+</head>
+<body class="um-body">
+<div class="um-page">
+    <header class="um-nav">
+        <button type="button" class="um-back" onclick="history.back()" aria-label="返回">
+            <img src="/Style/newimg/leftar.png" alt="">
+        </button>
+        <h1 class="um-title">上下分</h1>
+        <span class="um-nav-right"></span>
+    </header>
+
+    <div class="um-tabs">
+        <button type="button" class="um-tab <?php echo $tab === 'up' ? 'is-on' : ''; ?>" data-tab="up">上分</button>
+        <button type="button" class="um-tab <?php echo $tab === 'down' ? 'is-on' : ''; ?>" data-tab="down">下分</button>
+    </div>
+
+    <section class="um-card">
+        <label class="um-label" id="umAmountLabel"><?php echo $tab === 'down' ? '下分金额' : '上分金额'; ?>:</label>
+        <div class="um-input-row">
+            <span class="um-yen">¥</span>
+            <input id="umAmount" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="<?php echo $tab === 'down' ? '下分金额不能低于 1' : '上分金额不能低于 1'; ?>" autocomplete="off" />
+        </div>
+        <div class="um-balance">当前可用积分：<?php echo htmlspecialchars($moneyFmt, ENT_QUOTES, 'UTF-8'); ?></div>
+        <div class="um-quick" id="umQuick">
+            <button type="button" data-v="100">100</button>
+            <button type="button" data-v="200">200</button>
+            <button type="button" data-v="500">500</button>
+            <button type="button" data-v="1000">1000</button>
+        </div>
+    </section>
+
+    <div class="um-footer">
+        <button type="button" class="um-submit" id="umSubmit">确认提交</button>
+    </div>
+</div>
+<script>
+(function () {
+    var tab = <?php echo json_encode($tab); ?>;
+    var balance = <?php echo json_encode((float)$money); ?>;
+    function csrf() {
+        return (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+    }
+    function toast(msg) {
+        if (typeof jqtoast === 'function') jqtoast(msg);
+        else alert(msg);
+    }
+    function syncLabel() {
+        var isDown = tab === 'down';
+        $('#umAmountLabel').text(isDown ? '下分金额:' : '上分金额:');
+        $('#umAmount').attr('placeholder', isDown ? '下分金额不能低于 1' : '上分金额不能低于 1');
+        $('.um-tab').removeClass('is-on');
+        $('.um-tab[data-tab="' + tab + '"]').addClass('is-on');
+    }
+    $('.um-tab').on('click', function () {
+        tab = $(this).data('tab') === 'down' ? 'down' : 'up';
+        syncLabel();
+    });
+    $('#umQuick').on('click', 'button', function () {
+        var v = String($(this).data('v') || '');
+        $('#umAmount').val(v);
+        $('#umQuick button').removeClass('is-on');
+        $(this).addClass('is-on');
+    });
+    $('#umAmount').on('input', function () {
+        this.value = String(this.value || '').replace(/\D+/g, '');
+        $('#umQuick button').removeClass('is-on');
+    });
+    var busy = false;
+    $('#umSubmit').on('click', function () {
+        if (busy) return;
+        var amount = parseInt($('#umAmount').val(), 10) || 0;
+        if (amount < 1) return toast(tab === 'down' ? '请输入下分金额' : '请输入上分金额');
+        if (tab === 'down' && amount > balance) return toast('下分金额不能超过可用积分');
+        busy = true;
+        $('#umSubmit').prop('disabled', true);
+        $.ajax({
+            url: '/Application/ajax_upmark_member.php',
+            type: 'post',
+            dataType: 'json',
+            headers: { 'X-CSRF-TOKEN': csrf() },
+            data: { type: tab, amount: amount, _csrf: csrf() },
+            success: function (res) {
+                if (res && Number(res.status) === 1) {
+                    toast(res.msg || '申请已提交');
+                    setTimeout(function () {
+                        location.href = '/Templates/user/paylog.php';
+                    }, 800);
+                } else {
+                    toast((res && res.msg) || '提交失败');
+                    busy = false;
+                    $('#umSubmit').prop('disabled', false);
+                }
+            },
+            error: function () {
+                toast('网络异常，请稍后重试');
+                busy = false;
+                $('#umSubmit').prop('disabled', false);
+            }
+        });
+    });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>直播</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+    #v { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+    #msg {
+      display: none; position: absolute; left: 0; right: 0; top: 50%;
+      transform: translateY(-50%); color: #fff; text-align: center;
+      font-size: 14px; padding: 0 16px; line-height: 1.5; z-index: 2;
+    }
+    #delayTip {
+      position: absolute; left: 0; right: 0; bottom: 8px; z-index: 2;
+      color: rgba(255,255,255,0.72); text-align: center;
+      font-size: 11px; line-height: 1.4; pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+  </style>
+</head>
+<body>
+  <video id="v" playsinline webkit-playsinline muted autoplay preload="auto" controls></video>
+  <div id="msg"></div>
+  <div id="delayTip">开盘以直播画面进入倒计时为准</div>
+  <script src="/Style/newjs/flv.min.js"></script>
+  <script>
+  (function () {
+    var video = document.getElementById('v');
+    var msg = document.getElementById('msg');
+    function show(t) {
+      msg.style.display = 'block';
+      msg.textContent = t;
+      var old = document.getElementById('liveRetryBtn');
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+    }
+    function showWithRetry(text) {
+      msg.style.display = 'block';
+      msg.textContent = text;
+      var old = document.getElementById('liveRetryBtn');
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      var btn = document.createElement('button');
+      btn.id = 'liveRetryBtn';
+      btn.type = 'button';
+      btn.textContent = '手动重试';
+      btn.style.cssText = 'display:block;margin:12px auto 0;padding:6px 14px;border:0;border-radius:4px;background:#2a6;color:#fff;cursor:pointer;';
+      btn.addEventListener('click', function () {
+        retryCount = 0;
+        start(true);
+      });
+      msg.appendChild(btn);
+    }
+    function hide() { msg.style.display = 'none'; }
+    var url = '';
+    var hlsUrl = '';
+    try {
+      url = new URLSearchParams(location.search).get('url') || '';
+      hlsUrl = new URLSearchParams(location.search).get('hls') || '';
+    } catch (e) {}
+    if (!url) { show('缺少直播地址'); return; }
+
+    var player = null;
+    var retryTimer = null;
+    var stallTimer = null;
+    var sceneTimer = null;
+    var retryCount = 0;
+    var maxRetry = 12;
+    var lastMediaTime = 0;
+    var lastMediaAt = 0;
+    var sceneVotes = { countdown: 0, result: 0, unknown: 0 };
+    var lastPostedScene = '';
+    var canvas = null;
+    var ctx = null;
+    var nativeMode = false;
+    var loadTimer = null;
+    var nativeRecoveryTimer = null;
+    var nativeRecoveryBusy = false;
+    var nativeSourceUrl = '';
+    var readyHandler = null;
+    var mediaReadyOnce = false;
+    var isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    function clearLoadTimer() {
+      if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+    }
+
+    function mediaReady() {
+      if (mediaReadyOnce) return;
+      mediaReadyOnce = true;
+      clearLoadTimer();
+      hide();
+      var p = video.play();
+      if (p && p.catch) p.catch(function () {});
+    }
+
+    function bindReadyEvents() {
+      mediaReadyOnce = false;
+      readyHandler = function () {
+        if (mediaReadyOnce) return;
+        video.removeEventListener('loadedmetadata', readyHandler);
+        video.removeEventListener('canplay', readyHandler);
+        mediaReady();
+      };
+      video.addEventListener('loadedmetadata', readyHandler);
+      video.addEventListener('canplay', readyHandler);
+    }
+
+    function clearReadyEvents() {
+      if (!readyHandler) return;
+      video.removeEventListener('loadedmetadata', readyHandler);
+      video.removeEventListener('canplay', readyHandler);
+      readyHandler = null;
+    }
+
+    function destroyPlayer() {
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      if (stallTimer) { clearInterval(stallTimer); stallTimer = null; }
+      if (sceneTimer) { clearInterval(sceneTimer); sceneTimer = null; }
+      clearLoadTimer();
+      if (nativeRecoveryTimer) { clearTimeout(nativeRecoveryTimer); nativeRecoveryTimer = null; }
+      nativeRecoveryBusy = false;
+      clearReadyEvents();
+      mediaReadyOnce = false;
+      if (player) {
+        try { player.pause(); player.unload(); player.detachMediaElement(); player.destroy(); } catch (e) {}
+        player = null;
+      }
+      if (nativeMode) {
+        nativeMode = false;
+        video.onerror = null;
+        try { video.pause(); video.removeAttribute('src'); video.load(); } catch (eN) {}
+      }
+    }
+
+    function reportHealth(event, detail) {
+      try {
+        var body = JSON.stringify({
+          event: event || 'unknown',
+          detail: String(detail || '').slice(0, 200),
+          retry: retryCount,
+          game: (window.parent && window.parent.ROOM_GAME_CODE) || '',
+          ts: Date.now()
+        });
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/Application/ajax_live_health.php', new Blob([body], { type: 'application/json' }));
+        }
+      } catch (eR) {}
+    }
+
+    /**
+     * 采样画面：倒计时只认右上角“秒数 + No.”区域，不能再用全画面黄球判断。
+     * Result 排名页本身含大量黄球，旧算法会把“开奖结果尚未播完”误判为开盘。
+     */
+    function analyzeScene() {
+      if (!video || video.readyState < 2 || video.videoWidth < 16) {
+        return { scene: 'unknown', yellow: 0, pink: 0 };
+      }
+      var w = 160;
+      var h = 90;
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        ctx = canvas.getContext('2d', { willReadFrequently: true });
+      }
+      try {
+        ctx.drawImage(video, 0, 0, w, h);
+      } catch (eDraw) {
+        return { scene: 'unknown', yellow: 0, pink: 0 };
+      }
+      var data = ctx.getImageData(0, 0, w, h).data;
+      var yellow = 0;
+      var pink = 0;
+      var total = 0;
+      var counterLight = 0;
+      var counterTotal = 0;
+      var y0 = Math.floor(h * 0.12);
+      var y1 = Math.floor(h * 0.78);
+      var x0 = Math.floor(w * 0.22);
+      var x1 = Math.floor(w * 0.78);
+      for (var y = y0; y < y1; y++) {
+        for (var x = x0; x < x1; x++) {
+          var i = (y * w + x) * 4;
+          var r = data[i];
+          var g = data[i + 1];
+          var b = data[i + 2];
+          total++;
+          // 直播倒计时固定在右上角，数字与 No. 为浅灰/白色；Result 榜单不在该区域。
+          // 只取右上角倒计时/No.，避开 Result 榜单；实际秒数字号很小，
+          // 160×90 缩样后不能再要求 2.5% 的亮像素，否则真实倒计时无法上报。
+          if (x >= Math.floor(w * 0.76) && y <= Math.floor(h * 0.14)) {
+            counterTotal++;
+            if (r > 125 && g > 125 && b > 125
+                && Math.abs(r - g) < 65 && Math.abs(g - b) < 65) counterLight++;
+          }
+          // 倒计时大号黄/橙字
+          if (r > 175 && g > 130 && b < 130 && r >= g && g > b + 20) yellow++;
+          // Result 粉红/品红标题
+          if (r > 150 && b > 120 && g < 130 && r > g + 30 && b > g) pink++;
+        }
+      }
+      if (total < 1) return { scene: 'unknown', yellow: 0, pink: 0, counter: 0 };
+      var yR = yellow / total;
+      var pR = pink / total;
+      var cR = counterTotal > 0 ? counterLight / counterTotal : 0;
+      if (cR > 0.006 && pR < 0.018) {
+        return { scene: 'countdown', yellow: yR, pink: pR, counter: cR };
+      }
+      if (pR > 0.018 || (pR > 0.01 && pR >= yR)) {
+        return { scene: 'result', yellow: yR, pink: pR, counter: cR };
+      }
+      return { scene: 'unknown', yellow: yR, pink: pR, counter: cR };
+    }
+
+    function postScene(scene, detail) {
+      var payload = {
+        type: 'feiniao_live_scene',
+        scene: scene,
+        yellow: detail && detail.yellow,
+        pink: detail && detail.pink,
+        counter: detail && detail.counter,
+        ts: Date.now()
+      };
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(payload, '*');
+        }
+      } catch (eP) {}
+    }
+
+    function watchScene() {
+      if (sceneTimer) clearInterval(sceneTimer);
+      sceneVotes = { countdown: 0, result: 0, unknown: 0 };
+      lastPostedScene = '';
+      sceneTimer = setInterval(function () {
+        if (!player || document.hidden) return;
+        var a = analyzeScene();
+        sceneVotes[a.scene] = (sceneVotes[a.scene] || 0) + 1;
+        // 衰减其它票，避免粘滞
+        ['countdown', 'result', 'unknown'].forEach(function (k) {
+          if (k !== a.scene && sceneVotes[k] > 0) sceneVotes[k] -= 1;
+        });
+        var best = 'unknown';
+        var bestN = 0;
+        Object.keys(sceneVotes).forEach(function (k) {
+          if (sceneVotes[k] > bestN) {
+            bestN = sceneVotes[k];
+            best = k;
+          }
+        });
+        // 连续约 3 次（~2.4s）才切换，防闪
+        if (bestN >= 3 && best !== lastPostedScene) {
+          lastPostedScene = best;
+          postScene(best, a);
+        }
+      }, 800);
+    }
+
+    function scheduleReconnect(reason) {
+      reportHealth('reconnect', reason);
+      if (retryCount >= maxRetry) {
+        showWithRetry('直播暂时无法播放。');
+        reportHealth('giveup', reason);
+        return;
+      }
+      var delay = Math.min(15000, 800 * Math.pow(1.6, retryCount));
+      retryCount += 1;
+      show('直播中断，' + Math.ceil(delay / 1000) + 's 后自动重连…');
+      destroyPlayer();
+      retryTimer = setTimeout(function () { start(true); }, delay);
+      try { console.warn('[live] reconnect', reason, 'attempt', retryCount); } catch (e0) {}
+    }
+
+    // iOS 原生 HLS 遇到上游 discontinuity 时就地刷新，避免清空 src 后反复黑屏重建。
+    function recoverNative(reason) {
+      if (!nativeMode || !hlsUrl || nativeRecoveryBusy) return;
+      nativeRecoveryBusy = true;
+      reportHealth('native-recover', reason);
+      clearLoadTimer();
+      if (nativeRecoveryTimer) clearTimeout(nativeRecoveryTimer);
+      var delay = Math.min(8000, Math.max(1200, 1200 + retryCount * 500));
+      retryCount = Math.min(retryCount + 1, maxRetry);
+      show('直播连接中断，正在恢复…');
+      nativeRecoveryTimer = setTimeout(function () {
+        nativeRecoveryTimer = null;
+        try {
+          bindReadyEvents();
+          video.pause();
+          // 强制请求最新 m3u8，避免 iOS 继续使用已经失效的 media sequence。
+          if (nativeSourceUrl) video.src = nativeSourceUrl + (nativeSourceUrl.indexOf('?') >= 0 ? '&' : '?') + 'r=' + Date.now();
+          video.load();
+          var p = video.play();
+          if (p && p.catch) p.catch(function () {});
+        } catch (eNativeRecover) {}
+        nativeRecoveryBusy = false;
+        loadTimer = setTimeout(function () {
+          if (nativeMode && video.readyState < 2) recoverNative('native-recover-timeout');
+        }, 10000);
+      }, delay);
+    }
+
+    function watchStall() {
+      if (stallTimer) clearInterval(stallTimer);
+      lastMediaTime = 0;
+      lastMediaAt = Date.now();
+      stallTimer = setInterval(function () {
+        if (!player || document.hidden) return;
+        var t = 0;
+        try { t = video.currentTime || 0; } catch (e1) {}
+        var now = Date.now();
+        if (t > lastMediaTime + 0.05) {
+          lastMediaTime = t;
+          lastMediaAt = now;
+          return;
+        }
+        if (now - lastMediaAt > 8000) {
+          if (nativeMode) recoverNative('native-stall');
+          else scheduleReconnect('stall');
+        }
+      }, 2000);
+    }
+
+    function start(isRetry) {
+      destroyPlayer();
+      show('直播加载中…');
+      clearLoadTimer();
+      loadTimer = setTimeout(function () {
+        if (video.readyState < 2) {
+          if (nativeMode) recoverNative('load-timeout');
+          else scheduleReconnect('load-timeout');
+        }
+      }, 12000);
+      // iPhone/iPad 直接使用系统原生 HLS，绕过 flv.js/MSE，避免首击黑屏和二次加载。
+      var nativeHls = !!hlsUrl && (isiOS || video.canPlayType('application/vnd.apple.mpegurl') !== '');
+      if (nativeHls || !(window.flvjs && flvjs.isSupported())) {
+        if (!hlsUrl) { show('当前环境不支持 FLV，且没有可用 HLS 地址'); return; }
+        nativeMode = true;
+        player = { native: true };
+        bindReadyEvents();
+        // 禁止复用旧的首屏 playlist，避免 iOS 首次打开拿到已经过期的分片列表。
+        var nativeUrl = hlsUrl + (hlsUrl.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+        nativeSourceUrl = hlsUrl;
+        video.src = nativeUrl;
+        video.onerror = function () { recoverNative('native-hls-error'); };
+        video.load();
+        var nativePlay = video.play();
+        if (nativePlay && nativePlay.catch) nativePlay.catch(function () {});
+        setTimeout(function () {
+          if (nativeMode && video.readyState >= 2) mediaReady();
+        }, 1500);
+        watchStall();
+        watchScene();
+        if (!isRetry) retryCount = 0;
+        return;
+      }
+      try {
+        player = flvjs.createPlayer({
+          type: 'flv',
+          url: url,
+          isLive: true,
+          hasAudio: true,
+          hasVideo: true
+        }, {
+          enableStashBuffer: false,
+          stashInitialSize: 128,
+          lazyLoad: false
+        });
+        player.attachMediaElement(video);
+        bindReadyEvents();
+        player.load();
+        player.on(flvjs.Events.ERROR, function (errType, errDetail) {
+          scheduleReconnect(String(errType || 'error') + ':' + String(errDetail || ''));
+        });
+        player.on(flvjs.Events.STATISTICS_INFO, function () {
+          if (retryCount > 0 && video.readyState >= 2) {
+            retryCount = 0;
+            hide();
+          }
+        });
+        watchStall();
+        watchScene();
+        if (!isRetry) retryCount = 0;
+      } catch (err) {
+        scheduleReconnect('init');
+      }
+    }
+    start(false);
+    window.addEventListener('message', function (event) {
+      var data = event && event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'feiniao_live_pause') {
+        try { video.pause(); } catch (ePause) {}
+      } else if (data.type === 'feiniao_live_resume') {
+        var p = video.play();
+        if (p && p.catch) p.catch(function () {});
+      }
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) {
+        if (!player) {
+          start(true);
+          return;
+        }
+        try { player.play(); } catch (e) {}
+        setTimeout(function () {
+          if (player && video && video.readyState < 2) {
+            scheduleReconnect('visible');
+          }
+        }, 1500);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1316 @@
+/* 禁止房间页整页橡皮筋拉伸：只允许聊天区内部滚动 */
+:root{
+  --fn-status-bar: 0px;
+  --fn-safe-top: max(env(safe-area-inset-top, 0px), var(--fn-status-bar, 0px));
+  /* 比状态栏再收一点，避免顶栏空得过大 */
+  --fn-room-safe: max(0px, calc(var(--fn-safe-top) - 10px));
+}
+html, body{
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+/* 全房间禁止长按选中框、复制/翻译菜单和图片拖拽。 */
+html, body, html *, body *{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none!important;
+  -webkit-user-drag:none!important;
+}
+.mainbox{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.chat-content{
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #EFEFEF;
+  /* block 滚动比 flex 容器 overflow 更稳，避免一键回底留白 */
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 1.8rem;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+.chat-content .last-show{
+  display: block;
+  width: 100%;
+}
+#chatBt{
+  height: 2px;
+  width: 100%;
+  clear: both;
+  pointer-events: none;
+}
+/* 固定顶栏：蓝底延伸进状态栏，文字/按钮落在安全区下方 */
+.room-fixed-head{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  height: auto;
+  min-height: calc(var(--fn-room-safe) + 2.1rem);
+  background-color: #fff;
+  overflow: visible;
+  box-sizing: border-box;
+}
+.roomtop{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: calc(0.1rem + var(--fn-room-safe)) 0.2rem 0.1rem;
+  min-height: calc(0.7rem + var(--fn-room-safe));
+  height: auto !important;
+  box-sizing: border-box;
+  background: #2f86e0;
+  background-image: linear-gradient(90deg, #2b7adb 0%, #3aa6e8 52%, #4fc0f0 100%);
+  color: white;
+  border: 0;
+  outline: 0;
+}
+.roomtop .back{width: 40%;flex-grow: 0;display: flex;justify-content: flex-start;align-items: center;font-size: 0.3rem;font-weight: bold}
+.roomtop .back img{width: 0.2rem;margin-right: 0.2rem}
+.roomtop .show-info{width: 60%;flex-grow: 0;display: flex;flex-wrap: wrap;}
+.roomtop .show-info li{width: 50%;margin-top: 0.1rem;margin-bottom:0.05rem;font-size: 0.2rem;}
+.chat-content.has-room-head{
+  padding-top: calc(2.5rem + var(--fn-room-safe)) !important;
+}
+
+
+.newest-sn{display: flex;justify-content: space-between;flex-direction: row;margin: 0;padding: 0.06rem 0.2rem;align-items: center;background:#fff;min-height: 0.52rem;box-sizing: border-box;border-bottom: 1px solid #e6e8eb;}
+.newest-sn .sn-num{font-size: 0.2rem;min-width: 0.7rem;line-height: 0.4rem;}
+.newest-sn .left-time{display: flex;align-items: center;min-width: 2rem;height: 0.4rem;}
+.newest-sn .left-time b{background: #EDEFF2;border-radius: 4px;padding: 0 0.08rem;margin-left: 0.02rem;color: #555555;font-size: 0.2rem;height: 0.4rem;line-height: 0.4rem;display: inline-flex;align-items: center;box-sizing: border-box;}
+.newest-sn .left-time b:nth-child(3){background: none;padding: 0;height: auto;line-height: 0.4rem;}
+.newest-sn .left-time b.fping{
+  background: red;
+  color: white;
+  margin-left: 0.04rem;
+  padding: 0 0.1rem;
+  font-size: 0.18rem;
+  border-radius: 4px;
+  font-weight: 600;
+  height: 0.4rem;
+  line-height: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.newest-sn .tvimg img{width:auto;height: 0.4rem}
+.newest-sn .bgzimg{display: flex;align-items: center;}
+.newest-sn .bgzimg img{width: 0.66rem;height: 0.4rem;object-fit: fill;display: block;}
+
+.current-sn{display: flex;flex-direction: row;justify-content: flex-start;align-items: center;margin: 0;padding: 0.06rem 0.2rem;background:#fff;box-sizing: border-box;border-bottom: 1px solid #e6e8eb;}
+.current-sn .sn-num{font-size: 0.2rem;min-width: 0.7rem}
+.current-sn .num-sn{flex-grow: 10;display: flex;justify-content: center;align-items: center;min-width: 0}
+.num-sn span{
+  width: 0.38rem;
+  height: 0.38rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 3px;
+  text-shadow: 0 0 1px #000;
+  color: white;
+  font-weight: 800;
+  font-size: 0.25rem;
+  line-height: 1;
+  margin-left: 1px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.n1{background:#e6de00}
+.n2{background:#0092dd}
+.n3{background:#4b4b4b}
+.n4{background:#ff7600}
+.n5{background:#17e2e5}
+.n6{background:#5234ff}
+.n7{background:#bfbfbf}
+.n8{background:#ff2600}
+.n9{background:#780b00}
+.n10{background:#07bf00}
+.n0{background:#07bf00}
+.current-sn .downimg{margin-left: 0.2rem}
+.current-sn .downimg img{width: 0.3rem}
+.current-sn .gyd{font-size: 0.18rem;}
+.current-sn .gyd p{text-align: center}
+
+/* 弹珠28 房间顶栏：圆球等式 */
+.current-sn.is-pc28 .num-sn{
+  justify-content: center;
+  gap: 0.06rem;
+  padding: 0 0.06rem;
+}
+.current-sn .pc28-ball,
+.history-row .pc28-ball{
+  width: 0.36rem !important;
+  height: 0.36rem !important;
+  flex: 0 0 0.36rem !important;
+  border-radius: 50% !important;
+  margin: 0 !important;
+  text-shadow: none !important;
+  font-size: 0.2rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,.12);
+  background: #2f86f6;
+  color: #fff;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+.current-sn .pc28-ball.is-sum,
+.history-row .pc28-ball.is-sum{
+  width: 0.4rem !important;
+  height: 0.4rem !important;
+  flex-basis: 0.4rem !important;
+}
+.pc28-ball.pc-g{background:#1ec45a !important;}
+.pc28-ball.pc-b{background:#2f86f6 !important;}
+.pc28-ball.pc-r{background:#e53935 !important;}
+.pc28-ball.pc-y{background:#f0b429 !important;}
+.current-sn .pc28-op,
+.history-row.is-pc28 .pc28-op,
+.history-row.is-pc28 .numrow span.pc28-op{
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  background: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 0.04rem !important;
+  color: #8a93a0 !important;
+  text-shadow: none !important;
+  font-size: 0.22rem !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  box-sizing: content-box !important;
+}
+.history-row.is-pc28 .pc28-op,
+.history-row.is-pc28 .numrow span.pc28-op{
+  color: #9aa3af !important;
+  font-size: 0.2rem !important;
+}
+.history-row.is-pc28{
+  padding: 0.1rem 0;
+  border-bottom: 1px solid #eee;
+  margin: 0;
+  font-size: 0.22rem;
+}
+.history-row.is-pc28 .col-qh{
+  width: 0.95rem;
+  color: #555;
+  font-size: 0.22rem;
+  flex-shrink: 0;
+}
+.history-row.is-pc28 .col-num,
+.history-row.is-pc28 .col-num.numrow{
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 0.05rem !important;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  min-width: 0;
+}
+.history-row.is-pc28 .col-gy{
+  width: 2.1rem;
+  min-width: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.08rem;
+  flex-grow: 0;
+  flex-shrink: 0;
+  padding: 0 0.04rem 0 0.08rem;
+  box-sizing: border-box;
+}
+.history-row.is-pc28 .col-gy .pc28-ball,
+.history-row.is-pc28 .col-gy .pc28-ball.is-sum{
+  width: 0.4rem !important;
+  height: 0.4rem !important;
+  flex: 0 0 0.4rem !important;
+  margin: 0 !important;
+}
+.history-row.is-pc28 .numrow span.pc28-ball{
+  width: 0.36rem !important;
+  height: 0.36rem !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  text-shadow: none !important;
+}
+/* 表头「号码」不要套奖球窄宽，保持一行 */
+.history-row.titlehi.is-pc28 .col-num,
+.history-row.titlehi.is-pc28 .col-num.numrow{
+  gap: 0 !important;
+}
+.history-row.titlehi.is-pc28 .col-num span,
+.history-row.titlehi.is-pc28 .numrow span{
+  width: auto !important;
+  height: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  color: #8B8B8B !important;
+  text-shadow: none !important;
+  font-weight: normal !important;
+  white-space: nowrap !important;
+  display: inline !important;
+}
+.pc28-txt-da{color:#e53935;font-weight:600;white-space:nowrap;}
+.pc28-txt-xiao{color:#2f86f6;font-weight:600;white-space:nowrap;}
+.history-row.titlehi.is-pc28 .col-num{justify-content: center !important;}
+.history-row.titlehi.is-pc28 .col-gy{
+  width: 2.1rem;
+  min-width: 2.1rem;
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.chat-content .last-show{}
+.chat-content .content-box{flex-grow: 10;display: block;flex-direction: column;margin: 0.1rem;}
+.chat-content .content-box .content-info{background: white;border-radius: 7px;padding: 0.15rem;margin: 0.1rem;box-sizing: border-box;float: left}
+.left-header,.right-header{display: flex;flex-direction: row;justify-content: flex-start; margin: 0.1rem;overflow: hidden}
+.lheader,.rheader{flex-grow: 0;width: 0.8rem;height: 0.8rem;flex-shrink: 0}
+.lheader img,.rheader img{width: 0.8rem; height: 0.8rem;border-radius: 10px}
+
+.right-header .content-box .content-info{background: #9EEA6A;float: right}
+
+
+.content-info{position: relative}
+.left-header .chatnarr{background-image: url("../newimg/leftct.png");width: 0.25rem;height: 0.25rem;background-size: 0.25rem auto;background-repeat:no-repeat;position: absolute;left: calc( -0.2rem + 2px);top: 0.1rem;background-position: right center;}
+.right-header .chatnarr{background-image: url("../newimg/1.png");width: 0.25rem;height: 0.25rem;background-size: 0.25rem auto;background-repeat:no-repeat;position: absolute;right: calc( -0.2rem + 2px);top: 0.1rem;background-position: left center;}
+.chat-content .nick-name{color: #767676;font-size: 0.2rem;width: 100%;float: right}
+.chat-content .right-header .nick-name{text-align: right}
+.chat-content .nick-name.is-vip-hl{
+  color: #c9971a;
+  background: linear-gradient(90deg,#b8860b,#f0c14b,#b8860b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+}
+.vip-chat-badge{
+  width: 0.28rem !important;
+  height: 0.28rem !important;
+  vertical-align: -0.04rem;
+  margin: 0 0.04rem;
+  border-radius: 0 !important;
+  display: inline-block;
+}
+.lheader .vip-frame,
+.rheader .vip-frame{
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 12px;
+  padding: 2px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg,#f6d365,#fda085 45%,#c9971a);
+  box-shadow: 0 0 0 1px rgba(201,151,26,0.35);
+}
+.lheader .vip-frame img,
+.rheader .vip-frame img{
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  display: block;
+}
+.fn-vip-entry{
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 18%;
+  z-index: 12000;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity .28s ease, transform .28s ease;
+}
+.fn-vip-entry.is-show{
+  opacity: 1;
+  transform: translateY(0);
+}
+.fn-vip-entry-inner{
+  min-width: 56%;
+  max-width: 86%;
+  padding: 0.18rem 0.36rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg,rgba(20,16,8,.82),rgba(90,60,10,.88),rgba(20,16,8,.82));
+  color: #ffe7a3;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+  border: 1px solid rgba(240,193,75,.45);
+}
+.fn-vip-entry-text{
+  font-size: 0.3rem;
+  letter-spacing: 0.02rem;
+  font-weight: 600;
+}
+.chat-content .info-content{word-break: break-all;word-wrap: break-word;font-size: 0.25rem;}
+.chat-content .info-content img{
+  max-width: 46vw !important;
+  max-height: 20vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+  border-radius: 6px;
+  cursor: zoom-in;
+  display: block;
+  margin-top: 0.08rem;
+}
+/* 开奖结果图：完整显示，不再裁右侧（旧 clip 会把时时彩图压成竖条） */
+.open-result-wrap{
+  position: relative;
+  display: inline-block;
+  max-width: 46vw;
+  max-height: 20vh;
+  overflow: hidden;
+  border-radius: 6px;
+  line-height: 0;
+  vertical-align: top;
+}
+.open-result-wrap img.open-result-img,
+.open-result-wrap img{
+  max-width: 46vw !important;
+  max-height: 20vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+  display: block;
+}
+body.room-has-live .open-result-wrap{
+  cursor: pointer;
+}
+.chat-content .content-box .content-info{
+  max-width: 78%;
+}
+/* 图片点击放大 */
+.room-img-lightbox{
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,0.88);
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+.room-img-lightbox.is-open{display: flex;}
+.room-img-lightbox img{
+  max-width: 96vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.chat-input{display: flex;flex-direction: row;padding: 0.1rem 0.2rem;background: #FFFFFF;align-items: center;position: relative;z-index: 2;}
+.chat-input .keyb-input{flex-grow: 10;height: 0.4rem;background: #EFEFEF;border-radius: 7px;margin: 0rem 0.2rem;padding:0.1rem 0px;display: flex;align-items: center;justify-content: flex-start;text-indent: 0.1rem;outline: none;font-size: 0.25rem;overflow: hidden}
+.chat-input .keyb-input:focus:before{
+    content:none;
+}
+.chat-input .keyb-left img{width: 0.4rem}
+.chat-input .keyb-right img{width: 0.4rem}
+
+/* 底部输入栏+键盘压在右侧悬浮按钮之上，避免挡键 */
+.room-bottom-dock{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 400;
+  background: #fff;
+}
+
+.keybaord{background: #EFEFEF;display: flex;width: 100%;flex-direction: column;position: relative;z-index: 401;}
+.keybaord .numbaord{display: flex;flex-wrap: wrap;margin:0.1rem 0rem;box-sizing: border-box;}
+.keybaord .numbaord li{width: calc(20% - 2px);background: #FFFFFF;height: 0.7rem;margin-top: 2.5px;margin-left: 2.5px;display: flex;justify-content: center;align-items: center;border-radius: 7px;color: #ADACAD;font-size: 0.3rem;flex-grow: 0;}
+.keybaord .numbaord li.rowstart{margin-left: 0px;}
+.keybaord .numbaord li.delimg img{width: 0.4rem}
+.keybaord .numbaord li.zlong{background: #FE4438;color: white;}
+.keybaord .numbaord li.zhu{background: #178DFF;color: white;}
+.keybaord .numbaord li.zgyh{background: #28A833;color: white;}
+
+/* 弹珠28：三行快捷栏 + 4×5 主键盘（加拿大28玩法二） */
+.keybaord.is-pc28-kb{
+  background: #ececec;
+  padding: 0 0 0.06rem;
+  box-sizing: border-box;
+}
+/* 快捷栏1：竖线分隔（样式不同于下面两栏） */
+.keybaord.is-pc28-kb .pc28-quick-line{
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+}
+.keybaord.is-pc28-kb .pc28-quick-line li{
+  flex: 1 1 0;
+  height: 0.64rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.24rem;
+  color: #888;
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+.keybaord.is-pc28-kb .pc28-quick-line li + li::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: #d8d8d8;
+}
+/* 快捷栏2、3：白底圆角按钮 */
+.keybaord.is-pc28-kb .pc28-quick-btn{
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  padding: 3px 3px 0;
+  box-sizing: border-box;
+  background: #ececec;
+}
+.keybaord.is-pc28-kb .pc28-quick-btn li{
+  flex: 1 1 0;
+  height: 0.66rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #d5d5d5;
+  border-radius: 6px;
+  color: #555;
+  font-size: 0.24rem;
+  box-sizing: border-box;
+}
+/* 主键盘 */
+.keybaord.is-pc28-kb .pc28-numboard{
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 3px;
+  box-sizing: border-box;
+  background: #ececec;
+}
+.keybaord.is-pc28-kb .pc28-numboard li{
+  width: calc((100% - 12px) / 5);
+  height: 0.8rem;
+  margin: 0 3px 3px 0;
+  border-radius: 6px;
+  border: 1px solid #d5d5d5;
+  font-size: 0.28rem;
+  color: #555;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+.keybaord.is-pc28-kb .pc28-numboard li:nth-child(5n){
+  margin-right: 0;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-side{
+  background: #c8c8c8;
+  border-color: #bcbcbc;
+  color: #333;
+  font-weight: 600;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-num{
+  background: #fff;
+  color: #333;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-del{
+  background: #c8c8c8;
+  border-color: #bcbcbc;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-del img,
+.keybaord.is-pc28-kb .pc28-numboard li.delimg img{
+  width: 0.42rem;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-wave{
+  background: #fff;
+  font-size: 0.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  padding: 0 0.02rem;
+}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-red{color: #e53935;}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-green{color: #1ec45a;}
+.keybaord.is-pc28-kb .pc28-numboard li.kb-blue{color: #2f86f6;}
+
+.keybaord .fast-keyboard{display: flex;background:#FFFFFF;margin: 0rem 0rem;box-sizing: border-box;padding: 0.1rem 0rem}
+.keybaord .fast-keyboard li{width: 20%;height: 0.7rem;display: block;text-align:center;line-height:0.7rem;font-size: 0.24rem;color: #ADACAD;box-sizing: border-box;background-image: url("../newimg/spn.png");background-position: left center;background-size: 2px 80%; background-repeat: no-repeat}
+.keybaord .fast-keyboard li:nth-child(1){background: none}
+
+.keybaord .fast-keyboard-url{display: flex;background:#EFEFEF;margin: 0rem 0rem;box-sizing: border-box;padding: 0.2rem 0rem}
+.keybaord .fast-keyboard-url li{width: 25%;height: 1.2rem;text-align:center;font-size: 0.24rem;color: #ADACAD;box-sizing: border-box;background-position: left center;background-size: 2px 80%; background-repeat: no-repeat;display: flex;flex-direction: column;justify-content: center;text-align: center}
+.keybaord .fast-keyboard-url li img{width: 1rem}
+.keybaord .fast-keyboard-url li:nth-child(1){background: none}
+
+/* 自助回水底部弹层 */
+.fn-hs-mask{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center}
+.fn-hs-sheet{width:100%;background:#fff;border-radius:.2rem .2rem 0 0;padding:.36rem .4rem calc(.36rem + env(safe-area-inset-bottom));box-sizing:border-box}
+.fn-hs-title{text-align:center;font-size:.34rem;color:#222;font-weight:600;margin-bottom:.28rem}
+.fn-hs-row{display:flex;align-items:center;justify-content:space-between;padding:.22rem 0;border-bottom:1px solid #eee;font-size:.28rem;color:#333}
+.fn-hs-row b{font-weight:600;color:#222}
+.fn-hs-actions{display:flex;align-items:center;justify-content:center;gap:.8rem;padding:.4rem 0 .1rem}
+.fn-hs-cancel,.fn-hs-ok{background:none;border:0;font-size:.3rem;padding:.1rem .2rem}
+.fn-hs-cancel{color:#333}
+.fn-hs-ok{color:#2f7bff}
+
+/*异步弹窗：贴紧开奖结果栏，去掉顶部分隔缝*/
+#iframeBox{position: absolute;top: 100%;left: 0;background: #fff;padding: 0 0.2rem 0.1rem;border: 0;border-top: 0;display: none;width: 100%;box-sizing: border-box;max-height: 250%;overflow-y: auto;overflow-x: hidden;z-index: 101;}
+
+.history-row.is-ssc .col-gy-ssc{
+  width: 1.2rem;
+  flex-grow: 0;
+  flex-shrink: 0;
+  text-align: center;
+}
+.history-row.is-ssc .col-num.numrow{
+  gap: 0.06rem;
+  justify-content: center;
+  align-items: center;
+}
+.history-row.titlehi.is-ssc .col-num.numrow span{
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  color: #8B8B8B !important;
+  font-size: 0.2rem !important;
+  font-weight: normal !important;
+  text-shadow: none !important;
+}
+
+/* 时时彩/澳洲5：旧站 ball_2 蓝色立体球（数字在图里，隐藏文字） */
+.current-sn.is-ssc .num-sn{
+  gap: 0.06rem;
+  justify-content: center;
+  align-items: center;
+}
+.current-sn.is-ssc .num-sn span,
+.history-row.is-ssc .ssc-ball{
+  display: inline-block !important;
+  width: 0.4rem !important;
+  height: 0.4rem !important;
+  flex: 0 0 0.4rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  background-color: transparent !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  text-shadow: none !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+}
+.current-sn.is-ssc .num-sn span.n0,
+.history-row.is-ssc .ssc-ball.n0{ background-image: url(/Style/newimg/sscballs/0.png) !important; }
+.current-sn.is-ssc .num-sn span.n1,
+.history-row.is-ssc .ssc-ball.n1{ background-image: url(/Style/newimg/sscballs/1.png) !important; }
+.current-sn.is-ssc .num-sn span.n2,
+.history-row.is-ssc .ssc-ball.n2{ background-image: url(/Style/newimg/sscballs/2.png) !important; }
+.current-sn.is-ssc .num-sn span.n3,
+.history-row.is-ssc .ssc-ball.n3{ background-image: url(/Style/newimg/sscballs/3.png) !important; }
+.current-sn.is-ssc .num-sn span.n4,
+.history-row.is-ssc .ssc-ball.n4{ background-image: url(/Style/newimg/sscballs/4.png) !important; }
+.current-sn.is-ssc .num-sn span.n5,
+.history-row.is-ssc .ssc-ball.n5{ background-image: url(/Style/newimg/sscballs/5.png) !important; }
+.current-sn.is-ssc .num-sn span.n6,
+.history-row.is-ssc .ssc-ball.n6{ background-image: url(/Style/newimg/sscballs/6.png) !important; }
+.current-sn.is-ssc .num-sn span.n7,
+.history-row.is-ssc .ssc-ball.n7{ background-image: url(/Style/newimg/sscballs/7.png) !important; }
+.current-sn.is-ssc .num-sn span.n8,
+.history-row.is-ssc .ssc-ball.n8{ background-image: url(/Style/newimg/sscballs/8.png) !important; }
+.current-sn.is-ssc .num-sn span.n9,
+.history-row.is-ssc .ssc-ball.n9{ background-image: url(/Style/newimg/sscballs/9.png) !important; }
+
+/* 弹珠六合彩：旧站 ball_hk6 红蓝绿球 */
+.current-sn.is-lhc .num-sn{
+  gap: 0.04rem;
+  justify-content: center;
+  align-items: center;
+}
+.current-sn.is-lhc .num-sn span.lhc-ball,
+.history-row.is-lhc .lhc-ball{
+  display: inline-block !important;
+  width: 0.36rem !important;
+  height: 0.36rem !important;
+  flex: 0 0 0.36rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  background-color: transparent !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  text-shadow: none !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+}
+.current-sn.is-lhc .num-sn span.lhc-plus,
+.history-row.is-lhc .lhc-plus{
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 0.22rem !important;
+  height: 0.36rem !important;
+  flex: 0 0 0.22rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  color: #888 !important;
+  font-size: 0.22rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
+  text-shadow: none !important;
+}
+.history-row.is-lhc .col-gy-lhc{
+  width: 1.2rem;
+  flex-grow: 0;
+  flex-shrink: 0;
+  text-align: center;
+}
+.history-row.is-lhc .col-num.numrow{
+  gap: 0.04rem;
+  justify-content: center;
+  align-items: center;
+}
+.history-row.titlehi.is-lhc .col-num.numrow span{
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  color: #8B8B8B !important;
+  font-size: 0.18rem !important;
+  font-weight: normal !important;
+  text-shadow: none !important;
+  text-indent: 0 !important;
+}
+
+.current-sn.is-lhc .num-sn span.lhc-n01,
+.history-row.is-lhc .lhc-ball.lhc-n01,
+.game-box[data-kind="lhc"] .game-num span.lhc-n01{ background-image: url(/Style/newimg/lhcballs/01.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n02,
+.history-row.is-lhc .lhc-ball.lhc-n02,
+.game-box[data-kind="lhc"] .game-num span.lhc-n02{ background-image: url(/Style/newimg/lhcballs/02.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n03,
+.history-row.is-lhc .lhc-ball.lhc-n03,
+.game-box[data-kind="lhc"] .game-num span.lhc-n03{ background-image: url(/Style/newimg/lhcballs/03.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n04,
+.history-row.is-lhc .lhc-ball.lhc-n04,
+.game-box[data-kind="lhc"] .game-num span.lhc-n04{ background-image: url(/Style/newimg/lhcballs/04.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n05,
+.history-row.is-lhc .lhc-ball.lhc-n05,
+.game-box[data-kind="lhc"] .game-num span.lhc-n05{ background-image: url(/Style/newimg/lhcballs/05.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n06,
+.history-row.is-lhc .lhc-ball.lhc-n06,
+.game-box[data-kind="lhc"] .game-num span.lhc-n06{ background-image: url(/Style/newimg/lhcballs/06.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n07,
+.history-row.is-lhc .lhc-ball.lhc-n07,
+.game-box[data-kind="lhc"] .game-num span.lhc-n07{ background-image: url(/Style/newimg/lhcballs/07.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n08,
+.history-row.is-lhc .lhc-ball.lhc-n08,
+.game-box[data-kind="lhc"] .game-num span.lhc-n08{ background-image: url(/Style/newimg/lhcballs/08.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n09,
+.history-row.is-lhc .lhc-ball.lhc-n09,
+.game-box[data-kind="lhc"] .game-num span.lhc-n09{ background-image: url(/Style/newimg/lhcballs/09.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n10,
+.history-row.is-lhc .lhc-ball.lhc-n10,
+.game-box[data-kind="lhc"] .game-num span.lhc-n10{ background-image: url(/Style/newimg/lhcballs/10.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n11,
+.history-row.is-lhc .lhc-ball.lhc-n11,
+.game-box[data-kind="lhc"] .game-num span.lhc-n11{ background-image: url(/Style/newimg/lhcballs/11.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n12,
+.history-row.is-lhc .lhc-ball.lhc-n12,
+.game-box[data-kind="lhc"] .game-num span.lhc-n12{ background-image: url(/Style/newimg/lhcballs/12.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n13,
+.history-row.is-lhc .lhc-ball.lhc-n13,
+.game-box[data-kind="lhc"] .game-num span.lhc-n13{ background-image: url(/Style/newimg/lhcballs/13.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n14,
+.history-row.is-lhc .lhc-ball.lhc-n14,
+.game-box[data-kind="lhc"] .game-num span.lhc-n14{ background-image: url(/Style/newimg/lhcballs/14.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n15,
+.history-row.is-lhc .lhc-ball.lhc-n15,
+.game-box[data-kind="lhc"] .game-num span.lhc-n15{ background-image: url(/Style/newimg/lhcballs/15.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n16,
+.history-row.is-lhc .lhc-ball.lhc-n16,
+.game-box[data-kind="lhc"] .game-num span.lhc-n16{ background-image: url(/Style/newimg/lhcballs/16.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n17,
+.history-row.is-lhc .lhc-ball.lhc-n17,
+.game-box[data-kind="lhc"] .game-num span.lhc-n17{ background-image: url(/Style/newimg/lhcballs/17.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n18,
+.history-row.is-lhc .lhc-ball.lhc-n18,
+.game-box[data-kind="lhc"] .game-num span.lhc-n18{ background-image: url(/Style/newimg/lhcballs/18.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n19,
+.history-row.is-lhc .lhc-ball.lhc-n19,
+.game-box[data-kind="lhc"] .game-num span.lhc-n19{ background-image: url(/Style/newimg/lhcballs/19.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n20,
+.history-row.is-lhc .lhc-ball.lhc-n20,
+.game-box[data-kind="lhc"] .game-num span.lhc-n20{ background-image: url(/Style/newimg/lhcballs/20.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n21,
+.history-row.is-lhc .lhc-ball.lhc-n21,
+.game-box[data-kind="lhc"] .game-num span.lhc-n21{ background-image: url(/Style/newimg/lhcballs/21.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n22,
+.history-row.is-lhc .lhc-ball.lhc-n22,
+.game-box[data-kind="lhc"] .game-num span.lhc-n22{ background-image: url(/Style/newimg/lhcballs/22.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n23,
+.history-row.is-lhc .lhc-ball.lhc-n23,
+.game-box[data-kind="lhc"] .game-num span.lhc-n23{ background-image: url(/Style/newimg/lhcballs/23.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n24,
+.history-row.is-lhc .lhc-ball.lhc-n24,
+.game-box[data-kind="lhc"] .game-num span.lhc-n24{ background-image: url(/Style/newimg/lhcballs/24.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n25,
+.history-row.is-lhc .lhc-ball.lhc-n25,
+.game-box[data-kind="lhc"] .game-num span.lhc-n25{ background-image: url(/Style/newimg/lhcballs/25.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n26,
+.history-row.is-lhc .lhc-ball.lhc-n26,
+.game-box[data-kind="lhc"] .game-num span.lhc-n26{ background-image: url(/Style/newimg/lhcballs/26.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n27,
+.history-row.is-lhc .lhc-ball.lhc-n27,
+.game-box[data-kind="lhc"] .game-num span.lhc-n27{ background-image: url(/Style/newimg/lhcballs/27.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n28,
+.history-row.is-lhc .lhc-ball.lhc-n28,
+.game-box[data-kind="lhc"] .game-num span.lhc-n28{ background-image: url(/Style/newimg/lhcballs/28.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n29,
+.history-row.is-lhc .lhc-ball.lhc-n29,
+.game-box[data-kind="lhc"] .game-num span.lhc-n29{ background-image: url(/Style/newimg/lhcballs/29.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n30,
+.history-row.is-lhc .lhc-ball.lhc-n30,
+.game-box[data-kind="lhc"] .game-num span.lhc-n30{ background-image: url(/Style/newimg/lhcballs/30.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n31,
+.history-row.is-lhc .lhc-ball.lhc-n31,
+.game-box[data-kind="lhc"] .game-num span.lhc-n31{ background-image: url(/Style/newimg/lhcballs/31.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n32,
+.history-row.is-lhc .lhc-ball.lhc-n32,
+.game-box[data-kind="lhc"] .game-num span.lhc-n32{ background-image: url(/Style/newimg/lhcballs/32.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n33,
+.history-row.is-lhc .lhc-ball.lhc-n33,
+.game-box[data-kind="lhc"] .game-num span.lhc-n33{ background-image: url(/Style/newimg/lhcballs/33.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n34,
+.history-row.is-lhc .lhc-ball.lhc-n34,
+.game-box[data-kind="lhc"] .game-num span.lhc-n34{ background-image: url(/Style/newimg/lhcballs/34.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n35,
+.history-row.is-lhc .lhc-ball.lhc-n35,
+.game-box[data-kind="lhc"] .game-num span.lhc-n35{ background-image: url(/Style/newimg/lhcballs/35.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n36,
+.history-row.is-lhc .lhc-ball.lhc-n36,
+.game-box[data-kind="lhc"] .game-num span.lhc-n36{ background-image: url(/Style/newimg/lhcballs/36.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n37,
+.history-row.is-lhc .lhc-ball.lhc-n37,
+.game-box[data-kind="lhc"] .game-num span.lhc-n37{ background-image: url(/Style/newimg/lhcballs/37.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n38,
+.history-row.is-lhc .lhc-ball.lhc-n38,
+.game-box[data-kind="lhc"] .game-num span.lhc-n38{ background-image: url(/Style/newimg/lhcballs/38.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n39,
+.history-row.is-lhc .lhc-ball.lhc-n39,
+.game-box[data-kind="lhc"] .game-num span.lhc-n39{ background-image: url(/Style/newimg/lhcballs/39.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n40,
+.history-row.is-lhc .lhc-ball.lhc-n40,
+.game-box[data-kind="lhc"] .game-num span.lhc-n40{ background-image: url(/Style/newimg/lhcballs/40.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n41,
+.history-row.is-lhc .lhc-ball.lhc-n41,
+.game-box[data-kind="lhc"] .game-num span.lhc-n41{ background-image: url(/Style/newimg/lhcballs/41.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n42,
+.history-row.is-lhc .lhc-ball.lhc-n42,
+.game-box[data-kind="lhc"] .game-num span.lhc-n42{ background-image: url(/Style/newimg/lhcballs/42.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n43,
+.history-row.is-lhc .lhc-ball.lhc-n43,
+.game-box[data-kind="lhc"] .game-num span.lhc-n43{ background-image: url(/Style/newimg/lhcballs/43.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n44,
+.history-row.is-lhc .lhc-ball.lhc-n44,
+.game-box[data-kind="lhc"] .game-num span.lhc-n44{ background-image: url(/Style/newimg/lhcballs/44.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n45,
+.history-row.is-lhc .lhc-ball.lhc-n45,
+.game-box[data-kind="lhc"] .game-num span.lhc-n45{ background-image: url(/Style/newimg/lhcballs/45.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n46,
+.history-row.is-lhc .lhc-ball.lhc-n46,
+.game-box[data-kind="lhc"] .game-num span.lhc-n46{ background-image: url(/Style/newimg/lhcballs/46.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n47,
+.history-row.is-lhc .lhc-ball.lhc-n47,
+.game-box[data-kind="lhc"] .game-num span.lhc-n47{ background-image: url(/Style/newimg/lhcballs/47.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n48,
+.history-row.is-lhc .lhc-ball.lhc-n48,
+.game-box[data-kind="lhc"] .game-num span.lhc-n48{ background-image: url(/Style/newimg/lhcballs/48.png) !important; }
+.current-sn.is-lhc .num-sn span.lhc-n49,
+.history-row.is-lhc .lhc-ball.lhc-n49,
+.game-box[data-kind="lhc"] .game-num span.lhc-n49{ background-image: url(/Style/newimg/lhcballs/49.png) !important; }
+
+.history-row{display: flex;flex-direction: row;align-items: center;width: 100%;font-size: 0.2rem;margin: 0.06rem 0;}
+.history-row.titlehi{border-bottom: 1px solid #DEDEDE;color: #8B8B8B;padding: 0.06rem 0;margin: 0;}
+.history-row.titlehi span{color: #8B8B8B;text-shadow:none;font-weight: normal}
+.history-row .col-num{flex-grow: 10;display: flex;justify-content: center}
+.history-row .col-lh{width: 2rem;flex-grow: 0;flex-shrink: 0}
+.history-row .col-gy{width: 0.9rem;flex-grow: 0;flex-shrink: 0;text-align: center}
+.history-row .col-qh{width: 0.7rem;flex-grow: 0;flex-shrink: 0}
+.col-lh span.gray,.col-gy span.gray{color: red}
+.col-lh span.blue,.col-gy span.blue{color: #4283E5}
+.numrow span{width: 0.3rem;height: 0.3rem;border-radius: 5px;display: flex;justify-content: center;align-items: center;border-radius: 3px;text-shadow: 0 0 1px #000;color: white;font-weight: 700;margin-left: 1px;}
+
+
+.forecast-row{display: flex;justify-content: start;align-items: center;font-size: 0.24rem;border-bottom: 1px solid #DEDEDE;width: 100%;}
+.forecast-row .for-sn{width: 2rem;display: flex;justify-content: center;}
+.forecast-row .for-title,.forecast-row .for-num{
+    /*flex-grow: 10;*/
+    flex-shrink: 0;justify-content: center;display: flex;
+    width: 40%;
+    
+}
+.forecast-row .for-zoushi1{
+    /*flex-grow: 10;*/
+    flex-shrink: 0;justify-content: center;display: flex;
+    width: 20%;
+    font-size: 0.15rem;
+}
+.forecast-row .for-zoushi2{
+    /*flex-grow: 10;*/
+    flex-shrink: 0;justify-content: center;display: flex;
+    width: 10%;
+    font-size: 0.15rem;
+}
+.forecast-row .for-dx,.forecast-row .for-ds{width: 1rem;display: flex;justify-content: center;align-items: center}
+.forecast-row .for-zuhe{width: 1.5rem;display: flex;justify-content: center;align-items: center}
+.forecast-row .for-dx span,.forecast-row .for-ds span{display: flex;justify-content: center;align-items: center;color: white;border-radius: 5px;width: 0.4rem;height: 0.4rem;font-size: 0.24rem}
+.forecast-row .for-zuhe span{display: flex;justify-content: center;align-items: center;color: white;border-radius: 5px;width: 0.8rem;height: 0.4rem;font-size: 0.24rem}
+.forecast-row .red{background-color: #BB2626;}
+.forecast-row .blue{background-color: #3C4BFF;}
+.forecast-row .yellow{background-color: #ffc107;}
+.forecast-row .pink{background-color: #ff3ea587;}
+.forecast-row li{border-right: 1px solid #DEDEDE;padding: 0.1rem 0rem;flex-shrink: 0;min-height: 0.4rem}
+.forecast-row li:last-child{border-right: 0px none;}
+
+.changlong-row{display: flex;font-size: 0.24rem}
+.changlong-row li{padding: 0.1rem 0rem;flex-shrink: 0;min-height: 0.4rem;width: 25%;flex-grow: 0;display: flex;justify-content: center;align-items: center}
+
+
+.zhudanwrap{margin: 0.1rem 0.2rem;box-sizing: border-box;border-bottom: 1px solid #DEDEDE}
+.zhudan-row{display: flex;font-size: 0.24rem;justify-content:space-between;}
+.zhudan-row li{display: flex;padding: 0.1rem 0px;}
+.zhudan-row.infozhu li{font-size: 0.2rem}
+
+/* 群聊 @ 与下注确认表（名爵样式；关键视觉已内联，此处兜底） */
+.chat-at{color:#2b7cff!important;font-weight:600;}
+.chat-content .content-box .content-info{max-width:78%;}
+/* 下注详情卡：跟通知气泡同宽，禁止标题竖排折行 */
+.chat-content .content-info:has(.fn-bet-card),
+.chat-content .content-info.fn-bet-wrap{
+  width:78%!important;
+  max-width:78%!important;
+  min-width:78%!important;
+  box-sizing:border-box!important;
+  float:left!important;
+  display:block!important;
+}
+.chat-content .info-content:has(.fn-bet-card),
+.chat-content .info-content.fn-bet-inner{
+  width:100%!important;
+  max-width:100%!important;
+  display:block!important;
+  box-sizing:border-box!important;
+  word-break:normal!important;
+}
+.chat-content .info-content .fn-bet-card,
+.fn-bet-card{
+  display:block!important;
+  clear:both;
+  margin-top:4px!important;
+  overflow:hidden!important;
+  border-radius:5px!important;
+  background:#fff!important;
+  color:#4b4b4b;
+  border:1px solid #e6e6e6!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:100%!important;
+  box-sizing:border-box!important;
+  word-break:keep-all!important;
+}
+.fn-bet-hd{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  min-height:36px;
+  padding:0 10px;
+  background:#2f86e0!important;
+  background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%)!important;
+  color:#fff!important;
+  font-size:14px;
+}
+.fn-bet-hd b{color:#fff!important;font-weight:700;}
+.fn-bet-follow{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:4px;padding:4px 9px;background:#fff;color:#168da8;font-size:13px;font-weight:800;text-decoration:none;}
+.fn-bet-line{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:6px!important;
+  min-height:36px;
+  padding:6px 8px!important;
+  border-bottom:1px solid #eee;
+  font-size:14px!important;
+  color:#4b4b4b;
+  box-sizing:border-box;
+}
+.fn-bet-line b{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  font-weight:700;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  word-break:keep-all!important;
+}
+.fn-bet-line > span{flex:0 0 auto!important;white-space:nowrap!important;}
+.fn-bet-ft{padding:8px 10px;font-size:13px;color:#5a6b73;box-sizing:border-box;}
+.fn-bet-ft strong{color:#d32632;}
+
+/* 封盘注单核对卡片：强制与长通知气泡同宽（内容短时也不收缩） */
+.chat-content .content-info:has(.fn-seal-card),
+.chat-content .content-info.fn-seal-wrap{
+  width:78%!important;
+  max-width:78%!important;
+  min-width:78%!important;
+  padding:0.12rem!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+  float:left!important;
+  display:block!important;
+}
+.chat-content .info-content:has(.fn-seal-card),
+.chat-content .info-content.fn-seal-inner{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.chat-content .info-content .fn-seal-card{
+  display:block!important;
+  clear:both;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:100%!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+.fn-seal-card{
+  display:block;
+  overflow:hidden;
+  border-radius:5px;
+  background:#fff;
+  border:1px solid #dfe7ee;
+  width:100%;
+  max-width:100%;
+  min-width:100%;
+  box-sizing:border-box;
+}
+.fn-seal-bd{color:#222;background:#fff;font-size:.23rem;line-height:1.4;}
+.fn-seal-line{padding:.06rem .16rem;min-height:.28rem;box-sizing:border-box;word-break:break-all;}
+.fn-seal-sep{height:1px;background:#cbd2d9;margin:.04rem .16rem;}
+.fn-seal-gap{height:.04rem;}
+.fn-seal-check-wrap{padding:0;}
+.fn-seal-list{display:block;margin:0;padding:0;}
+.fn-seal-row{display:flex;align-items:center;justify-content:space-between;gap:.08rem;padding:.055rem .16rem;border-bottom:1px solid #e2e5e8;line-height:1.45;box-sizing:border-box;}
+.fn-seal-row>span{min-width:0;flex:1;word-break:break-all;}
+.fn-seal-row a{flex:0 0 auto;white-space:nowrap;font-weight:600;text-decoration:none!important;}
+.fn-seal-closed{margin-top:.04rem;padding:.08rem .16rem .04rem;text-align:center;border-top:1px solid #bfc7ce;font-weight:700;}
+.fn-seal-warn{padding:.05rem .12rem .09rem;text-align:center;color:#ef3038!important;font-size:.26rem;font-weight:700;line-height:1.45;white-space:nowrap;}
+.fn-seal-hd{padding:7px 8px!important;background:#2f86e0!important;background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%)!important;color:#fff!important;font-size:13px;font-weight:700;text-align:center;word-break:break-all;}
+.fn-seal-row a{color:#2b7cff!important;}
+
+/* 封盘核对「注单详情」弹窗 */
+.fn-bet-detail-mask{
+  position:fixed;inset:0;z-index:9999;
+  display:none;align-items:center;justify-content:center;
+  padding:0 0.32rem;box-sizing:border-box;
+  background:rgba(0,0,0,.45);
+}
+.fn-bet-detail-mask.is-open{display:flex;}
+.fn-bet-detail-dialog{
+  width:86%;max-width:360px;max-height:72vh;
+  background:#fff;border-radius:8px;overflow:hidden;
+  box-shadow:0 8px 28px rgba(0,0,0,.22);
+  display:flex;flex-direction:column;
+}
+.fn-bet-detail-hd{
+  position:relative;flex:0 0 auto;
+  height:44px;display:flex;align-items:center;justify-content:center;
+  background:#2f86e0;
+  background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%);
+  color:#fff;
+}
+.fn-bet-detail-title{font-size:16px;font-weight:700;letter-spacing:.02em;}
+.fn-bet-detail-close{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border:0;background:transparent;color:#fff;
+  font-size:26px;line-height:1;padding:0;cursor:pointer;
+}
+.fn-bet-detail-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  background:#fff;
+}
+.fn-bet-detail-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.fn-bet-detail-table th,
+.fn-bet-detail-table td{
+  width:33.33%;padding:11px 6px;text-align:center;
+  font-size:14px;border:1px solid #e6edf5;box-sizing:border-box;
+  word-break:break-all;
+}
+.fn-bet-detail-table thead th{
+  background:#eef6ff;color:#2b7adb;font-weight:700;
+  border-color:#d7e6f7;
+}
+.fn-bet-detail-table tbody td{color:#333;background:#fff;}
+.fn-bet-detail-empty{color:#999!important;padding:24px 8px!important;}
+
+/* 一键返回底部（对齐名爵 .home-content .bottom） */
+.fn-chat-to-bottom{
+  position: fixed;
+  right: 0.18rem;
+  bottom: calc(1.05rem + env(safe-area-inset-bottom, 0px));
+  width: 0.72rem;
+  height: 0.72rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  background: url(/Style/newimg/to_bottom.png) center / 100% 100% no-repeat;
+  background-color: transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  z-index: 220;
+  cursor: pointer;
+  display: none;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.fn-chat-to-bottom.is-show{ display: block; }
+.fn-chat-to-bottom.is-kb-open{
+  bottom: calc(5.6rem + env(safe-area-inset-bottom, 0px));
+}
+.fn-chat-to-bottom .fn-chat-unread{
+  position: absolute;
+  top: -0.06rem;
+  right: -0.06rem;
+  min-width: 0.32rem;
+  height: 0.32rem;
+  padding: 0 0.06rem;
+  box-sizing: border-box;
+  border-radius: 0.32rem;
+  background: #ff6a6a;
+  color: #fff;
+  font-size: 0.2rem;
+  line-height: 0.32rem;
+  text-align: center;
+  font-weight: 700;
+  display: none;
+}
+.fn-chat-to-bottom .fn-chat-unread.is-on{ display: block; }
+
+/* 右侧悬浮按钮：紧挨切换按钮向下排列，去掉点击蓝底 */
+.room-side-fabs{
+  position: fixed;
+  right: 0.04rem;
+  top: auto;
+  /* LIVE 对准「点击 Live直播开奖」箭头尖端（约聊天区中下部） */
+  bottom: max(2.4rem, 26vh);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  -webkit-tap-highlight-color: transparent;
+}
+.room-side-fabs .fab-btn.is-live img{
+  width: 0.86rem;
+  height: 0.86rem;
+}
+.room-side-fabs a,
+.room-side-fabs button,
+.room-side-fabs .fab-btn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.86rem;
+  height: 0.86rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.room-side-fabs a:active,
+.room-side-fabs a:focus,
+.room-side-fabs button:active,
+.room-side-fabs button:focus,
+.room-side-fabs .fab-btn:active,
+.room-side-fabs .fab-btn:focus{
+  background: transparent !important;
+  outline: none !important;
+}
+.room-side-fabs img{
+  display: block;
+  width: 0.86rem;
+  height: 0.86rem;
+  object-fit: contain;
+  pointer-events: none;
+  background: transparent;
+}
+
+/* 直播画面：全宽贴顶，默认隐藏，避免左偏 */
+.room-live-panel{
+  display: none;
+  position: fixed;
+  left: 0;
+  /* 直播必须排在房间头部（房号、当前期、开奖号码）之后，不能覆盖开奖结果。 */
+  /* 结果区由顶栏、当前期和开奖号码三段组成，直播必须从其底部开始。 */
+  /* 顶栏由 roomtop + newest-sn + current-sn 组成；直播紧贴开奖结果底边。 */
+  top: calc(var(--fn-room-safe) + 1.84rem);
+  width: 100%;
+  z-index: 240;
+  background: #000;
+  overflow: hidden;
+  /* 不拦截 iOS WebView 的边缘返回手势。 */
+  touch-action: auto;
+}
+.room-live-panel.is-open{display: block;}
+.room-live-panel iframe{
+  display: block;
+  width: 100% !important;
+  height: 56.25vw;
+  max-height: 280px;
+  min-height: 180px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: #000;
+  /* 直播播放器必须接收触摸，暂停、静音、全屏等控件才可操作。 */
+  pointer-events: auto;
+}
+
+.room-live-edge-back{
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0.28rem;
+  z-index: 3;
+  background: transparent;
+  touch-action: pan-x;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 历史开奖“查看更多”是独立链接，避免被旧版列表样式重置成普通文本。 */
+.fn-history-more{
+  display: block;
+  width: max-content;
+  margin: 0.08rem auto 0.16rem;
+  padding: 0.04rem 0.18rem;
+  min-width: 1.05rem;
+  box-sizing: border-box;
+  color: #fff !important;
+  font-size: 0.2rem;
+  line-height: 0.32rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none !important;
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 0.18rem;
+  background: linear-gradient(180deg, #52c9ff 0%, #168fe8 52%, #0878d1 100%);
+  box-shadow: 0 0.05rem 0.12rem rgba(0,93,180,.28), inset 0 1px 0 rgba(255,255,255,.42);
+  -webkit-tap-highlight-color: transparent;
+}
+.fn-history-more:active,
+.fn-history-more:focus{ color: #fff !important; background: linear-gradient(180deg, #30b8fa 0%, #0b7fd7 100%); }
+.room-game-switch{
+  display: none;
+  position: fixed;
+  right: 0.9rem;
+  top: auto;
+  bottom: max(2.4rem, 26vh);
+  z-index: 260;
+  width: 1.6rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 0.12rem;
+}
+.room-game-switch.is-open{display: block;}
+.room-game-switch li{list-style: none;margin: 0.08rem 0;}
+.room-game-switch a{display: flex;align-items: center;gap: 0.08rem;color: #228fff;text-decoration: none;-webkit-tap-highlight-color: transparent;}
+.room-game-switch img.imgst{width: 0.4rem;height: 0.4rem;}

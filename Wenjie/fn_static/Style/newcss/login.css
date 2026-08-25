@@ -1,0 +1,406 @@
+/* 名爵正式切图登录框 — 整体约 0.85 等比例缩小 */
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: #0579db;
+}
+.mainbox.login-screen {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+  height: 100dvh;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background-color: #0579db;
+  /* 完整显示背景图，不裁切 */
+  background-image: url("../newimg/bj.png?v=20260726y");
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-position: center center;
+  color: #40515a;
+}
+
+/* 位置：Logo / 登录框 / 底栏 — zylogo 为正方形字标 */
+.mainbox .toplogo.brand-lockup {
+  position: absolute;
+  left: 50%;
+  top: 10vh;
+  transform: translateX(-50%);
+  z-index: 2;
+  margin: 0;
+  width: min(42vw, 168px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mainbox .toplogo img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 40, 90, 0.28));
+}
+
+/* 登录框：整图背景（金标题+灰底一体），不再拼接 title/body 切图 */
+.mainbox .main-content.login-panel {
+  position: absolute;
+  left: 50%;
+  top: clamp(180px, 27vh, 400px);
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(86vw, 440px);
+  margin: 0;
+  padding: clamp(56px, 14vw, 76px) 22px clamp(40px, 9vw, 56px);
+  box-sizing: border-box;
+  background-color: transparent !important;
+  background-image: url("../newimg/ic_login_player_panel.png?v=20260731f") !important;
+  background-size: 100% 100% !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  overflow: visible !important;
+}
+.mainbox .main-content.login-panel::before,
+.mainbox .main-content.login-panel::after {
+  content: none !important;
+  display: none !important;
+}
+.mainbox .main-content.login-panel > * {
+  position: relative;
+  z-index: 2;
+}
+.login-tab-spacer {
+  height: 6px;
+  flex: 0 0 auto;
+}
+
+.main-content .input-box.login-input {
+  display: flex;
+  align-items: center;
+  margin: 0 0 14px;
+  padding: 0 14px;
+  height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(242, 251, 255, 0.96);
+  box-sizing: border-box;
+  list-style: none;
+  pointer-events: auto !important;
+}
+.main-content .input-box .left-icon {
+  width: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+.main-content .input-box .left-icon img {
+  width: 22px;
+  height: auto;
+  display: block;
+}
+.main-content .input-box .left-icon img.lock-icon {
+  width: 20px;
+}
+.main-content .input-box .right-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+}
+.main-content .input-box .right-input input {
+  width: 100%;
+  border: 0 none;
+  height: 40px;
+  background: none;
+  font-size: 15px;
+  color: #40515a;
+  outline: none;
+  position: relative;
+  z-index: 5;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  caret-color: currentColor !important;
+}
+.main-content .input-box .right-input input::placeholder {
+  color: #b5c1cc;
+}
+
+/* 去掉系统默认按钮蓝底方框 */
+.main-content .input-box .eye-btn,
+.main-content .input-box span.eye-btn {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0 !important;
+  margin: 0 2px 0 0;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: inherit;
+}
+.main-content .input-box .eye-btn:active,
+.main-content .input-box .eye-btn:focus,
+.main-content .input-box .eye-btn:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.main-content .input-box .eye-btn img {
+  width: 20px;
+  height: 20px;
+  opacity: 0.9;
+  pointer-events: none;
+  background: transparent !important;
+}
+.main-content .input-box .eye-btn img.eye-open,
+.main-content .input-box .eye-btn img.eye-closed {
+  display: none !important;
+}
+.main-content .input-box .eye-btn img.is-on {
+  display: block !important;
+}
+
+.main-content .remember {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  padding-right: 18px;
+  margin: 2px 0 18px;
+  box-sizing: border-box;
+  font-size: 14px;
+  color: #40515a !important;
+}
+.main-content .remember .toremember {
+  color: #40515a !important;
+}
+.main-content .remember #reck {
+  width: 18px;
+  height: 18px;
+  display: block;
+  background-image: url("../newimg/loginunchecked.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.main-content .remember #reck.check {
+  background-image: url("../newimg/loginchecked.png");
+}
+
+.main-content .toreg.primary-login {
+  appearance: none;
+  border: 0;
+  margin: 0 4px;
+  width: calc(100% - 8px);
+  height: 50px;
+  border-radius: 999px;
+  position: relative;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: url("../newimg/ic_login_btn_bg.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+  cursor: pointer;
+  /* 切图已含「登录」二字，隐藏 DOM 文字避免重叠 */
+  color: transparent;
+  font-size: 0;
+}
+.main-content .toreg.primary-login span {
+  position: static;
+  transform: none;
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+  letter-spacing: 0;
+  text-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mainbox .reg-way.social-login {
+  position: absolute;
+  left: 50%;
+  /* 上移，不要贴底 */
+  bottom: clamp(56px, 10vh, 96px);
+  top: auto;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: min(86vw, 440px);
+  margin: 0;
+  height: auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  align-items: start;
+  justify-items: center;
+}
+.social-login .social-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  cursor: pointer;
+}
+.social-login .social-btn img {
+  width: min(15vw, 60px);
+  height: auto;
+  display: block;
+}
+
+.mainbox .btn-bg {
+  display: none !important;
+}
+
+/* —— 会员注册：与登录同框，整图换「注册」标题 —— */
+.mainbox .main-content.register-panel {
+  /* 与登录同 top，避免金标题顶到 Logo */
+  top: clamp(180px, 27vh, 400px);
+  padding-bottom: clamp(44px, 9vw, 60px);
+  background-image: url("../newimg/ic_login_player_panel_reg.png?v=20260731f") !important;
+}
+.mainbox .main-content.register-panel .toreg.primary-login {
+  background: url("../newimg/ic_login_btn_reg.webp?v=20260726t") center / 100% 100% no-repeat;
+  color: transparent;
+  font-size: 0;
+}
+.mainbox .main-content.register-panel .toreg.primary-login span {
+  position: static;
+  transform: none;
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+  letter-spacing: 0;
+  text-shadow: none;
+  opacity: 0;
+  background: none;
+  padding: 0;
+}
+.mainbox .main-content.register-panel .reg-back-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  margin: 12px auto 0;
+  padding: 0;
+  display: block;
+  width: auto;
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  text-align: center;
+  cursor: pointer;
+}
+
+/* mj-login-icons-two-factor-20260815 */
+.main-content .input-box .left-icon img { width: 25px; }
+.main-content .input-box .left-icon img.lock-icon { width: 25px; }
+.login-two-factor-entry {
+  position: absolute !important;
+  top: 38px;
+  right: 24px;
+  z-index: 8 !important;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: 118px;
+  height: 40px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.login-two-factor-entry img { display: block; width: 100%; height: auto; pointer-events: none; }
+.login-totp-input { display: none !important; }
+.login-totp-input.is-visible { display: flex !important; }
+.mainbox .main-content.register-panel { padding-top: clamp(55px, 13vw, 70px); }
+.mainbox .main-content.register-panel .input-box.login-input { height: 44px; margin-bottom: 10px; }
+.mainbox .main-content.register-panel .input-box .right-input input { height: 38px; }
+@media (max-height: 700px) {
+  .mainbox .main-content.register-panel { top: 150px; transform: translateX(-50%) scale(.92); transform-origin: top center; }
+  .mainbox .reg-way.social-login { bottom: 30px; }
+}
+
+/* login-panel-sliced-layout-20260815 */
+/*
+ * 原 1400×1236 登录框按 185/42/82 像素切成固定顶部、侧边和底部，
+ * 只拉伸中间纯色区域；展开动态验证码时标题和圆角不再变形。
+ */
+.mainbox .main-content.login-panel {
+  padding: 8px 18px 26px;
+  background: none !important;
+  border-style: solid !important;
+  border-width: 54px 7px 25px !important;
+  border-image-source: url("../newimg/ic_login_player_panel.png?v=20260815panel-slice1") !important;
+  border-image-slice: 185 42 82 42 fill !important;
+  border-image-width: 1 !important;
+  border-image-outset: 0 !important;
+  border-image-repeat: stretch !important;
+}
+
+/* 二次验证入口固定在标题下方，表单整体从按钮底部之后开始。 */
+.mainbox .main-content.login-panel .login-two-factor-entry {
+  top: -18px;
+  right: 24px;
+  width: 100px;
+  height: 34px;
+}
+
+.mainbox .main-content.login-panel .login-tab-spacer {
+  height: 6px;
+}
+
+/* 2FA 展开仅增加中间内容区，固定切片保持原比例并无缝衔接。 */
+.mainbox .main-content.login-panel:has(.login-totp-input.is-visible) {
+  padding-bottom: 28px;
+}
+
+/* 长度保持不变，只收窄控件高度，整体更接近正式版比例。 */
+.mainbox .main-content.login-panel .input-box.login-input {
+  height: 42px;
+  margin-bottom: 12px;
+}
+
+.mainbox .main-content.login-panel .input-box .right-input input {
+  height: 36px;
+}
+
+.mainbox .main-content.login-panel .toreg.primary-login {
+  height: 44px;
+}
+
+@supports not selector(:has(*)) {
+  .mainbox .main-content.login-panel {
+    padding-bottom: 28px;
+  }
+}
+
+@media (max-height: 700px) {
+  .mainbox .main-content.login-panel {
+    top: 150px;
+    transform: translateX(-50%) scale(.92);
+    transform-origin: top center;
+  }
+}

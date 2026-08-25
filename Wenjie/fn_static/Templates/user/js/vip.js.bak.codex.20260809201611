@@ -1,0 +1,566 @@
+(function ($) {
+  var state = window.VIP_BOOT || {};
+  var selected = typeof state.viewLevel === 'number' ? state.viewLevel : (state.vipLevel || 0);
+  var wheelPos = selected; // 连续位置，可为小数
+  var dragging = false;
+  var startX = 0;
+  var moved = false;
+  var animating = false;
+  var rafId = 0;
+  var dragBase = 0;
+  var lastX = 0;
+  var lastT = 0;
+  var velocity = 0; // levels per ms
+  var lastProgressTarget = -1;
+  var SWIPE_PX = 56; // 滑过一级所需像素
+  var MIN_LEVEL = 0;
+  var MAX_LEVEL = 80;
+
+  function fmt(n) {
+    n = Number(n) || 0;
+    return (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
+  }
+
+  /** 转盘可滑到的最低等级（全等级可见） */
+  function wheelMinLevel() {
+    return MIN_LEVEL;
+  }
+
+  /**
+   * 顶部进度右侧目标（不会低于当前等级）：
+   * - 停在当前级或更低时 → 下一等级
+   * - 转到更高时 → 转到的等级
+   * - 已满级 → 自身
+   */
+  function progressTargetFromView(viewLevel) {
+    var curLv = Number(state.vipLevel) || 0;
+    var view = clamp(Math.round(Number(viewLevel) || 0), MIN_LEVEL, MAX_LEVEL);
+    if (curLv >= MAX_LEVEL) return MAX_LEVEL;
+    if (view <= curLv) return curLv + 1;
+    return view;
+  }
+
+  function vipIconSrc(level) {
+    level = clamp(Number(level) || 0, MIN_LEVEL, MAX_LEVEL);
+    if (level >= 80) return 'images/vip/80.png';
+    var base = Math.floor(level / 10) * 10;
+    return 'images/vip/' + base + '-' + (base + 9) + '.png';
+  }
+
+  function vipIconHtml(level, alt) {
+    return '<img src="' + vipIconSrc(level) + '" alt="' + (alt || ('VIP' + level)) + '">';
+  }
+
+  function toast(msg, type) {
+    type = type || 'ok';
+    var $box = $('#fnToast');
+    if (!$box.length) {
+      $box = $('<div id="fnToast" class="fn-toast" hidden><div class="fn-toast-card"><div class="fn-toast-msg"></div></div></div>');
+      $('body').append($box);
+    }
+    $box.removeClass('is-ok is-err is-info').addClass(type === 'err' ? 'is-err' : (type === 'info' ? 'is-info' : 'is-ok'));
+    $box.find('.fn-toast-msg').text(msg || '');
+    $box.prop('hidden', false);
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { $box.prop('hidden', true); }, 1800);
+  }
+
+  function clamp(n, a, b) {
+    return Math.max(a, Math.min(b, n));
+  }
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function findLevelRow(level) {
+    var levels = state.levels || [];
+    var i;
+    for (i = 0; i < levels.length; i++) {
+      if (Number(levels[i].level) === Number(level)) return levels[i];
+    }
+    return null;
+  }
+
+  /** 相对「真实当前等级 → 目标等级」的进度与差额 */
+  function calcToward(targetLevel) {
+    var curLv = Number(state.vipLevel) || 0;
+    var totalUp = Number(state.totalUp) || 0;
+    var totalDeposit = Number(state.totalDeposit) || 0;
+    var target = progressTargetFromView(targetLevel);
+    var curRow = findLevelRow(curLv) || { threshold: 0 };
+    var targetRow = findLevelRow(target) || { threshold: 0 };
+    var curTh = Number(curRow.threshold) || 0;
+    var targetTh = Number(targetRow.threshold) || 0;
+    var curDeposit = Number(curRow.deposit) || 0;
+    var targetDeposit = Number(targetRow.deposit) || 0;
+    var need = 0;
+    var progress = 1;
+    var text = '';
+
+    if (curLv >= MAX_LEVEL) {
+      need = 0;
+      progress = 1;
+      text = '已达最高等级';
+      target = MAX_LEVEL;
+    } else if (target <= curLv) {
+      need = 0;
+      progress = 1;
+      text = '已达 VIP' + curLv;
+      target = Math.min(MAX_LEVEL, curLv + 1);
+    } else {
+      var needTurnover = Math.max(0, Math.round((targetTh - totalUp) * 100) / 100);
+      var needDeposit = Math.max(0, Math.round((targetDeposit - totalDeposit) * 100) / 100);
+      need = Math.max(needTurnover, needDeposit);
+      var span = Math.max(0.01, targetTh - curTh);
+      var turnoverProgress = Math.max(0, Math.min(1, (totalUp - curTh) / span));
+      var depositSpan = Math.max(0.01, targetDeposit - curDeposit);
+      var depositProgress = targetDeposit > curDeposit
+        ? Math.max(0, Math.min(1, (totalDeposit - curDeposit) / depositSpan))
+        : 1;
+      progress = Math.min(turnoverProgress, depositProgress);
+      if (need <= 0) {
+        text = '已达 VIP' + target;
+        progress = 1;
+      } else {
+        var parts = [];
+        if (needTurnover > 0) parts.push('流水' + fmt(needTurnover));
+        if (needDeposit > 0) parts.push('充值积分' + fmt(needDeposit));
+        text = '距离 VIP' + target + ' 还需' + parts.join('、');
+      }
+    }
+
+    return {
+      curLv: curLv,
+      target: target,
+      need: need,
+      progress: progress,
+      text: text
+    };
+  }
+
+  function renderProgressToward(viewLevel, force) {
+    var info = calcToward(viewLevel);
+    if (!force && info.target === lastProgressTarget) {
+      return info;
+    }
+    lastProgressTarget = info.target;
+
+    $('#vipNeedText').text(info.text);
+    $('#vipCurBadge').html(vipIconHtml(info.curLv, 'V' + info.curLv));
+    $('#vipCurLvText').text('VIP' + info.curLv);
+
+    if (info.curLv >= MAX_LEVEL) {
+      $('#vipNextBadge').html('<span class="vip-side-max">MAX</span>');
+      $('#vipTargetLvText').text('MAX');
+    } else {
+      $('#vipNextBadge').html(vipIconHtml(info.target, 'V' + info.target));
+      $('#vipTargetLvText').text('VIP' + info.target);
+    }
+
+    var pct = Math.max(0, Math.min(100, Math.round(info.progress * 100)));
+    $('#vipProgressFill').css('width', pct + '%');
+    return info;
+  }
+
+  /** 按连续 index 排布弧上徽章 */
+  function wheelLayout(index) {
+    var $wheel = $('#vipWheel');
+    var $items = $('#vipWheelItems .vip-wheel-item');
+    var W = $wheel.width() || 320;
+    var H = $wheel.height() || 168;
+    var cx = W / 2;
+    var cy = H * 0.46;
+    var radiusX = Math.min(W * 0.38, 140);
+    var radiusY = Math.min(H * 0.28, 46);
+    var nearest = Math.round(index);
+    $items.each(function () {
+      var lv = Number($(this).data('level'));
+      var offset = lv - index;
+      var abs = Math.abs(offset);
+      var angle = offset * 0.52;
+      var lift = Math.max(0, 1 - Math.min(abs, 2) / 2);
+      var x = cx + Math.sin(angle) * radiusX;
+      var y = cy - Math.cos(angle) * radiusY + (1 - lift) * (H * 0.08) - lift * (H * 0.05);
+      var scale = 0.72 + lift * 0.46;
+      var opacity = abs > 2.4 ? 0.18 : (abs > 1.6 ? 0.45 : 1);
+      var z = 20 - Math.floor(abs * 10);
+      $(this)
+        .css({
+          transform: 'translate3d(' + (x - cx) + 'px,' + (y - cy) + 'px,0) scale(' + scale + ')',
+          zIndex: z,
+          opacity: opacity
+        })
+        .toggleClass('is-center', lv === nearest)
+        .toggleClass('is-side', Math.abs(lv - nearest) === 1)
+        .toggleClass('is-far', Math.abs(lv - nearest) >= 2);
+    });
+
+    // 顶部进度：停在当前级时看下一等级；转到更高时看目标等级
+    renderProgressToward(nearest, true);
+  }
+
+  function stopAnim() {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+    animating = false;
+  }
+
+  function animateTo(target, duration, done) {
+    stopAnim();
+    target = clamp(target, wheelMinLevel(), MAX_LEVEL);
+    var from = wheelPos;
+    var dist = target - from;
+    if (Math.abs(dist) < 0.001) {
+      wheelPos = target;
+      selected = Math.round(target);
+      wheelLayout(wheelPos);
+      if (done) done();
+      return;
+    }
+    animating = true;
+    var t0 = 0;
+    duration = duration || 320;
+    function frame(ts) {
+      if (!t0) t0 = ts;
+      var p = clamp((ts - t0) / duration, 0, 1);
+      wheelPos = from + dist * easeOutCubic(p);
+      wheelLayout(wheelPos);
+      if (p < 1) {
+        rafId = requestAnimationFrame(frame);
+      } else {
+        wheelPos = target;
+        selected = Math.round(target);
+        wheelLayout(wheelPos);
+        animating = false;
+        rafId = 0;
+        if (done) done();
+      }
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function buildWheel(data) {
+    var levels = data.levels || [];
+    var html = levels.map(function (row) {
+      var lv = row.level;
+      return (
+        '<div class="vip-wheel-item" data-level="' + lv + '">' +
+          '<div class="vip-hex">' +
+            vipIconHtml(lv, 'VIP' + lv) +
+            '<span class="vip-hex-lv">VIP' + lv + '</span>' +
+          '</div>' +
+          '<div class="vip-hex-title">' + (row.title || '') + '</div>' +
+        '</div>'
+      );
+    }).join('');
+    $('#vipWheelItems').html(html);
+    selected = clamp(selected, MIN_LEVEL, MAX_LEVEL);
+    wheelPos = selected;
+    lastProgressTarget = -1;
+    wheelLayout(wheelPos);
+  }
+
+  function renderPanel(data) {
+    var view = data.view || {};
+    var perks = view.perks || [];
+    var toward = calcToward(view.level);
+    $('#vipPanelTitle').text('· ' + (view.title || ('VIP' + view.level)) + ' V' + view.level + ' ·');
+    var baseDesc = view.desc || '';
+    if (toward.need > 0) {
+      $('#vipPanelDesc').text(toward.text + (baseDesc ? '。' + baseDesc : ''));
+    } else {
+      $('#vipPanelDesc').text(baseDesc || toward.text);
+    }
+    $('#vipUpgradeAmount').text(fmt(view.upgradeBonus) + ' 积分');
+    $('#vipWeeklyAmount').text(fmt(view.weeklyGift) + ' 积分');
+
+    var $up = $('#vipClaimUpgrade');
+    var $wk = $('#vipClaimWeekly');
+    if (view.canUpgrade) {
+      $up.prop('disabled', false).removeClass('is-done').text('领取');
+    } else {
+      var upText = '不可领';
+      if (view.upgradeClaimed) upText = '已领取';
+      else if (view.upgradeExpired) upText = '已过期';
+      else if (!view.unlocked) upText = '未解锁';
+      $up.prop('disabled', true).addClass('is-done').text(upText);
+    }
+    if (view.canWeekly) {
+      $wk.prop('disabled', false).removeClass('is-done').text('领取');
+    } else {
+      $wk.prop('disabled', true).addClass('is-done').text(view.weeklyClaimed ? '已领取' : (view.unlocked ? (view.level === data.vipLevel ? '不可领' : '仅当前级') : '未解锁'));
+    }
+
+    var unlockedCount = 0;
+    var grid = perks.map(function (p) {
+      var on = !!p.unlocked;
+      if (on) unlockedCount += 1;
+      var shortName = (p.name || '').slice(0, 2);
+      return (
+        '<div class="vip-perk' + (on ? '' : ' is-off') + '" data-perk="' + (p.id || '') + '" data-hint="' + String(p.hint || p.name || '').replace(/"/g, '&quot;') + '">' +
+          '<div class="vip-perk-ico">' + shortName + '</div>' +
+          '<div class="vip-perk-name">' + (p.name || '') + '</div>' +
+        '</div>'
+      );
+    }).join('');
+    $('#vipPerkGrid').html(grid);
+    $('#vipPerkTitle').text((view.title || '') + ' 专属特权');
+    $('#vipPerkCount').text(unlockedCount + '/' + perks.length);
+
+    renderFestivals(data.festivals || []);
+  }
+
+  function renderFestivals(list) {
+    var $box = $('#vipFestivalBox');
+    var $list = $('#vipFestivalList');
+    if (!list || !list.length) {
+      $box.prop('hidden', true);
+      $list.empty();
+      return;
+    }
+    $box.prop('hidden', false);
+    $list.html(list.map(function (f) {
+      var btn;
+      if (f.claimed) {
+        btn = '<button type="button" class="vip-claim-btn is-done" disabled>已领取</button>';
+      } else if (f.canClaim) {
+        btn = '<button type="button" class="vip-claim-btn" data-festival="' + f.id + '">领取</button>';
+      } else {
+        btn = '<button type="button" class="vip-claim-btn is-done" disabled>需VIP' + (f.needVip || 70) + '</button>';
+      }
+      return (
+        '<div class="vip-festival-item">' +
+          '<div class="vip-reward-meta"><b>' + (f.title || '节日礼包') + '</b><span>' + fmt(f.money) + ' 积分</span></div>' +
+          btn +
+        '</div>'
+      );
+    }).join(''));
+  }
+
+  function applyData(data, keepWheel) {
+    state = data || state;
+    var nextSelected = typeof state.viewLevel === 'number' ? state.viewLevel : selected;
+    selected = clamp(nextSelected, MIN_LEVEL, MAX_LEVEL);
+    lastProgressTarget = -1;
+    renderProgressToward(selected, true);
+    if (!keepWheel) {
+      buildWheel(state);
+    } else {
+      wheelPos = selected;
+      wheelLayout(wheelPos);
+    }
+    renderPanel(state);
+  }
+
+  function fetchInfo(level, keepWheel) {
+    $.ajax({
+      url: '/Application/ajax_vip.php',
+      method: 'GET',
+      dataType: 'json',
+      data: { type: 'info', level: level },
+      success: function (res) {
+        if (!res || !res.success) {
+          toast((res && res.msg) || '加载失败', 'err');
+          return;
+        }
+        applyData(res.data, keepWheel);
+      },
+      error: function () { toast('网络异常', 'err'); }
+    });
+  }
+
+  /** 点击跳到任意等级（带动画）；拖动可连续滑过多级 */
+  function selectLevel(level) {
+    if (dragging) return;
+    var target = clamp(Math.round(Number(level)), wheelMinLevel(), MAX_LEVEL);
+    if (target === selected && Math.abs(wheelPos - target) < 0.02) {
+      return;
+    }
+    var dist = Math.abs(target - wheelPos);
+    var duration = clamp(220 + dist * 90, 220, 700);
+    animateTo(target, duration, function () {
+      fetchInfo(selected, true);
+    });
+  }
+
+  function settleToNearest(withInertia) {
+    var target = wheelPos;
+    if (withInertia && Math.abs(velocity) > 0.002) {
+      var coast = velocity * 180;
+      target = wheelPos + coast;
+    }
+    target = clamp(Math.round(target), wheelMinLevel(), MAX_LEVEL);
+    var dist = Math.abs(target - wheelPos);
+    var duration = clamp(200 + dist * 80, 200, 560);
+    animateTo(target, duration, function () {
+      if (selected !== (state.viewLevel | 0)) {
+        fetchInfo(selected, true);
+      } else {
+        wheelLayout(selected);
+        renderPanel(state);
+      }
+    });
+  }
+
+  function claim(claimType, festivalId) {
+    var payload = { claimType: claimType, level: selected };
+    if (claimType === 'festival' && festivalId) {
+      payload.festivalId = festivalId;
+    }
+    $.ajax({
+      url: '/Application/ajax_vip.php?type=claim',
+      method: 'POST',
+      dataType: 'json',
+      data: payload,
+      success: function (res) {
+        if (!res || !res.success) {
+          toast((res && res.msg) || '领取失败', 'err');
+          if (res && res.data) applyData(res.data, true);
+          return;
+        }
+        toast(res.msg || '领取成功', 'ok');
+        applyData(res.data, true);
+      },
+      error: function () { toast('网络异常', 'err'); }
+    });
+  }
+
+  function openLogs() {
+    $('#vipLogBody').html('<div class="vip-log-empty">加载中…</div>');
+    $('#vipLogSheet').prop('hidden', false);
+    $.ajax({
+      url: '/Application/ajax_vip.php',
+      method: 'GET',
+      dataType: 'json',
+      data: { type: 'logs' },
+      success: function (res) {
+        var rows = (res && res.data) || [];
+        if (!rows.length) {
+          $('#vipLogBody').html('<div class="vip-log-empty">暂无领取记录</div>');
+          return;
+        }
+        var html = rows.map(function (r) {
+          return (
+            '<div class="vip-log-item">' +
+              '<div><b>' + (r.label || '') + '</b><span>' + (r.addtime || '') + '</span></div>' +
+              '<em>+' + fmt(r.money) + '</em>' +
+            '</div>'
+          );
+        }).join('');
+        $('#vipLogBody').html(html);
+      },
+      error: function () {
+        $('#vipLogBody').html('<div class="vip-log-empty">加载失败</div>');
+      }
+    });
+  }
+
+  $(function () {
+    applyData(state);
+
+    $('#vipWheelItems').on('click', '.vip-wheel-item', function () {
+      if (moved || animating) return;
+      selectLevel(Number($(this).data('level')));
+    });
+
+    var $wheel = $('#vipWheel');
+    $wheel.on('touchstart mousedown', function (e) {
+      stopAnim();
+      var pt = e.type.indexOf('touch') === 0 ? e.originalEvent.touches[0] : e;
+      dragging = true;
+      moved = false;
+      startX = pt.clientX;
+      lastX = pt.clientX;
+      lastT = Date.now();
+      velocity = 0;
+      dragBase = wheelPos;
+    });
+
+    $(window).on('touchmove mousemove', function (e) {
+      if (!dragging) return;
+      var pt = e.type.indexOf('touch') === 0 ? e.originalEvent.touches[0] : e;
+      var now = Date.now();
+      var dx = pt.clientX - startX;
+      var stepDx = pt.clientX - lastX;
+      var dt = Math.max(1, now - lastT);
+      if (Math.abs(dx) > 6) {
+        moved = true;
+        if (e.cancelable) e.preventDefault();
+      }
+      var delta = -dx / SWIPE_PX;
+      wheelPos = clamp(dragBase + delta, wheelMinLevel(), MAX_LEVEL);
+      velocity = (-stepDx / SWIPE_PX) / dt;
+      lastX = pt.clientX;
+      lastT = now;
+      wheelLayout(wheelPos);
+    });
+
+    $(window).on('touchend mouseup mouseleave', function () {
+      if (!dragging) return;
+      dragging = false;
+      settleToNearest(true);
+    });
+
+    $('#vipClaimUpgrade, #vipClaimWeekly').on('click', function () {
+      var type = $(this).data('type');
+      if ($(this).prop('disabled')) return;
+      claim(type);
+    });
+
+    $('#vipFestivalList').on('click', '[data-festival]', function () {
+      if ($(this).prop('disabled')) return;
+      claim('festival', Number($(this).data('festival')));
+    });
+
+    $('#vipPerkGrid').on('click', '.vip-perk', function () {
+      var id = String($(this).data('perk') || '');
+      var on = !$(this).hasClass('is-off');
+      var hint = String($(this).data('hint') || '');
+      if (!on) {
+        toast('该特权尚未解锁', 'info');
+        return;
+      }
+      if (id === 'weekly') {
+        var el = document.getElementById('vipClaimWeekly');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!$('#vipClaimWeekly').prop('disabled')) claim('weekly');
+        else toast(hint || '周礼金可在上方领取区查看', 'info');
+        return;
+      }
+      if (id === 'upgrade') {
+        var el2 = document.getElementById('vipClaimUpgrade');
+        if (el2) el2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!$('#vipClaimUpgrade').prop('disabled')) claim('upgrade');
+        else toast(hint || '升级奖励可在上方领取区查看', 'info');
+        return;
+      }
+      if (id === 'gift') {
+        var box = document.getElementById('vipFestivalBox');
+        if (box && !box.hidden) {
+          box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          toast('请在节日礼包区领取', 'info');
+        } else {
+          toast(hint || '暂无进行中的节日活动，请等待房主开启', 'info');
+        }
+        return;
+      }
+      toast(hint ? ('已解锁：' + hint) : '已解锁：房间内可见效果', 'info');
+    });
+
+    $('#vipDetailBtn').on('click', function () {
+      window.location.href = 'vip-detail.php';
+    });
+
+    $('#vipLogsBtn').on('click', openLogs);
+    $('#vipLogSheet').on('click', '[data-close]', function () {
+      $('#vipLogSheet').prop('hidden', true);
+    });
+
+    $(window).on('resize orientationchange', function () {
+      wheelLayout(wheelPos);
+    });
+  });
+})(jQuery);

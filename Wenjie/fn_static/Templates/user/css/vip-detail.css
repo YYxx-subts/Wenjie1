@@ -1,0 +1,201 @@
+/* VIP 等级详情 — 蓝色渐变主题，禁弹性延伸 */
+
+html, body{
+  min-height: 100%;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: auto;
+}
+.vd-body{
+  margin: 0;
+  min-height: 100%;
+  height: auto;
+  background: linear-gradient(180deg, #1f6fd0 0%, #2f86e0 36%, #5bb8ef 100%);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: auto;
+  display: block;
+}
+/* 顶栏与个人中心一致 */
+.vd-nav{
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: calc(max(env(safe-area-inset-top, 0px), 20px) + 6px) 12px 10px;
+  background: #2f86e0;
+  background-image: linear-gradient(90deg, #2b7adb 0%, #3aa6e8 52%, #4fc0f0 100%);
+  box-sizing: border-box;
+}
+.vd-nav h1{
+  margin: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 40px;
+  pointer-events: none;
+}
+.vd-back{
+  position: absolute;
+  left: 8px;
+  bottom: 4px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none;
+}
+.vd-back:focus,
+.vd-back:active,
+.vd-back:focus-visible{
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+.vd-back img{
+  width: 16px;
+  height: auto;
+  filter: brightness(0) invert(1);
+  pointer-events: none;
+}
+.vd-main{
+  min-height: calc(100vh - 70px);
+  padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  overflow: visible;
+  overscroll-behavior: auto;
+  touch-action: pan-y;
+}
+.vd-card{
+  height: auto;
+  min-height: calc(100vh - 90px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.16);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 12px 8px 12px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+.vd-title{
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-shadow: 0 1px 2px rgba(20,70,130,0.25);
+}
+.vd-title i{
+  display: block;
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+  position: relative;
+}
+.vd-title i::after{
+  content: "◆";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  color: #fff;
+  line-height: 1;
+}
+.vd-intro{
+  flex: 0 0 auto;
+  margin: 0 6px 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.92);
+  text-align: left;
+}
+.vd-table-wrap{
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+  -webkit-overflow-scrolling: auto;
+  overscroll-behavior: auto;
+  touch-action: pan-y;
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.12);
+}
+.vd-table{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11px;
+  color: #fff;
+}
+.vd-table th,
+.vd-table td{
+  border: 1px solid rgba(255,255,255,0.22);
+  text-align: center;
+  padding: 7px 2px;
+  word-break: break-all;
+}
+.vd-table th{
+  background: linear-gradient(180deg, #3a96e4, #2f7fd0);
+  color: #fff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.vd-table tbody tr:nth-child(odd){
+  background: rgba(255,255,255,0.06);
+}
+.vd-table tbody tr:nth-child(even){
+  background: rgba(20,90,160,0.12);
+}
+.vd-table td:nth-child(1){ width: 14%; }
+.vd-table td:nth-child(2){ width: 14%; }
+.vd-table td:nth-child(3){ width: 22%; }
+.vd-foot{
+  flex: 0 0 auto;
+  margin: 10px 4px 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.9);
+}
+
+/* vip-detail-scroll-20260817：锁定页面根节点时由内容区独立承载纵向滚动。 */
+.vd-body{
+  height:100%!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+.vd-nav{flex:0 0 auto!important;}
+.vd-main{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+}

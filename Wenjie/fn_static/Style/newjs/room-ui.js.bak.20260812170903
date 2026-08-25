@@ -1,0 +1,1687 @@
+/**
+ * 房间页公共 UI：侧栏、直播、本地倒计时、首屏消息渲染
+ * 背景音乐开关见 /Style/newjs/bg-music.js（#Jaudio / bgMusic.mp3）
+ */
+(function (window, document) {
+  // App WebView 常无 safe-area：探测后写入 CSS 变量，顶栏下移避开状态栏
+  try {
+    var root = document.documentElement;
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;left:0;height:env(safe-area-inset-top);width:0;visibility:hidden;pointer-events:none;';
+    root.appendChild(probe);
+    var inset = probe.getBoundingClientRect().height || 0;
+    probe.parentNode && probe.parentNode.removeChild(probe);
+    if (inset < 1) {
+      inset = Math.round((window.devicePixelRatio > 2 ? 40 : 28));
+    }
+    root.style.setProperty('--fn-status-bar', inset + 'px');
+  } catch (e) {}
+
+  function qs(sel, root) { return (root || document).querySelector(sel); }
+
+  // 自绘下注键盘必须独占触摸手势，避免 WebView 滚动/合成 click 改变命中位置。
+  function isRoomKeyboardTarget(target) {
+    return !!(target && target.closest && target.closest('.keybaord,.numbaord,.fast-keyboard,.pc28-numboard,.pc28-quick-btn,.pc28-quick-line'));
+  }
+  document.addEventListener('touchstart', function (event) {
+    if (isRoomKeyboardTarget(event.target)) event.preventDefault();
+  }, { capture: true, passive: false });
+  document.addEventListener('touchmove', function (event) {
+    if (isRoomKeyboardTarget(event.target)) event.preventDefault();
+  }, { capture: true, passive: false });
+
+  window.__roomLeftSec = 0;
+  window.__roomFpSec = 1;
+  window.__roomTickStarted = false;
+  window.__roomDeadlineMs = 0;
+  window.__roomNextSn = '';
+  window.__roomWaitingDraw = false;
+  window.__roomSealed = false;
+  window.__roomServerSealed = false;
+  window.__roomSealSec = 0;
+  window.__roomUpstreamBadSince = 0;
+
+  // 上游缺期/安全熔断时，页面必须明确提示维护，不能伪装成普通“开奖中”。
+  // 对没有返回 stale_gap、但长期停在 publishing/closed 的直播游戏也做超时识别。
+  window.updateUpstreamMaintenance = function (row) {
+    var market = String(row && row.market_state || '').toLowerCase();
+    var phase = String(row && row.live_phase || '').toLowerCase();
+    var reason = String(row && row.phase_reason || '').toLowerCase();
+    var directStale = parseInt(row && row.upstream_maintenance, 10) === 1
+      || market === 'stale_gap'
+      || /stale_gap|upstream_stale|circuit_breaker|missing_issue|source_gap/.test(reason);
+    var waitingDraw = parseInt(row && row.waiting_draw, 10) === 1
+      || String(row && row.draw_status || '') === 'drawing'
+      || String(row && row.draw_status || '') === 'processing';
+    var noNextClock = !parseInt(row && row.next_at_ms, 10)
+      && !parseInt(row && row.effective_next_at_ms, 10);
+    // PK10 等直播房间在开奖等待阶段可能清空 live_phase/market_state，
+    // 但仍会保留 waiting_draw/draw_status 和无下一期绝对时间。
+    var liveFallback = [5, 6, 7, 10].indexOf(parseInt(window.ROOM_GAME_ID, 10)) >= 0
+      && waitingDraw
+      && noNextClock
+      && (market === '' || market === 'closed' || market === 'pending');
+    var waitingPublishing = (phase === 'publishing'
+      && (market === 'closed' || market === 'pending')
+      && waitingDraw) || liveFallback;
+    var now = Date.now();
+    if (waitingPublishing) {
+      if (!window.__roomUpstreamBadSince) window.__roomUpstreamBadSince = now;
+    } else {
+      window.__roomUpstreamBadSince = 0;
+    }
+    var stale = directStale
+      || (waitingPublishing && window.__roomUpstreamBadSince > 0
+        && now - window.__roomUpstreamBadSince >= 90000);
+    // 不再使用整页覆盖层，只切换顶部倒计时位置的文案。
+    window.__roomUpstreamMaintenance = !!stale;
+    var el = document.getElementById('upstreamMaintenanceMask');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  };
+
+  /** 封盘/开奖中禁止下注（上下分、取消、充值指引放行） */
+  window.roomGuardSendBet = function (content) {
+    var c = String(content == null ? '' : content).replace(/^\s+|\s+$/g, '');
+    if (!c) return true;
+    if (c === '取消' || c === '充值指引') return true;
+    if (/^(上分|下分|上|下|查|回)\d+/.test(c)) return true;
+    // 发送进行中不因本地倒计时跳变再拦（避免点下去后瞬间封盘提示）
+    if (window.__sendBusy) return true;
+    if (window.__roomWaitingDraw || window.__roomSealed) {
+      if (typeof jqtoast === 'function') jqtoast('封盘禁止下注');
+      return false;
+    }
+    // letf_time 已是「直播对齐 − 封盘秒」，>0 才可下注
+    if (localLeftSec() > 0) return true;
+    if (typeof jqtoast === 'function') jqtoast('封盘禁止下注');
+    return false;
+  };
+
+  window.__roomLivePlayer = null;
+
+  function liveGuideSkipKey() {
+    var d = new Date();
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return 'fn_live_guide_skip_' + d.getFullYear() + (m < 10 ? '0' : '') + m + (day < 10 ? '0' : '') + day;
+  }
+
+  function isLiveGuideSkippedToday() {
+    try {
+      return localStorage.getItem(liveGuideSkipKey()) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function markLiveGuideSkipToday() {
+    try { localStorage.setItem(liveGuideSkipKey(), '1'); } catch (e) {}
+  }
+
+  function hideLiveEntryGuide(immediate) {
+    var el = qs('#roomLiveGuide');
+    if (!el) return;
+    clearTimeout(window.__roomLiveGuideTimer);
+    var finish = function () {
+      if (!el) return;
+      el.classList.remove('is-on', 'is-leaving');
+      // 必须移出 DOM：仅 display:none 时部分 WebView 仍会挡点击
+      if (el.parentNode) {
+        try { el.parentNode.removeChild(el); } catch (e) {}
+      }
+    };
+    if (immediate) {
+      finish();
+      return;
+    }
+    el.classList.add('is-leaving');
+    window.__roomLiveGuideTimer = setTimeout(finish, 480);
+  }
+
+  function buildLiveGuideHtml() {
+    return ''
+      + '<div class="room-live-guide-mask" aria-hidden="true"></div>'
+      + '<div class="room-live-guide-panel">'
+      +   '<img class="room-live-guide-tip" src="/Style/newimg/guide/live_guide_tip.webp?v=20260730g1" alt="点击右侧【直播】竞猜更精彩" draggable="false"'
+      +        ' onerror="this.onerror=null;this.src=\'/Style/newimg/guide/live_guide_tip.png?v=20260730g1\'">'
+      +   '<label class="room-live-guide-today">'
+      +     '<input type="checkbox" id="roomLiveGuideToday">'
+      +     '<span>今日不再提示</span>'
+      +   '</label>'
+      +   '<button type="button" class="room-live-guide-ok" id="roomLiveGuideOk" aria-label="知道了">'
+      +     '<img src="/Style/newimg/guide/live_guide_ok.webp?v=20260730g1" alt="知道了"'
+      +          ' onerror="this.onerror=null;this.src=\'/Style/newimg/guide/live_guide_ok.png?v=20260730g1\'" draggable="false">'
+      +   '</button>'
+      + '</div>';
+  }
+
+  /** 仅有直播按钮的房间：灰色蒙版引导；支持「今日不再提示」 */
+  function showLiveEntryGuide() {
+    var hasLiveBtn = !!qs('.fab-btn.is-live');
+    if (!hasLiveBtn) {
+      var junk = qs('#roomLiveGuide');
+      if (junk && junk.parentNode) junk.parentNode.removeChild(junk);
+      return;
+    }
+    if (isLiveGuideSkippedToday()) {
+      var skipEl = qs('#roomLiveGuide');
+      if (skipEl && skipEl.parentNode) skipEl.parentNode.removeChild(skipEl);
+      return;
+    }
+    if (window.__roomLiveGuideStarted) return;
+    window.__roomLiveGuideStarted = true;
+
+    var el = qs('#roomLiveGuide');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'roomLiveGuide';
+      el.className = 'room-live-guide';
+      el.setAttribute('role', 'dialog');
+      el.setAttribute('aria-label', '直播提示');
+      el.innerHTML = buildLiveGuideHtml();
+      document.body.appendChild(el);
+    } else if (!el.querySelector('.room-live-guide-panel')) {
+      el.innerHTML = buildLiveGuideHtml();
+    }
+
+    if (!el.__liveGuideBound) {
+      el.__liveGuideBound = true;
+      el.addEventListener('click', function (e) {
+        // 点蒙版空白不关；必须点「知道了」
+        e.stopPropagation();
+      }, false);
+      var ok = el.querySelector('#roomLiveGuideOk') || el.querySelector('.room-live-guide-ok');
+      if (ok) {
+        ok.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var cb = el.querySelector('#roomLiveGuideToday');
+          if (cb && cb.checked) markLiveGuideSkipToday();
+          hideLiveEntryGuide(false);
+        }, false);
+      }
+    }
+
+    el.style.display = '';
+    el.style.opacity = '';
+    el.style.animation = '';
+    el.classList.remove('is-leaving');
+    void el.offsetWidth;
+    el.classList.add('is-on');
+  }
+  window.showLiveEntryGuide = showLiveEntryGuide;
+  window.hideLiveEntryGuide = hideLiveEntryGuide;
+
+  window.toggleRoomLive = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    hideLiveEntryGuide(true);
+    var panel = qs('#roomLivePanel');
+    if (!panel) return false;
+    var opening = !panel.classList.contains('is-open');
+    panel.classList.toggle('is-open', opening);
+    var frame = panel.querySelector('iframe');
+    if (frame) {
+      if (opening) {
+        // iframe 在进房时已预加载；首击只显示现成播放器，不能在点击时才设置 src。
+        try { frame.contentWindow.postMessage({ type: 'feiniao_live_resume' }, '*'); } catch (err) {}
+      } else {
+        // 保留已加载的原生播放器，关闭时暂停，重新打开时无需第二次加载。
+        try { frame.contentWindow.postMessage({ type: 'feiniao_live_pause' }, '*'); } catch (err) {}
+      }
+    }
+    // 顶栏高度变化后同步聊天区留白
+    setTimeout(syncRoomHeadSpace, 30);
+    setTimeout(syncRoomHeadSpace, 320);
+    return false;
+  };
+
+  /** 按固定顶栏实际高度撑开聊天区，避免直播挡住开奖结果栏或盖住消息 */
+  function syncRoomHeadSpace() {
+    var head = qs('.room-fixed-head');
+    var chat = qs('.chat-content.has-room-head');
+    if (!head || !chat) return;
+    var h = Math.ceil(head.getBoundingClientRect().height || 0);
+    if (h < 10) return;
+    chat.style.paddingTop = h + 'px';
+  }
+  window.syncRoomHeadSpace = syncRoomHeadSpace;
+
+  window.toggleRoomGameSwitch = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var panel = qs('#roomGameSwitch');
+    if (!panel) return false;
+    panel.classList.toggle('is-open');
+    return false;
+  };
+
+  document.addEventListener('click', function () {
+    var sw = qs('#roomGameSwitch');
+    if (sw) sw.classList.remove('is-open');
+  }, false);
+
+  function localLeftSec() {
+    if (window.__roomDeadlineMs > 0) {
+      return Math.max(0, Math.round((window.__roomDeadlineMs - Date.now()) / 1000));
+    }
+    return Math.max(0, parseInt(window.__roomLeftSec, 10) || 0);
+  }
+
+  function paintLeftTime() {
+    if (typeof window.buildTime !== 'function') return;
+    var el = document.getElementById('left_time');
+    if (!el) return;
+    var left = localLeftSec();
+    var sealSec = Math.max(0, parseInt(window.__roomSealSec, 10) || 0);
+    window.__roomLeftSec = left;
+
+    // 时钟已是「直播 − 封盘」：归零 → 封盘中；开奖中只听服务端
+    if (!window.__roomWaitingDraw) {
+      if (left <= 0 && (window.__roomDeadlineMs > 0 || sealSec > 0 || window.__roomServerSealed)) {
+        window.__roomSealed = true;
+        window.__roomLeftSec = 0;
+        window.__roomDeadlineMs = 0;
+        window.__roomPhaseRank = Math.max(1, parseInt(window.__roomPhaseRank, 10) || 0);
+      } else if (left > 0) {
+        window.__roomSealed = !!window.__roomServerSealed;
+      }
+    }
+    if (window.__roomWaitingDraw) {
+      window.__roomSealed = false;
+      window.__roomLeftSec = 0;
+      window.__roomDeadlineMs = 0;
+    } else if (window.__roomSealed) {
+      window.__roomLeftSec = 0;
+      window.__roomDeadlineMs = 0;
+    }
+    el.innerHTML = window.buildTime(window.__roomLeftSec, window.__roomFpSec);
+  }
+
+  /**
+   * 倒计时同步（减法）：
+   * open → 跟 bet_close_at（有效开奖点 − 封盘秒）；直播 78、封盘 30 → 顶栏约 48；
+   * sealed → 封盘中；drawing → 开奖中。
+   */
+  function applyOpenCountdown(row) {
+    if (!row || row.letf_time == null || row.letf_time === '') return;
+    if (!row.__req_sent_ms && window.__roomLastPollSentMs) {
+      row.__req_sent_ms = window.__roomLastPollSentMs;
+    }
+    var serverLeft = parseInt(row.letf_time, 10);
+    if (isNaN(serverLeft)) return;
+    if (serverLeft < 0) serverLeft = 0;
+    var serverFp = parseInt(row.fp_time, 10);
+    if (isNaN(serverFp) || serverFp < 1) serverFp = 1;
+    var serverSeal = parseInt(row.seal_seconds, 10);
+    if (!isNaN(serverSeal) && serverSeal >= 0) {
+      window.__roomSealSec = serverSeal;
+    }
+    var nextSn = String(row.next_sn || '');
+    var status = String(row.draw_status || '');
+    // 直播周期只接受服务端的三态结果。旧版下面的“聊天/播放器/本地阶段棘轮”
+    // 会把已进入 drawing 的同一期又复活成 open，或把后台 fengtime 加回秒表。
+    var directCloseMs = row && row.bet_close_at_ms != null ? parseInt(row.bet_close_at_ms, 10) : 0;
+    if (status === 'open' && directCloseMs > 0) {
+      var directServerMs = row && row.server_now_ms != null ? parseInt(row.server_now_ms, 10) : 0;
+      var directDeadline = directServerMs > 0 ? directCloseMs + (Date.now() - directServerMs) : directCloseMs;
+      window.__roomWaitingDraw = false;
+      window.__roomSealed = false;
+      window.__roomServerSealed = false;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      window.__roomDeadlineMs = directDeadline;
+      window.__roomLeftSec = Math.max(0, Math.ceil((directDeadline - Date.now()) / 1000));
+      window.__roomFpSec = serverFp;
+      window.__roomPhaseRank = 0;
+      row.letf_time = window.__roomLeftSec;
+      row.fp_time = serverFp;
+      return;
+    }
+    if (status === 'sealed') {
+      window.__roomWaitingDraw = false;
+      window.__roomSealed = true;
+      window.__roomServerSealed = true;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      window.__roomDeadlineMs = 0;
+      window.__roomLeftSec = 0;
+      window.__roomFpSec = serverFp;
+      window.__roomPhaseRank = 1;
+      row.letf_time = 0;
+      row.fp_time = serverFp;
+      return;
+    }
+    if (status === 'drawing' || status === 'processing' || parseInt(row.waiting_draw, 10) === 1) {
+      window.__roomWaitingDraw = true;
+      window.__roomSealed = false;
+      window.__roomServerSealed = false;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      window.__roomDeadlineMs = 0;
+      window.__roomLeftSec = 0;
+      window.__roomFpSec = serverFp;
+      window.__roomPhaseRank = 2;
+      row.letf_time = 0;
+      row.fp_time = serverFp;
+      return;
+    }
+    var wasWaiting = !!window.__roomWaitingDraw;
+    var wasSealed = !!window.__roomSealed;
+    var sealSec = Math.max(0, parseInt(window.__roomSealSec, 10) || 0);
+    // letf_time 已减封盘：sealed 只看服务端状态
+    var nowSealed = status === 'sealed';
+    window.__roomServerSealed = nowSealed;
+    var nowWaiting = status === 'processing'
+      || status === 'drawing'
+      || status === 'waiting_live_open'
+      || parseInt(row.waiting_draw, 10) === 1;
+    function normTerm(v) {
+      var s = String(v == null ? '' : v).replace(/^0+/, '');
+      return s || '0';
+    }
+    var chatTerm = window.__roomChatOpenTerm ? normTerm(window.__roomChatOpenTerm) : '';
+    var nextNorm = nextSn ? normTerm(nextSn) : '';
+    var phaseReason = String(row.phase_reason || '');
+    var holdLocked = phaseReason === 'live_holding'
+      || phaseReason === 'processing'
+      || phaseReason === 'waiting_live_open'
+      || (phaseReason.indexOf('wait_live_') === 0 && status !== 'open')
+      || status === 'waiting_live_open';
+    // ★ 顶栏只认 bet_close（已减封盘秒），绝不能用 effective_next（会把封盘加回去）
+    var betCloseRaw = row && row.bet_close_at_ms != null ? parseInt(row.bet_close_at_ms, 10) : 0;
+    if ((status !== 'open' || !(betCloseRaw > 0)) && (nowWaiting || nowSealed || holdLocked || serverLeft <= 0)) {
+      if (status !== 'open' || nowWaiting || holdLocked) {
+        window.__roomDeadlineMs = 0;
+      }
+    }
+    if (serverLeft > 0 && status === 'open' && betCloseRaw > 0 && !holdLocked) {
+      holdLocked = false;
+      nowWaiting = false;
+      nowSealed = false;
+      if (nextNorm) {
+        window.__roomOpenedTerm = nextNorm;
+        window.__roomOpenedCloseMs = betCloseRaw;
+      }
+    } else if (status !== 'open' || !(betCloseRaw > 0)) {
+      // 服务端状态是唯一裁决。旧逻辑会在本地记录的旧 deadline 尚未到时，
+      // 把 drawing / waiting_live_open 强行复活成 open，造成提前开盘、秒数跳快。
+      if (holdLocked || nowWaiting || status === 'drawing' || status === 'processing' || status === 'waiting_live_open') {
+        serverLeft = 0;
+        row.letf_time = 0;
+      }
+    }
+    if (chatTerm && nextNorm && chatTerm === nextNorm && !holdLocked && betCloseRaw > 0) {
+      if (nowWaiting && (status === 'open' || status === 'sealed' || serverLeft > 0)) {
+        nowWaiting = false;
+        row.waiting_draw = 0;
+      }
+      if (serverLeft > 0 && status === 'open') {
+        nowWaiting = false;
+        nowSealed = false;
+        row.waiting_draw = 0;
+        row.draw_status = 'open';
+        status = 'open';
+      }
+    }
+    // 直播 hold：强制开奖中，不允许本地倒计时抢跑
+    if (holdLocked || (status === 'drawing' && phaseReason === 'live_holding')) {
+      nowWaiting = true;
+      nowSealed = false;
+      serverLeft = 0;
+      row.letf_time = 0;
+      row.waiting_draw = 1;
+      row.next_at = 0;
+      window.__roomDeadlineMs = 0;
+    }
+    if (!holdLocked && nowWaiting && chatTerm && nextNorm && chatTerm !== nextNorm && betCloseRaw > 0) {
+      var chatNum = parseInt(chatTerm, 10) || 0;
+      var nextNum = parseInt(nextNorm, 10) || 0;
+      if (chatNum > nextNum) {
+        nowWaiting = false;
+        row.next_sn = String(row.next_sn || chatTerm);
+        if (serverLeft > 0 && status === 'open') {
+          nowSealed = false;
+          row.waiting_draw = 0;
+          row.draw_status = 'open';
+          status = 'open';
+        } else if (status === 'sealed') {
+          nowSealed = true;
+          row.draw_status = 'sealed';
+          row.waiting_draw = 0;
+          serverLeft = 0;
+          row.letf_time = 0;
+        }
+      }
+    }
+    if (!holdLocked && nowWaiting && serverLeft > 0 && status === 'open' && betCloseRaw > 0) {
+      nowWaiting = false;
+    }
+    if (nowSealed && status === 'sealed') {
+      nowWaiting = false;
+      if (nextNorm && window.__roomOpenedTerm && normTerm(window.__roomOpenedTerm) === nextNorm) {
+        window.__roomOpenedCloseMs = 0;
+      }
+    }
+    if (!holdLocked && status === 'open' && serverLeft > 0 && betCloseRaw > 0) {
+      nowWaiting = false;
+      nowSealed = false;
+    }
+
+    function phaseRank(sealed, waiting) {
+      if (waiting) return 2;
+      if (sealed) return 1;
+      return 0;
+    }
+    var phaseSn = nextNorm || nextSn || '';
+    if (phaseSn && window.__roomPhaseSn && window.__roomPhaseSn !== phaseSn) {
+      window.__roomPhaseSn = phaseSn;
+      window.__roomPhaseRank = 0;
+    } else if (phaseSn && !window.__roomPhaseSn) {
+      window.__roomPhaseSn = phaseSn;
+      window.__roomPhaseRank = phaseRank(wasSealed, wasWaiting);
+    }
+    var curRank = typeof window.__roomPhaseRank === 'number'
+      ? window.__roomPhaseRank
+      : phaseRank(wasSealed, wasWaiting);
+    var newRank = phaseRank(nowSealed, nowWaiting);
+    if (status === 'open' && serverLeft > 0 && betCloseRaw > 0 && !holdLocked) {
+      curRank = 0;
+      window.__roomPhaseRank = 0;
+      newRank = 0;
+      nowWaiting = false;
+      nowSealed = false;
+      window.__roomWaitingDraw = false;
+    } else if (nowSealed) {
+      nowWaiting = false;
+      window.__roomWaitingDraw = false;
+      curRank = 1;
+      window.__roomPhaseRank = 1;
+      newRank = 1;
+    } else if (phaseSn && newRank < curRank) {
+      if (curRank >= 2) {
+        nowWaiting = true;
+        nowSealed = false;
+        serverLeft = 0;
+      } else if (curRank >= 1) {
+        nowWaiting = false;
+        nowSealed = true;
+        serverLeft = 0;
+      }
+      newRank = curRank;
+    } else if (phaseSn && newRank > curRank) {
+      window.__roomPhaseRank = newRank;
+    } else if (phaseSn) {
+      window.__roomPhaseRank = Math.max(curRank, newRank);
+    }
+
+    var localLeft = localLeftSec();
+    var termChanged = !!(nextSn && nextSn !== window.__roomNextSn);
+    var diff = Math.abs(serverLeft - localLeft);
+
+    function deadlineFromRow(leftSec, row) {
+      // ★ 只认 bet_close_at_ms（已减封盘）。用 effective_next 会把 30 秒加回去 → 直播78顶栏107
+      var nextMs = row && row.bet_close_at_ms != null ? parseInt(row.bet_close_at_ms, 10) : 0;
+      if (!(nextMs > 0)) {
+        if (leftSec > 0 && String(row && row.draw_status || '') === 'open') {
+          return Date.now() + leftSec * 1000;
+        }
+        return 0;
+      }
+      var serverNow = row && row.server_now_ms != null ? parseInt(row.server_now_ms, 10) : 0;
+      var sentAt = (row && row.__req_sent_ms) || window.__roomLastPollSentMs || 0;
+      var recvAt = Date.now();
+      if (nextMs > 0 && serverNow > 0) {
+        var skew;
+        if (sentAt > 0 && recvAt >= sentAt) {
+          var rtt = recvAt - sentAt;
+          skew = (sentAt + rtt / 2) - serverNow;
+        } else {
+          skew = recvAt - serverNow;
+        }
+        if (typeof window.__roomSkewMs !== 'number') {
+          window.__roomSkewMs = skew;
+        } else {
+          window.__roomSkewMs = window.__roomSkewMs * 0.7 + skew * 0.3;
+        }
+        return nextMs + window.__roomSkewMs;
+      }
+      if (nextMs > 0) return nextMs;
+      if (leftSec > 0) return Date.now() + leftSec * 1000;
+      return 0;
+    }
+
+    var hasBetClose = betCloseRaw > 0;
+    if (!hasBetClose && !wasWaiting && status === 'open' && localLeft > 0 && serverLeft > localLeft + 2) {
+      serverLeft = localLeft;
+    }
+
+    function lockDeadlineMs(candidateMs, termKey, sealSecVal) {
+      var c = parseInt(candidateMs, 10) || 0;
+      if (!(c > 0)) return 0;
+      var key = String(termKey || '');
+      var seal = parseInt(sealSecVal, 10);
+      if (isNaN(seal) || seal < 0) seal = 0;
+      window.__roomLockDeadlineMs = c;
+      window.__roomLockSeal = seal;
+      if (key) window.__roomLockTerm = key;
+      return c;
+    }
+    function clearDeadlineLock() {
+      window.__roomLockDeadlineMs = 0;
+      window.__roomLockTerm = '';
+      window.__roomLockSeal = undefined;
+    }
+
+    if (nowWaiting && !nowSealed) {
+      window.__roomWaitingDraw = true;
+      window.__roomSealed = false;
+      window.__roomLeftSec = 0;
+      window.__roomFpSec = serverFp;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      window.__roomDeadlineMs = 0;
+      clearDeadlineLock();
+      row.letf_time = 0;
+      row.fp_time = window.__roomFpSec;
+      return;
+    }
+
+    if ((wasWaiting && !nowWaiting) || (wasSealed && !nowSealed && serverLeft > 0)) {
+      if (serverLeft <= 0 && !nowSealed) {
+        window.__roomLeftSec = 0;
+        window.__roomFpSec = serverFp;
+        window.__roomNextSn = nextSn || window.__roomNextSn;
+        window.__roomDeadlineMs = 0;
+        clearDeadlineLock();
+        window.__roomWaitingDraw = true;
+        window.__roomSealed = false;
+        row.letf_time = 0;
+        row.fp_time = window.__roomFpSec;
+        row.waiting_draw = 1;
+        row.draw_status = 'drawing';
+        return;
+      }
+      window.__roomWaitingDraw = false;
+      window.__roomSealed = nowSealed;
+      if (typeof window.scheduleOpenInfoBurst === 'function') window.scheduleOpenInfoBurst(1200);
+      if (nowSealed) {
+        window.__roomLeftSec = 0;
+        window.__roomDeadlineMs = 0;
+        clearDeadlineLock();
+      } else {
+        var d0 = deadlineFromRow(serverLeft, row);
+        window.__roomDeadlineMs = lockDeadlineMs(d0, nextNorm || nextSn, sealSec);
+        window.__roomLeftSec = localLeftSec();
+      }
+      window.__roomFpSec = serverFp;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      row.letf_time = window.__roomLeftSec;
+      row.fp_time = window.__roomFpSec;
+      return;
+    }
+
+    window.__roomWaitingDraw = false;
+
+    if (nowSealed) {
+      window.__roomSealed = true;
+      window.__roomLeftSec = 0;
+      window.__roomDeadlineMs = 0;
+      clearDeadlineLock();
+      window.__roomFpSec = serverFp;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      row.letf_time = 0;
+      row.fp_time = window.__roomFpSec;
+      return;
+    }
+
+    window.__roomSealed = false;
+
+    if (!hasBetClose && !termChanged && localLeft <= 8 && serverLeft >= localLeft + 12 && !row.next_at) {
+      window.__roomFpSec = serverFp;
+      window.__roomLeftSec = localLeft;
+      row.letf_time = window.__roomLeftSec;
+      row.fp_time = window.__roomFpSec;
+      return;
+    }
+    var jumpUp = !hasBetClose && !termChanged && serverLeft > localLeft + 1 && !row.next_at;
+    var shouldApply = hasBetClose || !window.__roomDeadlineMs || termChanged || serverLeft === 0
+      || !!row.next_at
+      || (!jumpUp && diff >= 2);
+    if (shouldApply) {
+      window.__roomFpSec = serverFp;
+      window.__roomNextSn = nextSn || window.__roomNextSn;
+      var d1 = deadlineFromRow(serverLeft, row);
+      if (hasBetClose) {
+        window.__roomDeadlineMs = lockDeadlineMs(d1, nextNorm || nextSn, window.__roomSealSec || sealSec);
+      } else {
+        window.__roomDeadlineMs = d1;
+      }
+      window.__roomLeftSec = (hasBetClose || row.next_at) ? localLeftSec() : serverLeft;
+    } else {
+      window.__roomFpSec = serverFp;
+      window.__roomLeftSec = localLeft;
+      if (nextSn) window.__roomNextSn = nextSn;
+    }
+    row.letf_time = window.__roomLeftSec;
+    row.fp_time = window.__roomFpSec;
+  }
+
+  /** 轮询降频：本地秒表已能走表，聊天/开奖接口不必亚秒狂刷（会打满服务器） */
+  window.roomPollDelay = function () {
+    if (document.hidden) return 5000;
+    if (window.__roomOpenBurstUntil && Date.now() < window.__roomOpenBurstUntil) {
+      return 700;
+    }
+    if (window.__roomWaitingDraw) return 1800;
+    if (window.__roomSealed) return 2000;
+    var left = localLeftSec();
+    if (left <= 0) return 1800;
+    if (left <= 40) return 1000;
+    return 1500;
+  };
+
+  function startRoomTick() {
+    if (window.__roomTickStarted) return;
+    window.__roomTickStarted = true;
+    setInterval(function () {
+      if (typeof window.buildTime !== 'function') return;
+      paintLeftTime();
+    }, 250);
+  }
+
+  /** 合并短时间多次拉齐，避免一次状态切换触发 2～3 次 ajax_chat */
+  window.scheduleOpenInfoBurst = function (ms) {
+    var until = Date.now() + (ms || 1200);
+    if (!window.__roomOpenBurstUntil || until > window.__roomOpenBurstUntil) {
+      window.__roomOpenBurstUntil = until;
+    }
+    if (window.__roomBurstTimer) return;
+    window.__roomBurstTimer = setTimeout(function () {
+      window.__roomBurstTimer = 0;
+      try {
+        if (typeof window.getNewChartInfo === 'function') window.getNewChartInfo();
+      } catch (e0) {}
+    }, 200);
+  };
+
+  /** 从聊天文案同步开盘期号；绝不本地伪造开盘——只触发拉齐 getOpenInfo */
+  function noteChatOpenAnnounce(content) {
+    var s = String(content || '').replace(/<[^>]+>/g, ' ');
+    var m = s.match(/第\s*(\d+)\s*期已经开启/);
+    if (!m) return;
+    var term = m[1];
+    var prev = window.__roomChatOpenTerm ? String(window.__roomChatOpenTerm) : '';
+    window.__roomChatOpenTerm = term;
+    if (term && term !== prev) {
+      if (typeof window.scheduleOpenInfoBurst === 'function') window.scheduleOpenInfoBurst(1200);
+    }
+  }
+
+  function scanChatListForOpenAnnounce() {
+    var list = document.getElementById('chat_list');
+    if (!list) return;
+    noteChatOpenAnnounce(list.innerText || list.textContent || '');
+  }
+
+  window.noteChatOpenAnnounce = noteChatOpenAnnounce;
+
+  /** 播放器画面场景：Result → countdown 后才允许开盘 */
+  function reportLiveSceneToServer(scene) {
+    if (scene !== 'countdown') return;
+    if (window.__roomVideoReportSent && window.__roomVideoReportTerm === window.__roomNextSn) {
+      return;
+    }
+    var term = String(window.__roomNextSn || window.__roomChatOpenTerm || '');
+    var body = {
+      scene: 'countdown',
+      term: term,
+      game: window.ROOM_GAME_CODE || '',
+      video_left: window.__roomVideoLeftEst || 0,
+      // 仅作遥测；服务器仍以实际 fn_lottery.fengtime 计算可下注截止。
+      player_counter: window.__roomLiveCounter || 0
+    };
+    window.__roomVideoReportSent = true;
+    window.__roomVideoReportTerm = term;
+    try {
+      fetch('/Application/ajax_live_scene.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.json(); }).then(function (res) {
+        if (!res || !res.ok || !res.accepted) {
+          window.__roomVideoReportSent = false;
+          return;
+        }
+        window.__roomVideoCountdownOk = true;
+        // 画面回报不改本地倒计时；合并一次拉齐即可
+        if (typeof window.scheduleOpenInfoBurst === 'function') window.scheduleOpenInfoBurst(1500);
+      }).catch(function () {
+        window.__roomVideoReportSent = false;
+      });
+    } catch (eF) {
+      window.__roomVideoReportSent = false;
+    }
+  }
+
+  function onLiveSceneMessage(ev) {
+    var d = ev && ev.data;
+    if (!d || d.type !== 'feiniao_live_scene') return;
+    var scene = String(d.scene || '');
+    window.__roomLiveScene = scene;
+    window.__roomHasLive = true;
+    window.ROOM_HAS_LIVE = true;
+    if (scene === 'countdown') {
+      window.__roomLiveCounter = parseFloat(d.counter || 0) || 0;
+      window.__roomVideoCountdownOk = true;
+      reportLiveSceneToServer('countdown');
+    } else if (scene === 'result') {
+      // 新一轮 Result：清本期限画面确认，等待下一期倒计时
+      var prevOk = window.__roomVideoCountdownOk;
+      if (prevOk && window.__roomPhaseRank >= 2) {
+        // 已进入开奖中后的 Result 正常
+      }
+      // 换期前若仍在开盘窗口看到 Result，禁止继续用旧确认
+      if (!window.__roomSealed && !window.__roomWaitingDraw) {
+        // 保持已确认直到封盘，避免倒计时中误判 Result 闪断
+      }
+    }
+  }
+
+  if (!window.__roomLiveSceneHooked) {
+    window.__roomLiveSceneHooked = true;
+    window.addEventListener('message', onLiveSceneMessage, false);
+  }
+
+  /** 包装页面里的 showOpenInfo，写入本地剩余秒并驱动秒表 */
+  function hookShowOpenInfo() {
+    if (typeof window.showOpenInfo !== 'function') return false;
+    if (window.showOpenInfo.__roomHooked) return true;
+    var raw = window.showOpenInfo;
+    window.showOpenInfo = function (row) {
+      try {
+        if (row && (parseInt(row.visual_open_ready, 10) === 1 || String(row.phase_reason || '') === 'open_latched')) {
+          window.__roomVideoCountdownOk = true;
+        }
+        // 换期：重置画面确认
+        var ns = String(row && row.next_sn || '');
+        if (ns && window.__roomVideoTerm !== ns) {
+          if (window.__roomVideoTerm) {
+            window.__roomVideoCountdownOk = false;
+            window.__roomVideoReportSent = false;
+          }
+          window.__roomVideoTerm = ns;
+        }
+        scanChatListForOpenAnnounce();
+        applyOpenCountdown(row);
+        return raw.apply(this, arguments);
+      } catch (e) {
+        if (window.console && console.warn) console.warn('showOpenInfo', e);
+      }
+    };
+    window.showOpenInfo.__roomHooked = true;
+    startRoomTick();
+    try { scanChatListForOpenAnnounce(); } catch (e0) {}
+    return true;
+  }
+
+  function renderBootChat() {
+    var list = window.ROOM_BOOT_CHAT;
+    if (!list || !list.length || typeof window.jQuery === 'undefined') return;
+    var $ = window.jQuery;
+    var username = window.ROOM_BOOT_USER || '';
+    var chatHtml = '';
+    var lastId = 0;
+    var build = window.FeiniaoVipRoom && window.FeiniaoVipRoom.bubbleHtml;
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      var id = parseInt(row.id, 10) || 0;
+      if (id > lastId) lastId = id;
+      if (build) {
+        chatHtml += build(row, username);
+        continue;
+      }
+      var headerType = username !== row.nickname ? 'left-header' : 'right-header';
+      var leftHeader = headerType === 'left-header' ? '<img src="' + (row.headimg || '') + '">' : '';
+      var rightHeader = headerType === 'right-header' ? '<img src="' + (row.headimg || '') + '">' : '';
+      var nickName = headerType === 'left-header'
+        ? (row.nickname + '  ' + row.addtime)
+        : (row.addtime + '  ' + row.nickname);
+      chatHtml += '<div id="msg' + id + '" class="' + headerType + '">' +
+        '<div class="lheader">' + leftHeader + '</div>' +
+        '<div class="content-box">' +
+        '<div class="nick-name">' + nickName + '</div>' +
+        '<div class="content-info"><div class="chatnarr"></div>' +
+        '<div class="info-content">' + (row.content || '') + '</div></div></div>' +
+        '<div class="rheader">' + rightHeader + '</div></div>';
+    }
+    if (chatHtml) {
+      // 已渲染过的消息不再重复插入
+      var $wrap = $('<div></div>').html(chatHtml);
+      $wrap.children().each(function () {
+        var id = this.id;
+        if (id && document.getElementById(id)) {
+          $(this).remove();
+        }
+      });
+      var html = $wrap.html();
+      if (html) $(html).appendTo('#chat_list');
+      if (typeof window.lastChartID !== 'undefined' && lastId > (parseInt(window.lastChartID, 10) || 0)) {
+        window.lastChartID = lastId;
+      }
+      // 同步页面内局部 lastChartID（若存在）
+      try {
+        if (typeof lastChartID !== 'undefined' && lastId > (parseInt(lastChartID, 10) || 0)) {
+          lastChartID = lastId;
+        }
+      } catch (e2) {}
+      try {
+        if (typeof window.scrollToBt === 'function') window.scrollToBt();
+      } catch (e) {}
+    }
+  }
+
+  function boot() {
+    hookShowOpenInfo();
+    try {
+      if (window.ROOM_BOOT_OPEN && typeof window.showOpenInfo === 'function') {
+        window.showOpenInfo(window.ROOM_BOOT_OPEN);
+      }
+    } catch (e) {}
+    try { renderBootChat(); } catch (e) {}
+    try {
+      if (window.FeiniaoVipRoom && typeof window.FeiniaoVipRoom.tryEntry === 'function') {
+        window.FeiniaoVipRoom.tryEntry();
+      }
+    } catch (e) {}
+    startRoomTick();
+    bindChatImageZoom();
+    syncLiveTipVisibility();
+    try { showLiveEntryGuide(); } catch (e3) {}
+  }
+
+  function ensureLightbox() {
+    var box = qs('#roomImgLightbox');
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'roomImgLightbox';
+    box.className = 'room-img-lightbox';
+    box.innerHTML = '<img alt="preview">';
+    box.addEventListener('click', function () {
+      box.classList.remove('is-open');
+      var img = box.querySelector('img');
+      if (img) img.removeAttribute('src');
+    });
+    document.body.appendChild(box);
+    return box;
+  }
+
+  function bindChatImageZoom() {
+    var root = qs('.chat-content') || document;
+    if (root.__roomImgZoomBound) return;
+    root.__roomImgZoomBound = true;
+    root.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.tagName || t.tagName.toLowerCase() !== 'img') return;
+      if (!t.closest || !t.closest('.info-content')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var box = ensureLightbox();
+      var big = box.querySelector('img');
+      big.src = t.currentSrc || t.src;
+      box.classList.add('is-open');
+    }, false);
+  }
+
+  // 新消息追加后也要能点图放大
+  var _moTimer = null;
+  var _chatTrimTimer = null;
+  // 聊天记录会持续追加；移动端 DOM 节点无限增长会让滚动、输入和图片重排越来越慢。
+  // 只裁剪已显示的旧节点（数据库记录完全保留），固定保留最近 160 条，
+  // 结果图、当前期下注和新消息均在范围内，避免长时间挂机后页面卡顿。
+  function trimChatDom() {
+    var list = qs('#chat_list');
+    if (!list) return;
+    var rows = list.querySelectorAll('[id^="msg"]');
+    var overflow = rows.length - 160;
+    for (var i = 0; i < overflow; i++) {
+      if (rows[i] && rows[i].parentNode === list) list.removeChild(rows[i]);
+    }
+  }
+  function scheduleChatTrim() {
+    if (_chatTrimTimer) return;
+    _chatTrimTimer = setTimeout(function () {
+      _chatTrimTimer = null;
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(trimChatDom, { timeout: 250 });
+      } else {
+        trimChatDom();
+      }
+    }, 80);
+  }
+  function watchChatList() {
+    var list = qs('#chat_list');
+    if (!list || typeof MutationObserver === 'undefined') return;
+    var mo = new MutationObserver(function () {
+      clearTimeout(_moTimer);
+      _moTimer = setTimeout(function () {
+        bindChatImageZoom();
+        scrubOpenResultTips();
+        scheduleChatTrim();
+      }, 30);
+    });
+    mo.observe(list, { childList: true, subtree: true });
+  }
+
+
+  function syncFabUnderKeyboard() {
+    var fabs = document.querySelector('.room-side-fabs');
+    if (!fabs) return;
+    var k1 = document.getElementById('keyboard1');
+    var k2 = document.getElementById('keyboard2');
+    var open = (k1 && k1.style.display !== 'none' && window.getComputedStyle(k1).display !== 'none')
+      || (k2 && k2.style.display !== 'none' && window.getComputedStyle(k2).display !== 'none');
+    // 键盘打开时彻底避开，避免半透明穿透点击
+    fabs.style.visibility = open ? 'hidden' : '';
+    fabs.style.pointerEvents = open ? 'none' : '';
+  }
+
+  function watchKeyboard() {
+    ['keyboard1', 'keyboard2'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || el.__roomFabWatch) return;
+      el.__roomFabWatch = true;
+      var mo = new MutationObserver(syncFabUnderKeyboard);
+      mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
+    document.addEventListener('click', function () {
+      setTimeout(syncFabUnderKeyboard, 0);
+    }, true);
+    syncFabUnderKeyboard();
+  }
+
+  function ensureBetDetailModal() {
+    var mask = qs('#fnBetDetailMask');
+    if (mask) return mask;
+    mask = document.createElement('div');
+    mask.id = 'fnBetDetailMask';
+    mask.className = 'fn-bet-detail-mask';
+    mask.innerHTML =
+      '<div class="fn-bet-detail-dialog" role="dialog" aria-modal="true">' +
+      '  <div class="fn-bet-detail-hd">' +
+      '    <span class="fn-bet-detail-title">注单详情</span>' +
+      '    <button type="button" class="fn-bet-detail-close" aria-label="关闭">×</button>' +
+      '  </div>' +
+      '  <div class="fn-bet-detail-body">' +
+      '    <table class="fn-bet-detail-table">' +
+      '      <thead><tr><th>位置</th><th>号码</th><th>金额</th></tr></thead>' +
+      '      <tbody></tbody>' +
+      '    </table>' +
+      '  </div>' +
+      '</div>';
+    document.body.appendChild(mask);
+    mask.addEventListener('click', function (e) {
+      if (e.target === mask) closeBetDetail();
+    });
+    var closeBtn = mask.querySelector('.fn-bet-detail-close');
+    if (closeBtn) closeBtn.addEventListener('click', closeBetDetail);
+    return mask;
+  }
+
+  function closeBetDetail() {
+    var mask = qs('#fnBetDetailMask');
+    if (mask) mask.classList.remove('is-open');
+  }
+
+  function escapeDetailText(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderBetDetailRows(rows) {
+    if (!rows || !rows.length) {
+      return '<tr><td colspan="3" class="fn-bet-detail-empty">暂无注单</td></tr>';
+    }
+    return rows.map(function (row) {
+      var money = row.money;
+      if (typeof money === 'number') {
+        money = (Math.round(money * 100) / 100).toString();
+      }
+      return '<tr><td>' + escapeDetailText(row.pos) + '</td><td>' + escapeDetailText(row.num) + '</td><td>' + escapeDetailText(money) + '</td></tr>';
+    }).join('');
+  }
+
+  function feiniaoOpenBetDetail(el) {
+    try {
+      if (!el) return false;
+      var username = el.getAttribute('data-user') || '';
+      var term = el.getAttribute('data-term') || '';
+      var gid = el.getAttribute('data-gid') || (window.ROOM_GAME_ID || '');
+      if (!username || !term) return false;
+      var mask = ensureBetDetailModal();
+      var tbody = mask.querySelector('tbody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="fn-bet-detail-empty">加载中…</td></tr>';
+      mask.classList.add('is-open');
+      var url = '/Application/ajax_bet_detail.php?username=' + encodeURIComponent(username) +
+        '&term=' + encodeURIComponent(term) +
+        '&gid=' + encodeURIComponent(gid);
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState !== 4) return;
+        var data = {};
+        try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) {}
+        if (!tbody) return;
+        if (!data || !data.ok) {
+          tbody.innerHTML = '<tr><td colspan="3" class="fn-bet-detail-empty">' + escapeDetailText((data && data.message) || '加载失败') + '</td></tr>';
+          return;
+        }
+        tbody.innerHTML = renderBetDetailRows(data.rows || []);
+      };
+      xhr.send();
+    } catch (e) {}
+    return false;
+  }
+
+  window.feiniaoOpenBetDetail = feiniaoOpenBetDetail;
+  window.feiniaoCloseBetDetail = closeBetDetail;
+
+  /** ---------- 一键返回底部 + 未读角标（对齐名爵 unreadMessage / _toBottom） ---------- */
+  var chatStickBottom = true;
+  var chatUnread = 0;
+  var chatScrollBound = false;
+  var chatScrollAnim = 0;
+  var lastMsgCount = 0;
+
+  function chatScrollEl() {
+    return qs('.chat-content');
+  }
+
+  function chatBottomGap(el) {
+    el = el || chatScrollEl();
+    if (!el) return 0;
+    return Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop);
+  }
+
+  function isChatNearBottom(el, offset) {
+    el = el || chatScrollEl();
+    if (!el) return true;
+    var gap = Math.max(8, Number(offset) || 12);
+    return chatBottomGap(el) <= gap;
+  }
+
+  function currentMsgCount() {
+    var list = qs('#chat_list');
+    if (!list) return 0;
+    return list.querySelectorAll('.left-header, .right-header').length;
+  }
+
+  function syncLastMsgCount() {
+    lastMsgCount = currentMsgCount();
+  }
+
+  /** 有新消息且未贴底时立刻累加角标（不依赖 stick 标记） */
+  function absorbNewMessagesAsUnread() {
+    var now = currentMsgCount();
+    var added = Math.max(0, now - lastMsgCount);
+    lastMsgCount = now;
+    if (added <= 0) return 0;
+    if (isChatNearBottom(null, 24)) return 0;
+    chatStickBottom = false;
+    chatUnread = Math.min(999, chatUnread + added);
+    paintToBottomBtn();
+    return added;
+  }
+
+  /** 硬滚到底：直接写 scrollTop，并短时重试（详情卡/图片撑高后仍能贴底） */
+  function forceScrollChatBottom() {
+    var el = chatScrollEl();
+    if (!el) return;
+    var apply = function () {
+      try {
+        el.scrollTop = el.scrollHeight;
+      } catch (e) {}
+      try {
+        var bt = document.getElementById('chatBt');
+        if (bt && bt.scrollIntoView) bt.scrollIntoView({ block: 'end', inline: 'nearest' });
+      } catch (e2) {
+        try {
+          var bt2 = document.getElementById('chatBt');
+          if (bt2 && bt2.scrollIntoView) bt2.scrollIntoView(false);
+        } catch (e3) {}
+      }
+      try {
+        el.scrollTop = el.scrollHeight;
+      } catch (e4) {}
+    };
+    apply();
+    chatScrollAnim += 1;
+    var token = chatScrollAnim;
+    [30, 80, 160, 280, 450].forEach(function (ms) {
+      setTimeout(function () {
+        if (token !== chatScrollAnim) return;
+        apply();
+        if (isChatNearBottom(el, 12)) {
+          chatStickBottom = true;
+          chatUnread = 0;
+          syncLastMsgCount();
+        }
+        paintToBottomBtn();
+      }, ms);
+    });
+  }
+
+  function ensureToBottomBtn() {
+    var btn = qs('#fnChatToBottom');
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'fnChatToBottom';
+    btn.className = 'fn-chat-to-bottom';
+    btn.setAttribute('aria-label', '返回底部');
+    btn.innerHTML = '<span class="fn-chat-unread" id="fnChatUnread"></span>';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      chatUnread = 0;
+      chatStickBottom = true;
+      syncLastMsgCount();
+      paintToBottomBtn(true);
+      forceScrollChatBottom();
+      if (typeof window.scrollToBt === 'function') {
+        window.scrollToBt(true);
+      }
+    }, false);
+    document.body.appendChild(btn);
+    return btn;
+  }
+
+  function paintToBottomBtn(forceShow) {
+    var btn = ensureToBottomBtn();
+    var badge = qs('#fnChatUnread', btn) || qs('#fnChatUnread');
+    var near = isChatNearBottom(null, 12);
+    var show = !!forceShow || chatUnread > 0 || !near;
+    btn.classList.toggle('is-show', show);
+    if (badge) {
+      if (chatUnread > 0) {
+        badge.textContent = chatUnread > 99 ? '99+' : String(chatUnread);
+        badge.classList.add('is-on');
+      } else {
+        badge.textContent = '';
+        badge.classList.remove('is-on');
+      }
+    }
+    syncToBottomUnderKeyboard();
+  }
+
+  function syncToBottomUnderKeyboard() {
+    var btn = qs('#fnChatToBottom');
+    if (!btn) return;
+    var k1 = document.getElementById('keyboard1');
+    var k2 = document.getElementById('keyboard2');
+    var open = (k1 && k1.style.display !== 'none' && window.getComputedStyle(k1).display !== 'none')
+      || (k2 && k2.style.display !== 'none' && window.getComputedStyle(k2).display !== 'none')
+      || !!window.showKeyBord;
+    if (open) {
+      var dock = qs('.room-bottom-dock');
+      var dockHeight = dock ? Math.ceil(dock.getBoundingClientRect().height || 0) : 0;
+      if (dockHeight > 0) {
+        btn.style.setProperty('--fn-chat-dock-height', dockHeight + 'px');
+      }
+    } else {
+      btn.style.removeProperty('--fn-chat-dock-height');
+    }
+    btn.classList.toggle('is-kb-open', !!open);
+  }
+
+  function onChatScroll() {
+    var el = chatScrollEl();
+    if (!el) return;
+    var gap = chatBottomGap(el);
+    if (gap <= 12) {
+      chatStickBottom = true;
+      if (chatUnread > 0) chatUnread = 0;
+      syncLastMsgCount();
+    } else {
+      // 一旦离开贴底就停止跟滚，新消息改记未读
+      chatStickBottom = false;
+    }
+    paintToBottomBtn();
+  }
+
+  function bindChatScrollWatch() {
+    if (chatScrollBound) return;
+    var el = chatScrollEl();
+    if (!el) return;
+    chatScrollBound = true;
+    el.addEventListener('scroll', onChatScroll, { passive: true });
+    ensureToBottomBtn();
+    syncLastMsgCount();
+    // 进入房间默认贴底跟滚
+    chatStickBottom = isChatNearBottom(el, 24);
+    paintToBottomBtn();
+  }
+
+  function hookScrollToBt() {
+    var raw = window.scrollToBt;
+    if (typeof raw !== 'function' || raw.__fnToBottomHooked) return false;
+    window.scrollToBt = function (force) {
+      var forced = force === true;
+      // 贴底跟滚用 stick 标记：append 后 gap 会变大，不能再用「当前是否贴底」判断
+      if (forced || chatStickBottom) {
+        syncLastMsgCount();
+        chatStickBottom = true;
+        if (forced) chatUnread = 0;
+        forceScrollChatBottom();
+        paintToBottomBtn();
+        return;
+      }
+      // 用户已上滑：立刻按新增条数刷新角标
+      absorbNewMessagesAsUnread();
+      paintToBottomBtn();
+    };
+    window.scrollToBt.__fnToBottomHooked = true;
+    window.scrollToBt.__fnRaw = raw;
+    return true;
+  }
+
+  function watchChatListForUnread() {
+    var list = qs('#chat_list');
+    if (!list || typeof MutationObserver === 'undefined') return;
+    if (list.__fnUnreadWatch) return;
+    list.__fnUnreadWatch = true;
+    var mo = new MutationObserver(function () {
+      if (chatStickBottom) {
+        // 贴底时有新消息继续跟到底
+        syncLastMsgCount();
+        forceScrollChatBottom();
+        return;
+      }
+      absorbNewMessagesAsUnread();
+    });
+    mo.observe(list, { childList: true, subtree: false });
+  }
+
+  // 覆盖原 syncFabUnderKeyboard，顺带抬高回底按钮
+  var _syncFab = syncFabUnderKeyboard;
+  syncFabUnderKeyboard = function () {
+    try { _syncFab(); } catch (e) {}
+    try { syncToBottomUnderKeyboard(); } catch (e2) {}
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var live = qs('#roomLivePanel');
+    if (live) live.addEventListener('click', function (e) { e.stopPropagation(); }, false);
+    var sw = qs('#roomGameSwitch');
+    if (sw) sw.addEventListener('click', function (e) { e.stopPropagation(); }, false);
+
+    // 统一：返回大厅 / 进房链接，touchend 立即跳转，避免 WebView 吞 click
+    window.feiniaoGo = function (url) {
+      if (!url || window.__fnNavigating) return false;
+      window.__fnNavigating = true;
+      try {
+        // 大厅已经在历史栈中时复用原页面，避免重新请求 gamelist.php 造成整页闪动。
+        if (/do=gamelist(?:&|$)/i.test(url) && window.history && history.length > 1) {
+          history.back();
+        } else {
+          window.location.href = url;
+        }
+      } catch (e) {}
+      setTimeout(function () { window.__fnNavigating = false; }, 1800);
+      return false;
+    };
+    window.feiniaoBindTapNav = function (el, url) {
+      if (!el || !url || el.__fnTapNavBound) return;
+      el.__fnTapNavBound = true;
+      var sx = 0, sy = 0, moved = false;
+      var go = function (e) {
+        if (moved) return;
+        if (e) {
+          try { e.preventDefault(); } catch (err) {}
+          try { e.stopPropagation(); } catch (err2) {}
+        }
+        window.feiniaoGo(url);
+      };
+      el.addEventListener('touchstart', function (e) {
+        moved = false;
+        if (e.touches && e.touches[0]) {
+          sx = e.touches[0].clientX;
+          sy = e.touches[0].clientY;
+        }
+      }, { passive: true });
+      el.addEventListener('touchmove', function (e) {
+        if (!e.touches || !e.touches[0]) return;
+        if (Math.abs(e.touches[0].clientX - sx) > 12 || Math.abs(e.touches[0].clientY - sy) > 12) {
+          moved = true;
+        }
+      }, { passive: true });
+      el.addEventListener('click', go, false);
+      el.addEventListener('touchend', go, { passive: false });
+    };
+    var backs = document.querySelectorAll('.back');
+    for (var bi = 0; bi < backs.length; bi++) {
+      window.feiniaoBindTapNav(backs[bi], '/action.php?do=gamelist');
+    }
+    var hallLinks = document.querySelectorAll('a[href*="do=gamelist"], a[href*="do=room"]');
+    for (var hi = 0; hi < hallLinks.length; hi++) {
+      var a = hallLinks[hi];
+      var href = a.getAttribute('href') || '';
+      if (!href || href.indexOf('javascript:') === 0) continue;
+      // 侧栏切换游戏仍走原逻辑；大厅返回链接加强
+      if (href.indexOf('do=gamelist') >= 0) {
+        window.feiniaoBindTapNav(a, href);
+      }
+    }
+
+    // 有直播：尽早弹出提示，不依赖 boot/showOpenInfo
+    try { showLiveEntryGuide(); } catch (e0) {}
+
+    syncRoomHeadSpace();
+    window.addEventListener('resize', syncRoomHeadSpace, false);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncRoomHeadSpace, false);
+    }
+
+    // showOpenInfo 定义在靠后的 script，延迟挂钩
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      hookScrollToBt();
+      bindChatScrollWatch();
+      if (hookShowOpenInfo() || tries > 40) {
+        clearInterval(timer);
+        boot();
+        watchChatList();
+        watchChatListForUnread();
+        watchKeyboard();
+        hookScrollToBt();
+        bindChatScrollWatch();
+        syncLastMsgCount();
+        paintToBottomBtn();
+        syncRoomHeadSpace();
+        try { showLiveEntryGuide(); } catch (e1) {}
+      }
+    }, 50);
+  });
+
+  /** —— 乐观注单：发送瞬间先出 @ + 报表，回包后再换成正式消息 —— */
+  function escHtml(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function hezhiSplit(str) {
+    // 对齐 PHP 和值分割：单独的 1 与下一位合并（19/10…）
+    var arr = String(str).split('');
+    var out = [];
+    var ii_1_b = true;
+    var ii_1 = '';
+    for (var j = 0; j < arr.length; j++) {
+      var ch = arr[j];
+      var val = ch;
+      if (!ii_1_b && ii_1 === '1') val = '1' + ch;
+      ii_1 = ch;
+      if (ii_1_b) ii_1_b = false;
+      if (ch === '1') continue;
+      out.push(val);
+    }
+    return out;
+  }
+  function digitChars(str) {
+    return String(str).replace(/\D/g, '').split('');
+  }
+  function posTitle(mingci) {
+    var map = {
+      '1': '冠军', '2': '亚军', '3': '第三名', '4': '第四名', '5': '第五名',
+      '6': '第六名', '7': '第七名', '8': '第八名', '9': '第九名', '0': '第十名', '10': '第十名',
+      '和': '冠亚和', '合': '冠亚和'
+    };
+    return map[String(mingci)] || String(mingci);
+  }
+  function betOdds(mingci, content) {
+    var o = window.ROOM_BET_ODDS || {};
+    var c = String(content);
+    if (mingci === '和' || mingci === '合') {
+      if (c === '大') return o.heda || o.da || '1.988';
+      if (c === '小') return o.hexiao || o.xiao || '1.988';
+      if (c === '单') return o.hedan || o.dan || '1.988';
+      if (c === '双') return o.heshuang || o.shuang || '1.988';
+      return o.tema || '9.88';
+    }
+    if (c === '大') return o.da || '1.988';
+    if (c === '小') return o.xiao || '1.988';
+    if (c === '单') return o.dan || '1.988';
+    if (c === '双') return o.shuang || '1.988';
+    if (c === '龙') return o.long || '1.988';
+    if (c === '虎') return o.hu || '1.988';
+    if (c === '大单') return o.dadan || '3.8';
+    if (c === '小单') return o.xiaodan || '3.8';
+    if (c === '大双') return o.dashuang || '3.8';
+    if (c === '小双') return o.xiaoshuang || '3.8';
+    return o.tema || '9.88';
+  }
+  function parseOptimisticOrders(content) {
+    var orders = [];
+    var chunks = String(content || '').replace(/^\s+|\s+$/g, '').split(/\s+/);
+    for (var ci = 0; ci < chunks.length; ci++) {
+      var ai = String(chunks[ci] || '').replace(/\s/g, '');
+      if (!ai) continue;
+      if (ai.charAt(0) === '/') ai = '1' + ai;
+      var b = ai.split('/');
+      if (b.length === 2) b = ['1', b[0], b[1]];
+      if (b.length !== 3) continue;
+      var money = parseInt(b[2], 10);
+      if (!(money > 0)) continue;
+      var p0 = b[0];
+      var p1 = b[1];
+      if (p0 === '和' || p0 === '合') {
+        if (/^(大|小|单|双)$/.test(p1)) {
+          orders.push({ mingci: '和', content: p1, money: money });
+        } else {
+          var hz = hezhiSplit(p1);
+          for (var hi = 0; hi < hz.length; hi++) {
+            orders.push({ mingci: '和', content: hz[hi], money: money });
+          }
+        }
+        continue;
+      }
+      if (/^(大单|小单|大双|小双|大|小|单|双|龙|虎)$/.test(p1)) {
+        var ps = digitChars(p0);
+        for (var pi = 0; pi < ps.length; pi++) {
+          orders.push({ mingci: ps[pi], content: p1, money: money });
+        }
+        continue;
+      }
+      var pos = digitChars(p0);
+      var nums = digitChars(p1);
+      for (var a = 0; a < pos.length; a++) {
+        for (var n = 0; n < nums.length; n++) {
+          orders.push({ mingci: pos[a], content: nums[n], money: money });
+        }
+      }
+    }
+    return orders;
+  }
+  function buildOptimisticSlipHtml(term, orders) {
+    if (!orders || !orders.length) return '';
+    var total = 0;
+    var rows = '';
+    var follow = [];
+    for (var i = 0; i < orders.length; i++) {
+      var row = orders[i];
+      var money = Number(row.money) || 0;
+      total += money;
+      var mingci = String(row.mingci == null ? '' : row.mingci);
+      var play = String(row.content == null ? '' : row.content);
+      var odds = String(betOdds(mingci, play));
+      var title = mingci === '' ? play : (posTitle(mingci) + '-' + play);
+      var moneyTxt = money.toFixed(2).replace(/\.?0+$/, '');
+      if (mingci === '') follow.push(play + '/' + moneyTxt);
+      else follow.push(mingci + '/' + play + '/' + moneyTxt);
+      rows += '<div class="fn-bet-line" style="display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;min-height:36px!important;padding:6px 8px!important;border-bottom:1px solid #eee!important;font-size:14px!important;color:#4b4b4b!important;box-sizing:border-box!important;">'
+        + '<b style="flex:1 1 auto;min-width:0;font-weight:700;color:#4b4b4b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(title) + '</b>'
+        + '<span style="flex:0 0 auto;white-space:nowrap;font-weight:700;">'
+        + '<span style="color:#e53935!important;">' + escHtml(odds) + '</span>'
+        + '<span style="color:#999;margin:0 3px;">×</span>'
+        + '<span style="color:#177cbd!important;">¥' + money.toFixed(2) + '</span>'
+        + '</span></div>';
+    }
+    var followText = escHtml(follow.join(' '));
+    var termText = escHtml(String(term || ''));
+    return '<div class="fn-bet-card" style="display:block!important;margin-top:4px!important;overflow:hidden!important;border-radius:5px!important;background:#fff!important;color:#4b4b4b!important;border:1px solid #e6e6e6!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;">'
+      + '<div class="fn-bet-hd" style="display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:36px!important;padding:0 10px!important;background:#2f86e0!important;background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%)!important;color:#fff!important;font-size:14px!important;">'
+      + '<b style="color:#fff!important;font-weight:700;">' + termText + '期</b>'
+      + '<a href="javascript:;" class="fn-bet-follow" data-bet="' + followText + '" onclick="var t=this.getAttribute(\'data-bet\');var i=document.querySelector(\'.keyb-input textarea\');if(i&&t){i.value=t;i.focus();}return false;" style="display:inline-flex!important;align-items:center!important;gap:4px!important;border:0!important;border-radius:4px!important;padding:4px 9px!important;background:#fff!important;color:#168da8!important;font-size:13px!important;font-weight:800!important;text-decoration:none!important;">跟投</a>'
+      + '</div><div class="fn-bet-lines">' + rows + '</div>'
+      + '<div class="fn-bet-ft" style="padding:8px 10px!important;text-align:left!important;font-size:13px!important;color:#5a6b73!important;">注单' + orders.length + '条，总计：<strong style="color:#d32632!important;">¥' + total.toFixed(2) + '</strong></div></div>';
+  }
+  function resolveAdminBubble() {
+    var nick = '管理员';
+    var head = '';
+    try {
+      var list = window.ROOM_BOOT_CHAT || [];
+      for (var i = list.length - 1; i >= 0; i--) {
+        var row = list[i] || {};
+        if (row.type === 'S1' || row.userid === 'system') {
+          if (row.nickname) nick = String(row.nickname);
+          if (row.headimg) head = String(row.headimg);
+          break;
+        }
+      }
+      if (!head) {
+        var imgs = document.querySelectorAll('#chat_list .left-header .lheader img');
+        if (imgs && imgs.length) head = imgs[imgs.length - 1].getAttribute('src') || '';
+      }
+    } catch (e) {}
+    return { nickname: nick, headimg: head };
+  }
+  function leftAdminHtml(id, nick, head, time, contentHtml) {
+    var safeNick = escHtml(nick);
+    var safeTime = escHtml(time || '现在');
+    var safeHead = escHtml(head || '');
+    var leftHeader = safeHead ? '<img src="' + safeHead + '">' : '';
+    return '<div id="' + escHtml(id) + '" class="left-header fn-bet-optimistic">'
+      + '<div class="lheader">' + leftHeader + '</div>'
+      + '<div class="content-box"><div class="nick-name">' + safeNick + '  ' + safeTime + '</div>'
+      + '<div class="content-info"><div class="chatnarr"></div><div class="info-content">' + contentHtml + '</div></div></div>'
+      + '<div class="rheader"></div></div>';
+  }
+
+  window.clearOptimisticBetReport = function (key) {
+    try {
+      var nodes = document.querySelectorAll('.fn-bet-optimistic');
+      for (var i = 0; i < nodes.length; i++) {
+        if (!key || nodes[i].getAttribute('data-opt-key') === key) {
+          if (nodes[i] && nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+        }
+      }
+    } catch (e) {}
+  };
+
+  /** 发送瞬间插入 @ + 注单卡；返回是否插入成功 */
+  window.appendOptimisticBetReport = function (content) {
+    try {
+      var orders = parseOptimisticOrders(content);
+      if (!orders.length) return false;
+      var term = window.__roomNextSn || '';
+      if (!term && window.ROOM_BOOT_OPEN) {
+        term = window.ROOM_BOOT_OPEN.next_sn || window.ROOM_BOOT_OPEN.current_sn || '';
+      }
+      try {
+        var sn = document.getElementById('next_sn');
+        if (sn && sn.textContent) term = String(sn.textContent).replace(/\s+/g, '') || term;
+      } catch (e2) {}
+      var slip = buildOptimisticSlipHtml(term, orders);
+      if (!slip) return false;
+      var admin = resolveAdminBubble();
+      var me = window.ROOM_BOOT_USER || '我';
+      var atHtml = '<span class="chat-at" style="color:#2b7cff!important;font-weight:600;">@' + escHtml(me) + '</span>';
+      var uid = 'opt-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+      var html = leftAdminHtml(uid + '-at', admin.nickname, admin.headimg, '现在', atHtml)
+        + leftAdminHtml(uid + '-slip', admin.nickname, admin.headimg, '现在', slip);
+      var box = document.getElementById('chat_list');
+      if (!box) return false;
+      var wrap = document.createElement('div');
+      wrap.innerHTML = html;
+      while (wrap.firstChild) {
+        var node = wrap.firstChild;
+        node.setAttribute('data-opt-key', uid);
+        box.appendChild(node);
+      }
+      if (typeof window.scrollToBt === 'function') window.scrollToBt();
+      return uid;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  function roomUiFlags() {
+    var f = window.ROOM_UI_FLAGS || {};
+    return {
+      forecast: f.forecast !== false,
+      followBet: f.followBet !== false,
+      keyboard: f.keyboard !== false,
+      showFlow: f.showFlow !== false,
+      showOdds: f.showOdds !== false,
+      autoRebate: !!f.autoRebate,
+      betStyle: String(f.betStyle || 'chat') === 'panel' ? 'panel' : 'chat'
+    };
+  }
+
+  function applyRoomUiFlags() {
+    var f = roomUiFlags();
+    try {
+      if (!f.forecast) {
+        var yc = document.querySelectorAll('.bgzimg[onclick*="forecast"], .bgzimg[onclick*="pop-forecast"]');
+        for (var i = 0; i < yc.length; i++) yc[i].style.display = 'none';
+      }
+      if (!f.showFlow) {
+        var ls = document.getElementById('user_ls');
+        if (ls && ls.parentNode) ls.parentNode.style.display = 'none';
+      }
+      if (!f.keyboard) {
+        var sw = document.getElementById('switchkb');
+        if (sw) sw.style.display = 'none';
+        ['keyboard1', 'keyboard2'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+      }
+      if (!f.autoRebate) {
+        var hs = document.querySelectorAll('.fast-keyboard-url li[data-action="huishui"]');
+        for (var h = 0; h < hs.length; h++) hs[h].style.display = 'none';
+      }
+      if (f.betStyle === 'panel') {
+        document.documentElement.classList.add('fn-bet-style-panel');
+      }
+      if (!f.followBet) {
+        document.documentElement.classList.add('fn-hide-follow-bet');
+      }
+      if (!f.showOdds) {
+        document.documentElement.classList.add('fn-hide-odds');
+      }
+    } catch (e) {}
+  }
+
+  // 样式二：注单卡更扁的面板风；关跟投/赔率时用 CSS 隐藏
+  try {
+    var st = document.createElement('style');
+    st.textContent =
+      '.fn-hide-follow-bet .fn-bet-follow{display:none!important;}' +
+      '.fn-hide-odds .fn-bet-line span span:first-child{visibility:hidden;}' +
+      '.fn-bet-style-panel .fn-bet-card{border-radius:0!important;border-color:#cfd8dc!important;}' +
+      '.fn-bet-style-panel .fn-bet-hd{background:#455a64!important;background-image:none!important;}';
+    document.head.appendChild(st);
+  } catch (e) {}
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyRoomUiFlags);
+  } else {
+    applyRoomUiFlags();
+  }
+  window.applyRoomUiFlags = applyRoomUiFlags;
+})(window, document);

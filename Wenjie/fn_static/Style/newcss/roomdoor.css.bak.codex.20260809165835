@@ -1,0 +1,113 @@
+html, body{
+  background-color: #4a9fe0;
+}
+.mainbox{
+  --fn-safe-top: max(env(safe-area-inset-top, 0px), var(--fn-status-bar, 0px));
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background-color: #0173eb;
+  background: url("../newimg/bj.png?v=20260726y") center bottom / cover no-repeat;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+/* 只用原版半透明 webp 叠在风景上，不再垫实色板（实色板会发白） */
+.mainbox .roomtop{
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  --fn-top-arc-h: calc(100vw * 252 / 1125 * 2 / 3);
+  height: calc(var(--fn-safe-top) + var(--fn-top-arc-h));
+  box-sizing: border-box;
+  background: transparent;
+  overflow: visible;
+}
+.mainbox .roomtop .roomtop-bg{
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  margin: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+/* 头像/按钮垂直居中于圆弧带 */
+.roomtop .top-btn{
+  position: absolute;
+  top: calc(var(--fn-safe-top) + var(--fn-top-arc-h) / 2);
+  right: 0.1rem;
+  transform: translateY(-50%);
+  display: flex;
+  z-index: 3;
+}
+.roomtop .top-btn li{position: relative;margin-left: 0.1rem}
+.roomtop .top-btn .bgimg{width: 1.7rem}
+.roomtop .top-btn span{position: absolute;left: 0.2rem;top: 50%;transform: translate(0, -60%);display: flex;align-items: center;font-size: 0.22rem;color: white}
+.roomtop .top-btn span img{width: 0.25rem;margin-right: 0.1rem}
+
+.mainbox .roomtop .userinfo{
+  display: flex;
+  position: absolute;
+  left: 0.2rem;
+  top: calc(var(--fn-safe-top) + var(--fn-top-arc-h) / 2);
+  transform: translateY(-50%);
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 0.24rem;
+  z-index: 3;
+}
+.mainbox .roomtop .userinfo p{margin-left: 0.1rem;line-height: 1;}
+.mainbox .roomtop .userinfo img{width: 0.72rem;height: 0.72rem;border-radius: 0.72rem}
+
+/* 登录区紧贴圆弧下方，不再整页垂直居中（会显得过低） */
+.mainbox .roomdoor-body{
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 0;
+  padding-top: 0.15rem;
+  padding-bottom: 0.6rem;
+  box-sizing: border-box;
+}
+
+.roomnum{position: relative;display: flex;justify-content: center;font-size: 0.24rem;color: white;padding: 0.3rem 0rem}
+.roomnum img{width: 2rem;height: auto}
+.roomnum span{position: absolute;left: 50%;top: 50%;transform: translate(-50%, -50%);}
+
+.room-num-input{margin: 0rem 0.5rem;border-radius: 100px;background-color: rgba(255,255,255,0.5);border: 1px solid #FFFFFF;padding: 0.3rem 0.1rem;display: flex;justify-content:space-around;box-sizing: border-box}
+.room-num-input input{flex-grow: 0;flex-shrink: 1;height: 0.8rem;background-color: #9FA8AF;border: 1px solid #FFFFFF;border-radius: 10px;width: 10%;font-size: 0.3rem;text-align: center;font-weight: bold;color: white}
+
+.room-in{margin: 0rem 0.5rem;position: relative; margin-top: 0.2rem}
+.room-in span{position: absolute;left: 50%;top: 50%;transform: translate(-50%, -50%);font-size: 0.3rem;color: white;}
+.room-in img{width: 100%;}
+
+.room-history{margin: 0.35rem 0.5rem 0;display: flex;flex-direction: column}
+.room-history .history-title{font-size: 0.28rem;color: white;margin-bottom: 0.12rem}
+
+.mainbox .btn-bg{flex-grow: 0;flex-shrink: 0;}
+.mainbox .btn-bg img{width: 100%}
+
+.listroom{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:flex-start;gap:0.22rem 0.12rem;padding:0.05rem 0;box-sizing:border-box}
+.listroom .roomrow{display:flex;flex-direction:column;align-items:center;width:23.5%;margin:0;padding:0.06rem 0;box-sizing:border-box;cursor:pointer;text-align:center;list-style:none;background:transparent!important;border:0!important;outline:none!important;-webkit-tap-highlight-color:transparent!important;-webkit-user-select:none;user-select:none}
+.listroom .roomrow:focus,.listroom .roomrow:active,.listroom .roomrow:hover{outline:none!important;background:transparent!important;box-shadow:none!important;border:0!important}
+.listroom .roomrow .room-avatar{display:flex;justify-content:center;align-items:center;width:100%;margin:0;padding:0;line-height:0;text-align:center}
+.listroom .roomrow .room-avatar img,.listroom .roomrow img{width:1.05rem;height:1.05rem;margin:0 auto;border-radius:0.12rem;object-fit:cover;background:rgba(255,255,255,0.25);display:block}
+.listroom .roomrow .room-no,.listroom .roomrow .room-name,.listroom .roomrow p{display:block;width:100%;margin:0;padding:0;text-align:center;color:#fff;box-sizing:border-box}
+.listroom .roomrow .room-no{margin-top:0.08rem;font-size:0.22rem;font-weight:700;line-height:1.2}
+.listroom .roomrow .room-name{margin-top:0.04rem;font-size:0.2rem;line-height:1.25;max-height:2.5em;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:break-all;opacity:.95}
+
+.footer_menu{display: flex;position: fixed;bottom: 0px;width: 100%;left: 0px;justify-content: space-between;align-items: center;padding: 0.1rem 0.2rem;box-sizing: border-box}
+.footer_menu li{display: flex;}
+.footer_menu li img{width: auto;height: 1rem}

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#5babeb" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=20260727a" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260727a" />
+    <title>昆仑山入口</title>
+
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/common.css" />
+    <link rel="Stylesheet" type="text/css" href="/Style/newcss/roomdoor.css?v=20260803pagelock1" />
+    <script type="text/javascript" src="/Style/newjs/jquery-1.10.1.min.js"></script>
+    <script type="text/javascript" src="/Style/newjs/room-overscroll.js?v=20260803pagelock1"></script>
+<link rel="Stylesheet" type="text/css" href="/Style/pop/css/style.css" />
+    <script type="text/javascript" src="/Style/pop/js/popups.js"></script>
+    <script type="text/javascript">
+        window.onerror=function (x,y,z) {
+            //alert(x+"=="+y+"=="+z);
+        }
+    </script>
+    <style type="text/css">
+        input{ime-mode:disabled;}
+    </style>
+<script type="text/javascript" src="/Style/plus.js?v=20260811nativeonly1"></script>
+<meta name="csrf-token" content="<?php echo htmlspecialchars(feiniao_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>" />
+</head>
+<body>
+<script>
+(function(){
+  try{
+    var root=document.documentElement;
+    var probe=document.createElement("div");
+    probe.style.cssText="position:fixed;top:0;left:0;height:env(safe-area-inset-top);width:0;visibility:hidden;pointer-events:none;";
+    document.documentElement.appendChild(probe);
+    var inset=probe.getBoundingClientRect().height||0;
+    probe.remove();
+    if(inset<1){
+      // 多数 App WebView 不注入 safe-area，用状态栏高度兜底让蓝底盖住顶部
+      inset=Math.round((window.devicePixelRatio>2?48:32));
+    }
+    root.style.setProperty("--fn-status-bar", inset+"px");
+  }catch(e){}
+})();
+</script>
+<div class="mainbox max-width">
+    <div class="roomtop" style="flex-shrink: 0">
+        <img class="roomtop-bg" src="/Style/newimg/ic_game_list_top_bg.webp?v=20260724x" alt="">
+        <div class="userinfo">
+            <p><img style="height: 0.72rem!important;width: 0.72rem!important;" src="<?=$_SESSION['headimg'];?>" onerror="this.onerror=null;this.src='/Style/newimg/laba.png'"></p>
+            <p>
+                <span><?=$_SESSION['username'];?></span>
+            </p>
+        </div>
+        <div class="top-btn">
+            <li onclick="window.location.href='/Templates/user/setting.php'"><img class="bgimg" src="/Style/newimg/setting-bg.png"><span><img src="/Style/newimg/setting.png">个人设置</span></li>
+            <li id="logout"><img class="bgimg" src="/Style/newimg/exit-bg.png"><span><img src="/Style/newimg/exit.png">安全退出</span></li>
+        </div>
+    </div>
+    <div class="roomdoor-body">
+    <div class="roomnum" style="flex-shrink: 0"><img src="/Style/newimg/roomnum.png" style="width: auto!important;height: 0.6rem!important;"><span>房间号</span></div>
+    <div class="room-num-input" id="numinput" style="flex-shrink: 0">
+        <!-- iOS 中文环境 type=number 常仍出全键盘；tel + inputmode + pattern 才能稳定唤起数字键盘 -->
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" enterkeyhint="done" value="">
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" enterkeyhint="done" value="">
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" enterkeyhint="done" value="">
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" enterkeyhint="done" value="">
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" enterkeyhint="done" value="">
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" enterkeyhint="done" value="">
+    </div>
+    <div class="room-in" id="loginroom" style="flex-shrink: 0"><img src="/Style/newimg/tologin.png"><span>登录</span></div>
+    <div class="room-history" style="flex-shrink: 0">
+        <div class="history-title">历史房间:</div>
+
+        <div class="listroom">
+            <?php
+            $histUid = db_escape_string((string)$_SESSION['userid']);
+            $histSeen = array();
+            $histCount = 0;
+            select_query("fn_user", 'roomid', "`userid` = '{$histUid}' and roomid<>0 order by `id` desc limit 30");
+            while ($con = db_fetch_array()) {
+                $rid = (int)$con['roomid'];
+                if ($rid <= 0 || isset($histSeen[$rid])) {
+                    continue;
+                }
+                // 房间已删则不展示
+                if (!get_query_val('fn_room', 'id', array('roomid' => $rid))) {
+                    continue;
+                }
+                $histSeen[$rid] = 1;
+                $card = feiniao_history_room_display($rid);
+                if ($card['roomid'] <= 0) {
+                    continue;
+                }
+                $histCount++;
+                if ($histCount > 8) {
+                    break;
+                }
+                $avatarEsc = htmlspecialchars($card['avatar'], ENT_QUOTES, 'UTF-8');
+                $nameEsc = htmlspecialchars($card['name'], ENT_QUOTES, 'UTF-8');
+                $noEsc = htmlspecialchars($card['roomno'], ENT_QUOTES, 'UTF-8');
+                ?>
+                <li class="roomrow" data-roomid="<?= (int)$card['roomid']; ?>">
+                    <p class="room-avatar"><img src="<?= $avatarEsc; ?>" alt="" onerror="this.onerror=null;this.src='/Style/newimg/laba.png'"></p>
+                    <p class="room-no"><?= $noEsc; ?></p>
+                    <p class="room-name"><?= $nameEsc; ?></p>
+                </li>
+                <?php
+            }
+            ?>
+
+        </div>
+
+    </div>
+    </div>
+    <!--<div class="btn-bg"><img src="/Style/newimg/loginbt-dark.png"></div>-->
+</div>
+<!--<div class="footer_menu">
+    <li data-url="/action.php?do=kefu"><img src="/Style/newimg/m_icon_4.png"></li>
+    <li data-url="/Templates/user/"><img src="/Style/newimg/m_icon_2.png"></li>
+    <li data-url=""><img src="/Style/newimg/m_icon_3.png"></li>
+    <li data-url="/Templates/user/setting.php"><img src="/Style/newimg/m_icon_1.png"></li>
+</div>-->
+<script type="text/javascript">
+    function feiniaoCsrf() {
+        return (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+    }
+    $('.footer_menu li').on('click',function () {
+        var url=$(this).data('url');
+        window.location.href=url;
+    });
+    $('.roomrow[data-roomid]').on('click',function () {
+        var roomid=$(this).data('roomid');
+        try { this.blur(); } catch(e) {}
+        $.ajax({
+            url:'action.php?do=findroom',
+            dataType:'json',
+            type:'post',
+            headers: { 'X-CSRF-TOKEN': feiniaoCsrf() },
+            data:{'room':roomid, '_csrf': feiniaoCsrf()},
+            success:function (res) {
+                if(res.status==1){
+                    // 房间校验成功即可进入大厅，不能再人为阻塞一秒。
+                    window.location.replace('/action.php?do=gamelist');
+                }else{
+                    jqtoast(res.msg);
+                }
+            }
+        })
+    })
+</script>
+<script type="text/javascript">
+var keyAll=['','','','','',''];
+var fromInput=0;
+$('#numinput input').on('input',function () {
+    var digits=String($(this).val()||'').replace(/\D/g,'');
+    if(digits!==''){
+        $(this).val(digits.substr(-1));
+        $(this).next('input').focus();
+    }else{
+        $(this).val('');
+    }
+}).on('keyup',function (e) {
+    var thisValue=String($(this).val()||'').replace(/\D/g,'');
+    if(e.keyCode==8){
+        // backspace handled in keydown
+    }else if(thisValue!==''){
+        $(this).val(thisValue.substr(-1));
+        $(this).next('input').focus();
+    }else{
+        $(this).val('');
+    }
+}).on('keydown',function (e) {
+    var thisValue=String($(this).val()||'');
+    if(e.keyCode==8 && thisValue=="") $(this).prev('input').focus();
+});
+var xtime;
+function showText(){
+    clearTimeout(xtime);
+    xtime=setTimeout(function () {
+        for (i=0;i<6;i++){
+            if(typeof keyAll[i]=="undefined") break;
+            $('#numinput input').eq(i).val(keyAll[i]);
+            //console.log('add',keyAll[i]);
+        }
+    },50);
+
+}
+
+
+$('#loginroom').on('click',function () {
+    var totalStr='';
+    $('#numinput input').each(function () {
+        totalStr+=""+$(this).val();
+    });
+    $.ajax({
+        url:'action.php?do=findroom',
+        dataType:'json',
+        type:'post',
+        headers: { 'X-CSRF-TOKEN': (typeof feiniaoCsrf === 'function' ? feiniaoCsrf() : '') },
+        data:{'room':totalStr, '_csrf': (typeof feiniaoCsrf === 'function' ? feiniaoCsrf() : '')},
+        success:function (res) {
+            if(res.status==1){
+                // 键盘输入房号与历史房间走同一条即时跳转链路。
+                window.location.replace('/action.php?do=gamelist');
+            }else{
+                jqtoast(res.msg);
+            }
+        }
+    })
+})
+    $('#logout').on('click',function () {
+        jqalert({
+            content:'确认要退出吗？',
+            yestext:'退出',
+            notext:'取消',
+            yesfn:function () {
+                window.location.href='/action.php?do=logout';
+            }
+        })
+
+    })
+</script>
+</body>
+</html>
