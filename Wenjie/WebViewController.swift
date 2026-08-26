@@ -697,9 +697,9 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
     }
 
     private func preloadBundledFrontendThenLoadHome() {
-        // 包内上千个文件逐个映射不会预热 HTTPS 缓存，反而阻塞首屏请求。
-        // 立即启动真实页面请求，固定素材由 UIImage 和 WebKit 持久磁盘缓存各自处理。
-        loadHome()
+        // 首次启动 WKWebView 需要编译 WebKit 框架，直接加载远程页面会白屏。
+        // 先加载本地 shell 让 WebView 有内容渲染，编译完成后再切换到远程页面。
+        loadBundledShellThenHome()
     }
 
     private func loadBundledShellThenHome() {
