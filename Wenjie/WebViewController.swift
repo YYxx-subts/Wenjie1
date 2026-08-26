@@ -168,8 +168,6 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         let nativeFlags = WKUserScript(
             source: """
             window.__FN_NATIVE_PAGE_TRANSITION__=true;window.__FN_NATIVE_LOADING__=true;
-            // 所有可点击入口在自身 onclick/ontouchend 和默认跳转前先保存当前页。
-            // 覆盖 a[href]、表单按钮以及 data-url + location.href/assign 的房间入口。
             function fnPrepareNativeBackPreview(event) {
               var node = event.target;
               if (!node || !node.closest) return;
@@ -186,12 +184,26 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
             forMainFrameOnly: true
         )
         configuration.userContentController.addUserScript(nativeFlags)
-        // WKWebView 不能像 Android WebView 一样安全地拦截 HTTPS 子资源并替换为自定义协议。
-        // 强行改写 CSS/JS URL 会破坏相对路径和脚本执行，造成页面错版、按钮失效。
-        // 因此页面维持原始 HTTPS 同源加载，交给 WebKit 的磁盘缓存处理；IPA 仍保留公共素材，
-        // 供后续原生离线页面升级使用，但绝不影响现有网页业务。
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init(nibName: nil, bundle: nil)
+        // 在 init 里就显示启动图，覆盖 WKWebView 冷启动编译期间的白屏
+        showStartupCover()
+    }
+
+    private func showStartupCover() {
+        guard let window = UIApplication.shared.windows.first ?? (UIApplication.shared.value(forKey: "statusBarWindow") as? UIWindow)?.window ?? nil else { return }
+        let cover = UIView(frame: window.bounds)
+        cover.tag = 9999
+        cover.backgroundColor = UIColor(red: 20/255, green: 143/255, blue: 232/255, alpha: 1)
+        if let imgPath = Bundle.main.path(forResource: "startup_loading", ofType: "jpg", inDirectory: "fn_static"),
+           let img = UIImage(contentsOfFile: imgPath) {
+            let iv = UIImageView(frame: cover.bounds)
+            iv.image = img
+            iv.contentMode = .scaleAspectFill
+            iv.clipsToBounds = true
+            cover.addSubview(iv)
+        }
+        window.addSubview(cover)
     }
 
     private static func nativeModelIdentifier() -> String {
@@ -735,6 +747,10 @@ final class WebViewController: UIViewController, WKNavigationDelegate, WKUIDeleg
         startupLoadingVisible = false
         startupProgressTimer?.invalidate()
         startupProgressGradient.removeAnimation(forKey: "fnProgressLight")
+        // 移除 init 阶段添加的冷启动覆盖层
+        if let window = UIApplication.shared.windows.first ?? (UIApplication.shared.value(forKey: "statusBarWindow") as? UIWindow)?.window ?? nil {
+            window.viewWithTag(9999)?.removeFromSuperview()
+        }
         // WebKit 完成导航不等于用户已经看见进度条走完。先从当前可见进度连续补到
         // 100%，动画完成后才切到下一页，避免进度条半途消失。
         let remaining = max(0, 1 - startupProgress)
