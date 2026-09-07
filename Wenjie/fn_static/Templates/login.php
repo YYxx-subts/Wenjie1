@@ -111,8 +111,8 @@ $wjPhPassAttr = $wjPhPass !== '' ? htmlspecialchars($wjPhPass, ENT_QUOTES, 'UTF-
 
 // data-* 保存设计稿坐标，避免 transform 缩放下 input 失效
 // iOS/Safari 某些场景 placeholder 会重复渲染或与覆盖层叠加：这里不使用 placeholder，仅用覆盖层 wjPhUser/wjPhPass
-echo '<input id="uname" data-x="30" data-y="290" data-w="320" data-h="46" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="' . $wjPhUserAttr . '" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
-echo '<input id="pass" data-x="30" data-y="350" data-w="320" data-h="46" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="' . $wjPhPassAttr . '" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
+echo '<input id="uname" data-x="30" data-y="290" data-w="320" data-h="46" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="' . $wjPhUserAttr . '" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px 0 40px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
+echo '<input id="pass" data-x="30" data-y="350" data-w="320" data-h="46" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="' . $wjPhPassAttr . '" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px 0 40px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
 // 登录按钮覆盖图片区域
 echo '<button type="button" id="dologin" data-x="30" data-y="480" data-w="320" data-h="48" aria-label="登录" style="position:absolute;left:0;top:0;width:320px;height:48px;border:0;background:transparent;color:transparent;cursor:pointer;">login</button>';
 echo '<input id="totp" type="hidden">';
