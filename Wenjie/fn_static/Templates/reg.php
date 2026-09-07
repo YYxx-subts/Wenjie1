@@ -82,21 +82,21 @@ wjRegPhDiv('请输入8-16位密码', 'wjPhPass', $wjPhEls);
 wjRegPhDiv('请再次填写密码', 'wjPhRepass', $wjPhEls);
 
 // 4 个真实输入框（坐标与 editor 中 rect 背景对齐）
-// 昵称：rect y=261.5, h=46 → 输入框 y=261.5, 居中 padding-top 11px
-echo '<input id="nickname" data-x="50" data-y="261.5" data-w="279" data-h="46" type="text" maxlength="16" autocomplete="nickname" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="昵称" style="position:absolute;left:0;top:0;width:279px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
-// 账号：rect y=320, h=46
-echo '<input id="uname" data-x="50" data-y="320" data-w="279" data-h="46" type="text" maxlength="15" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="账号" style="position:absolute;left:0;top:0;width:279px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
-// 密码：rect y=380, h=46
-echo '<input id="pass" data-x="50" data-y="380" data-w="279" data-h="46" type="password" maxlength="16" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="密码" style="position:absolute;left:0;top:0;width:279px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
-// 确认密码：rect y=440, h=46
-echo '<input id="repass" data-x="50" data-y="440" data-w="279" data-h="46" type="password" maxlength="16" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="确认密码" style="position:absolute;left:0;top:0;width:279px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
+// 昵称：rect x=30 y=261.5, w=320 h=46
+echo '<input id="nickname" data-x="30" data-y="261.5" data-w="320" data-h="46" type="text" maxlength="16" autocomplete="nickname" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="昵称" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
+// 账号：rect x=30 y=320, w=320 h=46
+echo '<input id="uname" data-x="30" data-y="320" data-w="320" data-h="46" type="text" maxlength="15" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="账号" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
+// 密码：rect x=30 y=380, w=320 h=46
+echo '<input id="pass" data-x="30" data-y="380" data-w="320" data-h="46" type="password" maxlength="16" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="密码" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
+// 确认密码：rect x=30 y=440, w=320 h=46
+echo '<input id="repass" data-x="30" data-y="440" data-w="320" data-h="46" type="password" maxlength="16" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="确认密码" style="position:absolute;left:0;top:0;width:320px;height:46px;padding:0 20px;border:0;outline:none;background:transparent;font-size:15px;line-height:46px;color:#175DAA;" />';
 
-// 注册按钮（覆盖图片区域 y=496, 280×48）
-echo '<button type="button" id="doreg" data-x="50" data-y="496" data-w="280" data-h="48" aria-label="注册" style="position:absolute;left:0;top:0;width:280px;height:48px;border:0;background:transparent;color:transparent;cursor:pointer;">注册</button>';
-// 返回登录按钮（覆盖图片区域 y=553, 280×48）
-echo '<button type="button" id="dologin" data-x="50" data-y="553" data-w="280" data-h="48" aria-label="返回登录" style="position:absolute;left:0;top:0;width:280px;height:48px;border:0;background:transparent;color:transparent;cursor:pointer;">返回登录</button>';
+// 注册按钮（覆盖图片区域 x=30 y=496, 320×48）
+echo '<button type="button" id="doreg" data-x="30" data-y="496" data-w="320" data-h="48" aria-label="注册" style="position:absolute;left:0;top:0;width:320px;height:48px;border:0;background:transparent;color:transparent;cursor:pointer;">注册</button>';
+// 返回登录按钮（覆盖图片区域 x=30 y=553, 320×48）
+echo '<button type="button" id="dologin" data-x="30" data-y="553" data-w="320" data-h="48" aria-label="返回登录" style="position:absolute;left:0;top:0;width:320px;height:48px;border:0;background:transparent;color:transparent;cursor:pointer;">返回登录</button>';
 // "账号登录" tab 点击跳转登录页（覆盖文字热区）
-echo '<button type="button" id="wjGoLogin" data-x="67.5" data-y="194" data-w="110" data-h="30" aria-label="账号登录" style="position:absolute;left:0;top:0;width:110px;height:30px;border:0;background:transparent;color:transparent;cursor:pointer;">账号登录</button>';
+echo '<button type="button" id="wjGoLogin" data-x="67.5" data-y="200" data-w="110" data-h="30" aria-label="账号登录" style="position:absolute;left:0;top:0;width:110px;height:30px;border:0;background:transparent;color:transparent;cursor:pointer;">账号登录</button>';
 
 echo '</div>';
 echo '</div>';
