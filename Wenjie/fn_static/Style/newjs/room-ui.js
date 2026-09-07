@@ -1743,7 +1743,7 @@
     var termText = escHtml(String(term || ''));
     return '<div class="fn-bet-card" style="display:block!important;margin-top:4px!important;overflow:hidden!important;border-radius:5px!important;background:#fff!important;color:#4b4b4b!important;border:1px solid #e6e6e6!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;">'
       + '<div class="fn-bet-hd" style="display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:36px!important;padding:0 10px!important;background:#2f86e0!important;background-image:linear-gradient(90deg,#2b7adb 0%,#3aa6e8 52%,#4fc0f0 100%)!important;color:#fff!important;font-size:14px!important;">'
-      + '<b style="color:#fff!important;font-weight:700;">' + termText + '期</b>'
+      + '<b style="color:#fff!important;font-weight:700;">' + escHtml(String(term || '').slice(-5)) + '期</b>'
       + '<a href="javascript:;" class="fn-bet-follow" data-bet="' + followText + '" onclick="return window.feiniaoUseBetFollow?window.feiniaoUseBetFollow(this):false;" style="display:inline-flex!important;align-items:center!important;gap:4px!important;border:0!important;border-radius:4px!important;padding:4px 9px!important;background:#fff!important;color:#168da8!important;font-size:13px!important;font-weight:800!important;text-decoration:none!important;">跟投</a>'
       + '</div><div class="fn-bet-lines">' + rows + '</div>'
       + '<div class="fn-bet-ft" style="padding:8px 10px!important;text-align:left!important;font-size:13px!important;color:#5a6b73!important;">注单' + orders.length + '条，总计：<strong style="color:#d32632!important;">¥' + total.toFixed(2) + '</strong></div></div>';
@@ -1880,7 +1880,7 @@
     var st = document.createElement('style');
     st.textContent =
       '.fn-hide-follow-bet .fn-bet-follow{display:none!important;}' +
-      '.fn-hide-odds .fn-bet-line span span:first-child{visibility:hidden;}' +
+      '.fn-hide-odds .fn-bet-line span span:first-child,.fn-hide-odds .fn-bet-line span span:nth-child(2){visibility:hidden;}' +
       '.fn-bet-style-panel .fn-bet-card{border-radius:0!important;border-color:#cfd8dc!important;}' +
       '.fn-bet-style-panel .fn-bet-hd{background:#455a64!important;background-image:none!important;}';
     document.head.appendChild(st);

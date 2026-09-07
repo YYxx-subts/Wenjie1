@@ -20,13 +20,14 @@
 
     function connect() {
         try { ws = new WebSocket(wsUrl); } catch(e) { setTimeout(connect, reconnectDelay); return; }
-        ws.onopen = function() { reconnectDelay = 1000; };
+        ws.onopen = function() { reconnectDelay = 1000; try { ws.send(JSON.stringify({ type: 'subscribe', payload: { roomid: roomid, game: game } })); } catch(e) {} };
         ws.onmessage = function(evt) {
             try {
                 var msg = JSON.parse(evt.data);
                 if (msg.type === 'chat.message' && msg.payload) {
                     var p = msg.payload;
                     if (String(p.roomid) !== String(roomid)) return;
+                    if (p.game && String(p.game) !== String(game)) return;
                     var rid = parseInt(p.id, 10) || 0;
                     if (!rid || seenIds[rid]) return;
                     seenIds[rid] = 1;

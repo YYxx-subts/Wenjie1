@@ -289,7 +289,7 @@
 .pc-grid-item:nth-child(3n){
   border-right: 0;
 }
-.pc-grid-item:nth-last-child(-n+3){
+  .pc-grid-item:last-child{
   border-bottom: 0;
 }
 .pc-grid-item img{

@@ -79,9 +79,9 @@ html, body{
 }
 .roomtop .back{width:34%;flex-grow:0;display:flex;justify-content:flex-start;align-items:center;font-size:.3rem;font-weight:bold}
 .roomtop .back img{width: 0.2rem;margin-right: 0.2rem}
-.roomtop .show-info{width:66%;flex-grow:0;display:grid;grid-template-columns:2.48rem 1fr;column-gap:.08rem;align-content:center;box-sizing:border-box;padding-right:0;}
-/* 保持字号：把原本浪费在两列中间的宽度给“标签—数值”内部，读数不再贴在标签后面。 */
-.roomtop .show-info li{width:auto;box-sizing:border-box;white-space:nowrap;margin-top:.05rem;margin-bottom:.02rem;font-size:.24rem;line-height:1.08;letter-spacing:0;}
+.roomtop .show-info{width:66%;flex-grow:0;display:grid;grid-template-columns:2.48rem 1fr;column-gap:.08rem;align-content:center;box-sizing:border-box;padding-right:0;min-height:0.52rem;padding:0.06rem 0;}
+/* 保持字号：把原本浪费在两列中间的宽度给"标签—数值"内部，读数不再贴在标签后面。 */
+.roomtop .show-info li{width:auto;box-sizing:border-box;white-space:nowrap;margin:0;font-size:.24rem;line-height:1.08;letter-spacing:0;}
 .roomtop .show-info li span{display:inline-block;margin-left:.14rem;}
 /* 左列（积分、回水）保持原位；仅让右列（输赢、流水）向内留出呼吸空间。 */
 .roomtop .show-info li:nth-child(even){transform:translateX(-.14rem);}
@@ -1092,6 +1092,7 @@ body.room-has-live .open-result-wrap{
   max-width:100%;
   min-width:100%;
   box-sizing:border-box;
+  font-size:0.25rem;
 }
 .fn-seal-hd{
   padding:7px 8px!important;
@@ -1148,7 +1149,7 @@ body.room-has-live .open-result-wrap{
 .chat-content .info-content .fn-seal-line,
 .fn-seal-line{
   padding:2px 8px!important;
-  font-size:13px!important;
+  font-size:0.25rem!important;
   line-height:1.55!important;
   color:#333!important;
   font-weight:400!important;

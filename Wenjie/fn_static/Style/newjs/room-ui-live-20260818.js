@@ -1880,7 +1880,7 @@
     var st = document.createElement('style');
     st.textContent =
       '.fn-hide-follow-bet .fn-bet-follow{display:none!important;}' +
-      '.fn-hide-odds .fn-bet-line span span:first-child{visibility:hidden;}' +
+      '.fn-hide-odds .fn-bet-line span span:first-child,.fn-hide-odds .fn-bet-line span span:nth-child(2){visibility:hidden;}' +
       '.fn-bet-style-panel .fn-bet-card{border-radius:0!important;border-color:#cfd8dc!important;}' +
       '.fn-bet-style-panel .fn-bet-hd{background:#455a64!important;background-image:none!important;}';
     document.head.appendChild(st);

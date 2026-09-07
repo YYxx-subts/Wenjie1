@@ -1,0 +1,6 @@
+{
+  "name": "rebateSettings",
+  "mode": "amount",
+  "auto": true,
+  "plans": []
+}

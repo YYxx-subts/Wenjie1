@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer-when-downgrade">
+  <title>ZWPlayer 直播播放器</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background: #000;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #app {
+      width: 100%;
+      background: #000;
+      position: relative;
+    }
+
+    #video-container {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #video-container video,
+    #video-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain;
+      background: #000;
+    }
+
+    #error-box {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      line-height: 1.7;
+    }
+
+    #error-box.show {
+      display: flex;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="app">
+  <div id="video-container"></div>
+  <div id="error-box"></div>
+</div>
+
+<script src="/Style/newjs/zwplayer.min.js"></script>
+
+<script>
+(function () {
+  const DEFAULT_URL = 'https://2cvo356t.zvgcc.com/live/lhc.flv?txSecret=fb99024b25a08a7baa8851b7b0ae57d7&txTime=71A3A8A2';
+
+  const params = new URLSearchParams(window.location.search);
+  const liveUrl = params.get('url') || DEFAULT_URL;
+
+  const errorBox = document.getElementById('error-box');
+
+  function showError(text) {
+    errorBox.textContent = text;
+    errorBox.classList.add('show');
+  }
+
+  if (!/^https?:\/\//i.test(liveUrl)) {
+    showError('直播地址格式不正确');
+    return;
+  }
+
+  if (typeof window.ZWPlayer !== 'function') {
+    showError('ZWPlayer 加载失败');
+    return;
+  }
+
+  try {
+    const player = new ZWPlayer({
+      playerElm: '#video-container',
+      url: liveUrl
+    });
+
+    window.__zwplayerInstance = player;
+
+    // 只补充移动端内联播放属性，不显示任何“连接中/直播中”提示。
+    let attempts = 0;
+    const bindTimer = setInterval(function () {
+      attempts++;
+
+      const video = document.querySelector('#video-container video');
+
+      if (video) {
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        clearInterval(bindTimer);
+      }
+
+      if (attempts >= 40) {
+        clearInterval(bindTimer);
+      }
+    }, 250);
+
+  } catch (err) {
+    console.error(err);
+    showError('ZWPlayer 初始化失败');
+  }
+})();
+</script>
+
+</body>
+</html>

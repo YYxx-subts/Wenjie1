@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": "ads_1788763668731",
+      "status": "open",
+      "content": "系统公告：本系统仅供游戏娱乐使用， 请勿用于非法用途， 一经发现立即封停账号！",
+      "delaySeconds": 1,
+      "createdAt": "2026-09-07T06:47:48.731Z"
+    },
+    {
+      "id": "ads_1787546696045",
+      "status": "open",
+      "content": "测试测试",
+      "delaySeconds": 3,
+      "createdAt": "2026-08-24T04:44:56.045Z"
+    }
+  ],
+  "updatedAt": "2026-09-07T06:48:18.642Z"
+}

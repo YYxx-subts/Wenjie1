@@ -58,9 +58,9 @@ html, body {
   padding: clamp(56px, 14vw, 76px) 22px clamp(40px, 9vw, 56px);
   box-sizing: border-box;
   background-color: transparent !important;
-  background-image: url("../newimg/ic_login_player_panel.png?v=20260731f") !important;
-  background-size: 100% 100% !important;
-  background-position: center !important;
+  background-image: none !important;
+  background-size: auto !important;
+  background-position: 0 0 !important;
   background-repeat: no-repeat !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -218,7 +218,7 @@ html, body {
   z-index: 3;
   display: grid;
   place-items: center;
-  background: url("../newimg/ic_login_btn_bg.webp") center / 100% 100% no-repeat;
+  background: url("../newimg/ic_login_btn_bg.png?v=20260831a") center / 100% 100% no-repeat;
   box-shadow: none;
   cursor: pointer;
   /* 切图已含「登录」二字，隐藏 DOM 文字避免重叠 */
@@ -228,12 +228,13 @@ html, body {
 .main-content .toreg.primary-login span {
   position: static;
   transform: none;
-  font-size: 0;
-  line-height: 0;
-  color: transparent;
-  letter-spacing: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 50px;
+  color: #fff;
+  letter-spacing: 2px;
   text-shadow: none;
-  opacity: 0;
+  opacity: 1;
   pointer-events: none;
 }
 
@@ -275,42 +276,65 @@ html, body {
   display: none !important;
 }
 
-/* —— 会员注册：与登录同框，整图换「注册」标题 —— */
+/* —— 会员注册：独立容器 —— */
 .mainbox .main-content.register-panel {
-  /* 与登录同 top，避免金标题顶到 Logo */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(86vw, 440px);
+  margin: 0;
+  padding: clamp(56px, 14vw, 76px) 22px clamp(40px, 9vw, 56px);
+  box-sizing: border-box;
   top: clamp(180px, 27vh, 400px);
   padding-bottom: clamp(44px, 9vw, 60px);
-  background-image: url("../newimg/ic_login_player_panel_reg.png?v=20260731f") !important;
+  background-color: transparent !important;
+  background-image: url("../newimg/ic_login_player_panel_reg.png?v=20260831b") !important;
+  background-size: 100% 100% !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  overflow: visible !important;
 }
 .mainbox .main-content.register-panel .toreg.primary-login {
-  background: url("../newimg/ic_login_btn_reg.webp?v=20260726t") center / 100% 100% no-repeat;
-  color: transparent;
-  font-size: 0;
+  background: url("../newimg/ic_login_btn_reg.png?v=20260831a") center / 100% 100% no-repeat;
+  color: #fff;
+  font-size: 16px;
+  width: calc(100% - 8px);
+  margin: 0 4px;
+  height: 44px;
 }
 .mainbox .main-content.register-panel .toreg.primary-login span {
   position: static;
   transform: none;
-  font-size: 0;
-  line-height: 0;
-  color: transparent;
-  letter-spacing: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 44px;
+  color: #fff;
+  letter-spacing: 2px;
   text-shadow: none;
-  opacity: 0;
+  opacity: 1;
   background: none;
   padding: 0;
 }
 .mainbox .main-content.register-panel .reg-back-link {
   appearance: none;
   border: 0;
-  background: transparent;
-  margin: 12px auto 0;
+  background: url("../newimg/ic_login_btn_bg.png?v=20260831c") center / 100% 100% no-repeat;
+  margin: 12px 4px 0;
   padding: 0;
   display: block;
-  width: auto;
-  font-size: 14px;
+  width: calc(100% - 8px);
+  height: 44px;
+  font-size: 16px;
   color: #fff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  text-shadow: none;
   text-align: center;
+  line-height: 44px;
   cursor: pointer;
 }
 
@@ -353,7 +377,7 @@ html, body {
   background: none !important;
   border-style: solid !important;
   border-width: 54px 7px 25px !important;
-  border-image-source: url("../newimg/ic_login_player_panel.png?v=20260815panel-slice1") !important;
+  border-image-source: url("../newimg/ic_login_player_panel.png?v=20260831b") !important;
   border-image-slice: 185 42 82 42 fill !important;
   border-image-width: 1 !important;
   border-image-outset: 0 !important;
@@ -389,6 +413,9 @@ html, body {
 
 .mainbox .main-content.login-panel .toreg.primary-login {
   height: 44px;
+}
+.mainbox .main-content.login-panel .toreg.primary-login span {
+  line-height: 44px;
 }
 
 @supports not selector(:has(*)) {

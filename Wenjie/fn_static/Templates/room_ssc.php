@@ -42,6 +42,7 @@ $ROOM_BOOT_STATS = (isset($_SESSION['userid'], $_SESSION['roomid']) && function_
     window.ROOM_BOOT_USERID=<?=json_encode(isset($_SESSION['userid'])?$_SESSION['userid']:'');?>;
     window.ROOM_BOOT_USER=<?=json_encode(isset($ROOM_BOOT_USER)?$ROOM_BOOT_USER:(isset($_SESSION['username'])?$_SESSION['username']:''));?>;
     window.ROOM_BOOT_HEADIMG=<?=json_encode(isset($_SESSION['headimg'])?$_SESSION['headimg']:'');?>;
+    window.ROOM_BOOT_VIP=<?=json_encode(isset($ROOM_BOOT_VIP)&&is_array($ROOM_BOOT_VIP)?$ROOM_BOOT_VIP:array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);?>;
     window.ROOM_ROOMID=<?=isset($_SESSION['roomid'])?(int)$_SESSION['roomid']:0;?>;
     window.ROOM_BOOT_STATS=<?=json_encode($ROOM_BOOT_STATS, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);?>;
     window.ROOM_UI_FLAGS=<?=json_encode(function_exists('feiniao_ui_flags')?feiniao_ui_flags(isset($_SESSION['roomid'])?$_SESSION['roomid']:0):(object)array());?>;
@@ -145,9 +146,9 @@ foreach (array(6, 7, 5, 10, 4, 3, 2, 1, 8, 9) as $switchGameId) {
             <div class="back"><img src="/Style/newimg/leftar.png"> <?=getGameTxtNameByCode($_COOKIE['game']);?></div>
             <div class="show-info">
                 <li>积分:<span id="user_money">0.00</span></li>
+                <li>流水:<span id="user_ls">0.00</span></li>
                 <li>输赢:<span id="user_earn">0</span></li>
                 <li>回水:<span id="user_hs">0.00</span></li>
-                <li>流水:<span id="user_ls">0.00</span></li>
             </div>
         </div>
         
@@ -394,8 +395,8 @@ foreach (array(6, 7, 5, 10, 4, 3, 2, 1, 8, 9) as $switchGameId) {
         if(!row) return;
         window.__roomLeftSec=parseInt(row.letf_time,10)||0;
         window.__roomFpSec=parseInt(row.fp_time,10)||1;
-        $('#next_sn').html(row.next_sn||row.current_sn||$('#next_sn').text()||'');
-        $('#current_sn').html(row.current_sn||$('#current_sn').text()||'');
+        $('#next_sn').html((row.next_sn||row.current_sn||$('#next_sn').text()||'').slice(-5));
+        $('#current_sn').html((row.current_sn||$('#current_sn').text()||'').slice(-5));
         var numArr=String(row.open_num||'').split(',');
         var numHtml='';
         for (i=0;i<numArr.length;i++){
@@ -462,6 +463,16 @@ foreach (array(6, 7, 5, 10, 4, 3, 2, 1, 8, 9) as $switchGameId) {
     }
     function appendPendingChat(content){
         var id='pending-chat-'+(++pendingSendSeq);
+        if(window.FeiniaoVipRoom&&window.FeiniaoVipRoom.bubbleHtml){
+            var vipRow={id:id,nickname:window.ROOM_BOOT_USER||'我',headimg:window.ROOM_BOOT_HEADIMG||'',content:content,addtime:'现在',type:'U2',game:window.ROOM_GAME_CODE||'',userid:window.ROOM_BOOT_USERID||''};
+            var vip=window.ROOM_BOOT_VIP||{};
+            if(vip.vipLevel){vipRow.vipLevel=vip.vipLevel;}
+            if(vip.vipBadge){vipRow.vipBadge=vip.vipBadge;vipRow.vipBadgeIcon=vip.vipBadgeIcon||'';}
+            if(vip.vipFrame){vipRow.vipFrame=vip.vipFrame;vipRow.vipFrameClass=vip.vipFrameClass||'';}
+            if(vip.vipNameColor){vipRow.vipNameColor=vip.vipNameColor;}
+            var html=window.FeiniaoVipRoom.bubbleHtml(vipRow,window.ROOM_BOOT_USER||'me');
+            if(html){html=html.replace('id="msg','id="'+id+'" data-pending="1" id="msg');try{$(html).appendTo('#chat_list');scrollToBt();}catch(e){}return id;}
+        }
         var pendingHead=window.ROOM_BOOT_HEADIMG?'<img src="'+pendingChatEscape(window.ROOM_BOOT_HEADIMG)+'">':'';
         var html='<div id="'+id+'" class="right-header fn-chat-pending">' +
             '<div class="lheader"></div><div class="content-box"><div class="nick-name">'+

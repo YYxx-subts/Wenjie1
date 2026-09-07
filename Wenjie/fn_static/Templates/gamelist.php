@@ -177,10 +177,15 @@
     </script>
 
     <div class="gamelist">
-        <div class="hall-pull-refresh" id="hallPullRefresh" aria-live="polite">
-            <span class="hall-pull-arrow">↑</span>
-            <span class="hall-pull-copy">下拉刷新</span>
-            <small class="hall-pull-time">最后更新：--</small>
+        <div class="or-ptr" id="hallPullRefresh">
+            <div class="or-ptr-icon">
+                <span class="or-ptr-arrow">↑</span>
+                <div class="or-ptr-spinner"></div>
+            </div>
+            <div class="or-ptr-info">
+                <span class="or-ptr-text">下拉刷新</span>
+                <span class="or-ptr-sub" id="hallPullTime"></span>
+            </div>
         </div>
         <div class="last-show" id="hallGameList">
             <?php
@@ -235,90 +240,103 @@
 <div class="hall-cat-empty" id="hallCatEmpty"<?= $sportOpenCount > 0 ? ' hidden' : ''; ?>>该分类暂无开放游戏</div>
 </div>
 <script type="text/javascript">
-// 大厅游戏卡片区下拉刷新：只在列表顶端接管向下手势，不影响横向返回和长按排序。
+// 大厅游戏卡片区下拉刷新：使用开奖结果页同款 PTR 样式
 (function () {
-    var scroller = document.querySelector('.gamelist');
-    var indicator = document.getElementById('hallPullRefresh');
+    var listEl = document.querySelector('.gamelist');
+    var ptrEl = document.getElementById('hallPullRefresh');
     var list = document.getElementById('hallGameList');
-    if (!scroller || !indicator || !list) return;
-    var startX = 0, startY = 0, pulling = false, distance = 0;
-    var threshold = 58;
-    var copy = indicator.querySelector('.hall-pull-copy');
-    var time = indicator.querySelector('.hall-pull-time');
-    function updateLastTime() {
+    if (!listEl || !ptrEl || !list) return;
+    var ptrText = ptrEl.querySelector('.or-ptr-text');
+    var ptrArrow = ptrEl.querySelector('.or-ptr-arrow');
+    var ptrSub = document.getElementById('hallPullTime');
+    var ptrThreshold = 80;
+    var ptrStartY = 0;
+    var ptrPulling = false;
+    var ptrLoading = false;
+    function updatePtrTime() {
         try {
             var raw = localStorage.getItem('fn_hall_last_refresh');
-            if (raw) time.textContent = '最后更新：' + raw;
+            if (ptrSub && raw) ptrSub.textContent = '最后更新：' + raw;
         } catch (e) {}
     }
-    function reset() {
-        pulling = false;
-        distance = 0;
-        indicator.classList.remove('is-pulling', 'is-ready', 'is-refreshing');
-        list.style.transform = '';
-        copy.textContent = '下拉刷新';
-    }
-    function refresh() {
-        indicator.classList.remove('is-ready');
-        indicator.classList.add('is-refreshing');
-        // 松手即取消卡片位移，只保留刷新提示本身的高度，避免卡片下方留下大空白。
-        list.style.transform = '';
-        copy.textContent = '正在刷新…';
-        // 原地拉取实时期号，不 reload 页面，避免触发原生的黑色“正在加载”遮罩。
-        var finish = function (ok) {
-            if (ok) {
-                try {
-                    var now = new Date();
-                    var stamp = '今天 ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-                    localStorage.setItem('fn_hall_last_refresh', stamp);
-                    updateLastTime();
-                } catch (e) {}
-            }
-            setTimeout(reset, 260);
-        };
-        if (typeof window.__fnHallPullRefresh === 'function') window.__fnHallPullRefresh(finish);
-        else setTimeout(function () { finish(false); }, 300);
-    }
-    updateLastTime();
-    scroller.addEventListener('touchstart', function (e) {
-        if (!e.touches || e.touches.length !== 1 || scroller.scrollTop > 1 || window.__fnHallDragging) return;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        pulling = false;
-        distance = 0;
-    }, {passive:true});
-    scroller.addEventListener('touchmove', function (e) {
-        if (!e.touches || e.touches.length !== 1 || window.__fnHallDragging) return;
-        var dx = e.touches[0].clientX - startX;
-        var dy = e.touches[0].clientY - startY;
-        if (!pulling) {
-            if (Math.abs(dx) > Math.abs(dy) || dy <= 8 || scroller.scrollTop > 1) return;
-            pulling = true;
+    updatePtrTime();
+    listEl.addEventListener('touchstart', function (e) {
+        if (ptrLoading) return;
+        if (listEl.scrollTop > 5) return;
+        if (!e.touches || !e.touches.length) return;
+        ptrStartY = e.touches[0].clientY;
+        ptrPulling = true;
+    }, { passive: true });
+    listEl.addEventListener('touchmove', function (e) {
+        if (!ptrPulling || ptrLoading) return;
+        if (!e.touches || !e.touches.length) return;
+        var dy = e.touches[0].clientY - ptrStartY;
+        if (dy < 0) { ptrEl.style.maxHeight = '0px'; return; }
+        if (listEl.scrollTop > 0) { ptrPulling = false; ptrEl.style.maxHeight = '0px'; return; }
+        var h = Math.min(dy * 0.5, 180);
+        ptrEl.style.maxHeight = h + 'px';
+        ptrEl.classList.add('is-active');
+        if (ptrArrow) {
+            var deg = Math.min((h / ptrThreshold) * 180, 180);
+            ptrArrow.style.transform = 'rotate(' + deg + 'deg)';
         }
-        distance = Math.min(88, Math.max(0, dy * .52));
-        if (e.cancelable) e.preventDefault();
-        indicator.classList.add('is-pulling');
-        indicator.classList.toggle('is-ready', distance >= threshold);
-        list.style.transform = 'translate3d(0,' + distance + 'px,0)';
-        copy.textContent = distance >= threshold ? '松开立即刷新' : '下拉刷新';
-    }, {passive:false});
-    scroller.addEventListener('touchend', function () {
-        if (!pulling) return;
-        if (distance >= threshold) refresh(); else reset();
-    }, {passive:true});
-    scroller.addEventListener('touchcancel', reset, {passive:true});
+        if (ptrText) {
+            ptrText.textContent = h >= ptrThreshold ? '松开立即刷新' : '下拉刷新';
+        }
+    }, { passive: true });
+    listEl.addEventListener('touchend', function () {
+        if (!ptrPulling) return;
+        ptrPulling = false;
+        var h = parseInt(ptrEl.style.maxHeight) || 0;
+        if (h >= ptrThreshold && !ptrLoading) {
+            ptrLoading = true;
+            ptrEl.classList.add('is-loading');
+            if (ptrText) ptrText.textContent = '刷新中...';
+            ptrEl.style.maxHeight = '70px';
+            var finish = function (ok) {
+                if (ok) {
+                    try {
+                        var now = new Date();
+                        var stamp = '今天 ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+                        localStorage.setItem('fn_hall_last_refresh', stamp);
+                        updatePtrTime();
+                    } catch (e) {}
+                }
+                ptrLoading = false;
+                ptrEl.classList.remove('is-loading', 'is-active');
+                ptrEl.style.maxHeight = '0px';
+                if (ptrArrow) ptrArrow.style.transform = '';
+                if (ptrText) ptrText.textContent = '下拉刷新';
+            };
+            if (typeof window.__fnHallPullRefresh === 'function') window.__fnHallPullRefresh(finish);
+            else setTimeout(function () { finish(false); }, 300);
+        } else {
+            ptrEl.classList.remove('is-active');
+            ptrEl.style.maxHeight = '0px';
+            if (ptrArrow) ptrArrow.style.transform = '';
+        }
+    }, { passive: true });
+    listEl.addEventListener('touchcancel', function () {
+        ptrPulling = false;
+        ptrEl.classList.remove('is-active');
+        ptrEl.style.maxHeight = '0px';
+        if (ptrArrow) ptrArrow.style.transform = '';
+    }, { passive: true });
 })();
 </script>
 <style>
     .gamelist{overscroll-behavior-y:contain;}
-    .hall-pull-refresh{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:.08rem;color:rgba(255,255,255,.94);font-size:.24rem;line-height:1;transition:height .18s ease;pointer-events:none;}
-    .hall-pull-refresh.is-pulling,.hall-pull-refresh.is-refreshing{height:.78rem;}
-    .hall-pull-arrow{font-size:.42rem;font-weight:300;line-height:1;transform:translateY(.01rem);transition:transform .18s ease;}
-    .hall-pull-refresh.is-ready .hall-pull-arrow{transform:rotate(180deg);}
-    .hall-pull-refresh.is-refreshing .hall-pull-arrow{width:.30rem;height:.30rem;box-sizing:border-box;border:.035rem solid rgba(255,255,255,.92);border-top-color:rgba(255,255,255,.24);border-radius:50%;font-size:0;animation:hallPullSpin .72s linear infinite;}
-    .hall-pull-time{font-size:.17rem;opacity:.85;font-weight:400;}
-    #hallGameList{transition:transform .18s ease;will-change:transform;}
-    @keyframes hallPullSpin{to{transform:rotate(360deg)}}
+    .or-ptr{flex:0 0 auto;max-height:0;overflow:hidden;display:flex;flex-direction:row;align-items:center;justify-content:center;color:rgba(255,255,255,.94);font-size:13px;background:transparent;transition:max-height .2s;padding:0 16px;}
+    .or-ptr.is-active{transition:none;}
+    .or-ptr-icon{width:20px;height:20px;flex-shrink:0;margin-right:10px;transition:transform .15s;position:relative;}
+    .or-ptr-icon .or-ptr-arrow{font-size:20px;color:#fff;line-height:1;transition:transform .15s;}
+    .or-ptr-icon .or-ptr-spinner{position:absolute;top:0;left:0;width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:none;}
+    .or-ptr.is-loading .or-ptr-arrow{display:none;}
+    .or-ptr.is-loading .or-ptr-spinner{display:block;animation:or-spin .6s linear infinite;}
+    .or-ptr-info{display:flex;flex-direction:column;align-items:flex-start;}
+    .or-ptr-info .or-ptr-text{color:#fff;font-size:14px;font-weight:500;line-height:1.3;}
+    .or-ptr-info .or-ptr-sub{color:rgba(255,255,255,.7);font-size:12px;line-height:1;padding-top:2px;}
+    @keyframes or-spin{to{transform:rotate(360deg)}}
 </style>
 <script type="text/javascript">
 // 在游戏卡片刚输出后立即应用分类，避免等待后续大厅脚本或点击按钮。
@@ -1001,12 +1019,10 @@
 
     function hallDisplayNextSn(row) {
         var sn = String((row && row.next_sn) || '').trim();
-        if (sn) return sn;
+        if (sn) return sn.slice(-5);
         var term = String((row && row.next_term) || '').trim();
         if (!term) return '';
-        // 与 PHP formatDisplayTerm 一致：去掉 20xx 年份前缀
-        var m = term.match(/^(20\d{2})(\d{5,})$/);
-        return m ? m[2] : term;
+        return term.slice(-5);
     }
 
     function applyHallRows(rows, cacheAgeSec) {

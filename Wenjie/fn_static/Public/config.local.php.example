@@ -1,0 +1,26 @@
+<?php
+/**
+ * 复制为 config.local.php 并填写真实值（勿提交仓库）。
+ *
+ * 服务器一键生成示例：
+ *   cp Public/config.local.php.example Public/config.local.php
+ *   再编辑 pass / ADMIN_*
+ */
+define('ADMIN_USERNAME', 'admin');              // 开房后台 kf 登录名
+define('ADMIN_PASSWORD', 'change-me-strong');   // 开房后台 kf 密码（请改成强密码）
+define('API_PASSWORD', 'change-me-api');
+
+$db = array(
+    'host' => '127.0.0.1',
+    'user' => 'fn9999',
+    'pass' => 'change-me-db-password', // 与 bridge/.env 的 DB_PASSWORD 保持一致；不得使用示例值
+    'name' => 'fn9999',
+);
+
+$wx = array(
+    'ID' => '',
+    'key' => '',
+);
+
+// 飞单仅允许访问明确登记的上游域名；多个域名用逗号分隔，禁止 IP / 内网地址。
+define('FEINIAO_FLYORDER_HOSTS', 'vendor.example.com');

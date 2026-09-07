@@ -1,0 +1,19 @@
+{
+  "password": "10afd7d77b21579ec3ff5d51af56324d",
+  "mode": "realtime",
+  "secondsBeforeClose": 30,
+  "assistantRate": 100,
+  "gameSwitches": {
+    "pk10": true,
+    "xyft": true,
+    "jsft": true,
+    "jssc_race": true,
+    "jnd28": true,
+    "jsmt": true,
+    "jssc": true,
+    "jsssc": true,
+    "azxy5": true,
+    "dzlhc": true
+  },
+  "updatedAt": "2026-09-01T10:10:34.548Z"
+}

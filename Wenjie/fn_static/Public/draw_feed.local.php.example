@@ -1,0 +1,28 @@
+<?php
+
+/*
+ * Copy this file to draw_feed.local.php on the server to override a game
+ * mapping. Keep draw_feed.local.php out of source control and backups.
+ *
+ * Current defaults (api68):
+ *   1 澳洲幸运10  lotCode=10012  pks/getLotteryPksInfo.do
+ *   3 极速飞艇    lotCode=10035  pks/getLotteryPksInfo.do
+ *   4 极速赛车    lotCode=10037  pks/getLotteryPksInfo.do
+ *   8 极速时时彩  lotCode=10036  CQShiCai/getBaseCQShiCai.do
+ *   9 澳洲幸运5   lotCode=10010  CQShiCai/getBaseCQShiCai.do
+ * Remaining games still use atmkai.com until wired.
+ */
+return array(
+    'timeout' => 8,
+    // 中继推送接通后，对应直播玩法必须设为 true：collector 仅消费
+    // dzapi/open.php 写入的 status=0/-1/2 队列，禁止 latest 轮询串期回写。
+    // 'feeds' => array(6 => array('push_only' => true)),
+    'feeds' => array(
+        // Example override:
+        // 3 => array(
+        //     'format' => 'api68',
+        //     'url' => 'https://api.api68.com/pks/getLotteryPksInfo.do?lotCode=10035',
+        //     'lotCode' => '10035',
+        // ),
+    ),
+);

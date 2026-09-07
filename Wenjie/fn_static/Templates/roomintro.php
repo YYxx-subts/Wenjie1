@@ -11,6 +11,7 @@ if (empty($_SESSION['roomid'])) {
 
 $roomid = $_SESSION['roomid'];
 $uiFlags = function_exists('feiniao_ui_flags') ? feiniao_ui_flags($roomid) : array();
+$showOdds = !isset($uiFlags['showOdds']) || !!$uiFlags['showOdds'];
 $noticeOn = !isset($uiFlags['noticeOn']) || !!$uiFlags['noticeOn'];
 $roomNotice = '';
 if ($noticeOn) {
@@ -55,6 +56,7 @@ foreach ($order as $gid) {
 $boot = array(
     'notice' => $roomNotice,
     'noticeOn' => $noticeOn,
+    'showOdds' => $showOdds,
     'games' => $games,
     'defaultId' => $defaultId,
 );
@@ -92,9 +94,12 @@ if ($bootJson === false) {
   <section class="ri-card ri-rules-card">
     <div class="ri-tabs" role="tablist">
       <button type="button" class="ri-tab is-on" data-tab="rules" role="tab" tabindex="0">玩法说明</button>
+      <?php if ($showOdds): ?>
       <button type="button" class="ri-tab" data-tab="odds" role="tab" tabindex="0">彩种赔率</button>
+      <?php endif; ?>
     </div>
 
+    <?php if ($showOdds): ?>
     <div class="ri-toolbar">
       <button type="button" class="ri-game-trigger" id="riGameTrigger" aria-haspopup="listbox" aria-expanded="false">
         <span class="ri-game-trigger-name" id="riGameName">选择彩种</span>
@@ -105,15 +110,18 @@ if ($bootJson === false) {
     <div class="ri-game-panel" id="riGamePanel" hidden>
       <div class="ri-game-grid" id="riGameGrid" role="listbox" aria-label="选择彩种"></div>
     </div>
+    <?php endif; ?>
 
     <div class="ri-body-wrap">
       <div class="ri-game-mask" id="riGameMask" hidden></div>
       <div class="ri-pane is-on" id="riPaneRules" data-pane="rules">
         <div class="ri-rule-list" id="riRuleList"></div>
       </div>
+      <?php if ($showOdds): ?>
       <div class="ri-pane" id="riPaneOdds" data-pane="odds" hidden>
         <div class="ri-odds-list" id="riOddsList"></div>
       </div>
+      <?php endif; ?>
     </div>
   </section>
 </main>

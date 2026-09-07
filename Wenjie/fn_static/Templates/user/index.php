@@ -20,6 +20,8 @@ if (!empty($_SESSION['userid']) && !empty($_SESSION['roomid']) && function_exist
         : feiniao_vip_level_from_total($vipTotalUp);
 }
 $vipLv = (int)$vipLevel;
+$isAgent = get_query_val("fn_user", "isagent", array("roomid" => $_SESSION['roomid'], 'userid' => $_SESSION['userid']));
+$isAgent = ($isAgent === 'true' || $isAgent === true || $isAgent === 1);
 // 个人中心旁标：固定用精确等级 PNG（VIP0–80 全量素材），不再依赖 is_file（部署路径不一致时会误回落到文字）
 $vipSrc = '/Templates/user/images/pcenter/ic_user_vip' . $vipLv . '.png?v=20260729vip0-80';
 ?>
@@ -128,6 +130,12 @@ $vipSrc = '/Templates/user/images/pcenter/ic_user_vip' . $vipLv . '.png?v=202607
                 <img src="images/pcenter/ic_bet_list.png" alt="">
                 <span>竞猜列表</span>
             </a>
+            <?php if ($isAgent): ?>
+            <a class="pc-grid-item" href="agent-report.php">
+                <img src="images/pcenter/ic_agent_report.png" alt="">
+                <span>代理报表</span>
+            </a>
+            <?php endif; ?>
         </div>
     </section>
 </div>

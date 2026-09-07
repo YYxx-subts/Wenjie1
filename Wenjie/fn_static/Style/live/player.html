@@ -65,7 +65,7 @@
     var stallTimer = null;
     var sceneTimer = null;
     var retryCount = 0;
-    var maxRetry = 12;
+    var maxRetry = 20;
     var lastMediaTime = 0;
     var lastMediaAt = 0;
     var sceneVotes = { countdown: 0, result: 0, unknown: 0 };
@@ -265,7 +265,7 @@
         reportHealth('giveup', reason);
         return;
       }
-      var delay = Math.min(15000, 800 * Math.pow(1.6, retryCount));
+      var delay = Math.min(12000, 600 * Math.pow(1.5, retryCount));
       retryCount += 1;
       show('直播中断，' + Math.ceil(delay / 1000) + 's 后自动重连…');
       destroyPlayer();
@@ -315,7 +315,7 @@
           lastMediaAt = now;
           return;
         }
-        if (now - lastMediaAt > 8000) {
+        if (now - lastMediaAt > 5000) {
           if (nativeMode) recoverNative('native-stall');
           else scheduleReconnect('stall');
         }
@@ -331,7 +331,7 @@
           if (nativeMode) recoverNative('load-timeout');
           else scheduleReconnect('load-timeout');
         }
-      }, 12000);
+      }, 10000);
       // iPhone/iPad 直接使用系统原生 HLS，绕过 flv.js/MSE，避免首击黑屏和二次加载。
       var nativeHls = !!hlsUrl && (isiOS || video.canPlayType('application/vnd.apple.mpegurl') !== '');
       if (nativeHls || !(window.flvjs && flvjs.isSupported())) {
@@ -363,9 +363,12 @@
           hasAudio: true,
           hasVideo: true
         }, {
-          enableStashBuffer: false,
-          stashInitialSize: 128,
-          lazyLoad: false
+          enableStashBuffer: true,
+          stashInitialSize: 384,
+          lazyLoad: false,
+          autoCleanupSourceBuffer: true,
+          autoCleanupMaxBackwardDuration: 5,
+          autoCleanupMinBackwardDuration: 3
         });
         player.attachMediaElement(video);
         bindReadyEvents();

@@ -1,0 +1,15 @@
+{
+  "chatNickname": "管理员",
+  "avatar": "https://wjh5.atmyx.app/upload/owner_888888_1785755453888.png",
+  "nicknameLength": 5,
+  "lowBillAmount": 0,
+  "downPasswordRetries": 0,
+  "subAccountPasswordRetries": 0,
+  "betWarnAmount": 0,
+  "winWarnAmount": 0,
+  "minUpAmount": 0,
+  "minDownAmount": 0,
+  "withdrawStart": "00:00",
+  "withdrawEnd": "00:00",
+  "systemMessageStyle": "one"
+}

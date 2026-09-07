@@ -6,3 +6,10 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 *.bak
+Wenjie/fn_static/Public/phpqrcode/cache/
+Wenjie/fn_static/Public/phpqrcode/tools/
+Wenjie/fn_static/Public/phpqrcode/temp/
+Wenjie/fn_static/Public/runtime/
+Wenjie/fn_static/Templates/forecastlog/
+Wenjie/fn_static/Style/newimg/editor/
+Wenjie/fn_static/._*
