@@ -118,6 +118,8 @@ echo '<button type="button" id="dologin" data-x="30" data-y="480" data-w="320" d
 echo '<input id="totp" type="hidden">';
 echo '<button type="button" id="loginTwoFactorEntry" data-x="246" data-y="268.5" data-w="76" data-h="28" style="position:absolute;left:0;top:0;width:76px;height:28px;border:0;background:transparent;color:transparent;cursor:pointer;display:none;">2fa</button>';
 echo '<button type="button" id="togglePass" style="display:none;"></button>';
+// 记住密码复选框：盖在编辑器切图框上，点击切换 √
+echo '<div id="reck" data-x="246" data-y="413" data-w="17" data-h="17" style="position:absolute;left:0;top:0;width:17px;height:17px;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;font-size:13px;color:#175DAA;font-weight:bold;line-height:1;background:url(/Style/newimg/editor/ed_20260907_155354_cc3063ea.png) center/contain no-repeat;"></div>';
 echo '</div>';
 echo '</div>';
 ?>
@@ -126,7 +128,6 @@ echo '</div>';
   #wjEdWrap input::-webkit-input-placeholder{color:#9EBAD0;opacity:1}
 </style>
     <div id="loginTotpBox" style="display:none;"></div>
-    <div id="reck" data-x="246" data-y="413" data-w="17" data-h="17" style="position:absolute;left:0;top:0;width:17px;height:17px;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;font-size:13px;color:#175DAA;font-weight:bold;line-height:1;background:url(/Style/newimg/editor/ed_20260907_155354_cc3063ea.png) center/contain no-repeat;"></div>
 
     <nav class="reg-way social-login">
         <button type="button" class="social-btn" id="btnWechat" aria-label="微信登录">
