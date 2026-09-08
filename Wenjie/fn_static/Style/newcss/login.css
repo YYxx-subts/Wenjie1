@@ -197,14 +197,11 @@ html, body {
 .main-content .remember #reck {
   width: 18px;
   height: 18px;
-  display: block;
-  background-image: url("../newimg/loginunchecked.png");
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .main-content .remember #reck.check {
-  background-image: url("../newimg/loginchecked.png");
 }
 
 .main-content .toreg.primary-login {

@@ -126,7 +126,7 @@ echo '</div>';
   #wjEdWrap input::-webkit-input-placeholder{color:#9EBAD0;opacity:1}
 </style>
     <div id="loginTotpBox" style="display:none;"></div>
-    <div id="reck" data-x="246" data-y="413" data-w="17" data-h="17" style="position:absolute;left:0;top:0;width:17px;height:17px;cursor:pointer;z-index:10000;background-image:url(/Style/newimg/loginunchecked.png);background-size:contain;background-repeat:no-repeat;background-position:center;"></div>
+    <div id="reck" data-x="246" data-y="413" data-w="17" data-h="17" style="position:absolute;left:0;top:0;width:17px;height:17px;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;font-size:13px;color:#175DAA;font-weight:bold;line-height:1;background:url(/Style/newimg/editor/ed_20260907_155354_cc3063ea.png) center/contain no-repeat;"></div>
 
     <nav class="reg-way social-login">
         <button type="button" class="social-btn" id="btnWechat" aria-label="微信登录">
@@ -200,7 +200,7 @@ echo '</div>';
             if (data && data.userName) {
                 $('#uname').val(data.userName);
                 $('#pass').val(data.pass || '');
-                $('#reck').addClass('check').css('background-image', 'url(/Style/newimg/loginchecked.png)');
+                $('#reck').addClass('check').text('\u2713');
             }
         } catch (e) {}
     }
@@ -220,11 +220,7 @@ echo '</div>';
     function toggleRemember() {
         var $r = $('#reck');
         $r.toggleClass('check');
-        if ($r.hasClass('check')) {
-            $r.css('background-image', 'url(/Style/newimg/loginchecked.png)');
-        } else {
-            $r.css('background-image', 'url(/Style/newimg/loginunchecked.png)');
-        }
+        $r.text($r.hasClass('check') ? '\u2713' : '');
     }
     $('#reck').on('click', toggleRemember);
     $('.toremember').on('click', toggleRemember);
