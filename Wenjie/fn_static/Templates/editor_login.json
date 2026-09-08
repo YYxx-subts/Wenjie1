@@ -1,1 +1,218 @@
-{"canvas":{"w":375,"h":667,"bg":"#0579db","bgImage":"/Style/newimg/bj.png"},"elements":[{"type":"image","x":27.5,"y":187,"opacity":1,"hidden":false,"w":326,"h":331,"src":"/Style/newimg/login-bg2.png"},{"type":"image","x":27.5,"y":186,"opacity":1,"hidden":false,"w":324,"h":330,"src":"/Style/newimg/ic_login_player_panel.png"},{"type":"text","x":67.5,"y":200,"opacity":1,"hidden":false,"text":"账号登录","fontSize":15,"fontWeight":520,"color":"#175DAA"},{"type":"rect","x":81,"y":224,"opacity":1,"hidden":false,"w":35,"h":4,"bg":"#165EAC","border":"","borderWidth":0,"radius":2},{"type":"text","x":247.5,"y":200,"opacity":1,"hidden":false,"text":"注册账户","fontSize":15,"fontWeight":520,"color":"#175DAA"},{"type":"rect","x":246,"y":268.5,"opacity":1,"hidden":true,"w":76,"h":28,"bg":"","border":"#FFFFFF","borderWidth":1,"radius":24},{"type":"text","x":254,"y":272,"opacity":1,"hidden":true,"text":"二次验证","fontSize":15,"fontWeight":500,"color":"#175DAA"},{"type":"image","x":117,"y":42,"opacity":1,"hidden":false,"w":137,"h":135,"src":"/Style/newimg/zylogo.png"},{"type":"rect","x":47,"y":319.5,"opacity":1,"hidden":false,"w":279,"h":46,"bg":"#F0F7FF","border":"","borderWidth":0,"radius":20},{"type":"rect","x":48,"y":382.5,"opacity":1,"hidden":false,"w":279,"h":46,"bg":"#F0F7FF","border":"","borderWidth":0,"radius":20},{"type":"image","x":49,"y":446,"opacity":1,"hidden":false,"w":280,"h":48,"src":"/Style/newimg/editor/ed_20260905_225925_1369b8bc.png"},{"type":"text","x":78,"y":332,"opacity":1,"hidden":false,"text":"请输入你的账号","fontSize":14,"fontWeight":400,"color":"#9EBAD0"},{"type":"text","x":80,"y":396,"opacity":1,"hidden":false,"text":"请输入你的密码","fontSize":14,"fontWeight":400,"color":"#9EBAD0"},{"type":"text","x":259,"y":396,"opacity":1,"hidden":false,"text":"忘记密码","fontSize":14,"fontWeight":400,"color":"#9EBAD0"},{"type":"text","x":170,"y":458.9,"opacity":1,"hidden":false,"text":"登  录","fontSize":16,"fontWeight":400,"color":"#FFFFFF"}]}
+{
+  "canvas": {
+    "w": 375,
+    "h": 667,
+    "bg": "#0579db",
+    "bgImage": "/Style/newimg/bj.png"
+  },
+  "elements": [
+    {
+      "type": "image",
+      "x": 9,
+      "y": 187,
+      "opacity": 1,
+      "hidden": false,
+      "w": 360,
+      "h": 360,
+      "src": "/Style/newimg/login-bg2.png"
+    },
+    {
+      "type": "image",
+      "x": 9,
+      "y": 186,
+      "opacity": 1,
+      "hidden": false,
+      "w": 360,
+      "h": 360,
+      "src": "/Style/newimg/ic_login_player_panel.png"
+    },
+    {
+      "type": "text",
+      "x": 67.5,
+      "y": 200,
+      "opacity": 1,
+      "hidden": false,
+      "text": "账号登录",
+      "fontSize": 15,
+      "fontWeight": 520,
+      "color": "#175DAA"
+    },
+    {
+      "type": "rect",
+      "x": 81,
+      "y": 224,
+      "opacity": 1,
+      "hidden": false,
+      "w": 35,
+      "h": 4,
+      "bg": "#165EAC",
+      "border": "",
+      "borderWidth": 0,
+      "radius": 2
+    },
+    {
+      "type": "text",
+      "x": 247.5,
+      "y": 200,
+      "opacity": 1,
+      "hidden": false,
+      "text": "注册账户",
+      "fontSize": 15,
+      "fontWeight": 520,
+      "color": "#175DAA"
+    },
+    {
+      "type": "rect",
+      "x": 246,
+      "y": 268.5,
+      "opacity": 1,
+      "hidden": true,
+      "w": 76,
+      "h": 28,
+      "bg": "",
+      "border": "#FFFFFF",
+      "borderWidth": 1,
+      "radius": 24
+    },
+    {
+      "type": "text",
+      "x": 254,
+      "y": 272,
+      "opacity": 1,
+      "hidden": true,
+      "text": "二次验证",
+      "fontSize": 15,
+      "fontWeight": 500,
+      "color": "#175DAA"
+    },
+    {
+      "type": "image",
+      "x": 117,
+      "y": 42,
+      "opacity": 1,
+      "hidden": false,
+      "w": 137,
+      "h": 135,
+      "src": "/Style/newimg/zylogo.png"
+    },
+    {
+      "type": "rect",
+      "x": 30,
+      "y": 290,
+      "opacity": 1,
+      "hidden": false,
+      "w": 320,
+      "h": 46,
+      "bg": "#F0F7FF",
+      "border": "",
+      "borderWidth": 0,
+      "radius": 20
+    },
+    {
+      "type": "rect",
+      "x": 30,
+      "y": 350,
+      "opacity": 1,
+      "hidden": false,
+      "w": 320,
+      "h": 46,
+      "bg": "#F0F7FF",
+      "border": "",
+      "borderWidth": 0,
+      "radius": 20
+    },
+    {
+      "type": "image",
+      "x": 30,
+      "y": 480,
+      "opacity": 1,
+      "hidden": false,
+      "w": 320,
+      "h": 48,
+      "src": "/Style/newimg/editor/ed_20260905_225925_1369b8bc.png"
+    },
+    {
+      "type": "text",
+      "x": 78,
+      "y": 302,
+      "opacity": 1,
+      "hidden": false,
+      "text": "请输入你的账号",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "color": "#9EBAD0"
+    },
+    {
+      "type": "text",
+      "x": 80,
+      "y": 362,
+      "opacity": 1,
+      "hidden": false,
+      "text": "请输入你的密码",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "color": "#9EBAD0"
+    },
+    {
+      "type": "text",
+      "x": 259,
+      "y": 362,
+      "opacity": 1,
+      "hidden": false,
+      "text": "忘记密码",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "color": "#9EBAD0"
+    },
+    {
+      "type": "text",
+      "x": 170,
+      "y": 490,
+      "opacity": 1,
+      "hidden": false,
+      "text": "登  录",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "color": "#FFFFFF"
+    },
+    {
+      "type": "image",
+      "x": 245,
+      "y": 411,
+      "w": 17,
+      "h": 17,
+      "src": "/Style/newimg/editor/ed_20260907_155354_cc3063ea.png"
+    },
+    {
+      "type": "text",
+      "x": 265,
+      "y": 410,
+      "opacity": 1,
+      "hidden": false,
+      "text": "记住密码",
+      "fontSize": 14,
+      "fontWeight": 400,
+      "color": "#000000"
+    },
+    {
+      "type": "image",
+      "x": 41,
+      "y": 302,
+      "opacity": 1,
+      "hidden": false,
+      "w": 23,
+      "h": 23,
+      "src": "/Style/newimg/editor/ed_20260907_214740_2e4c76f6.png"
+    },
+    {
+      "type": "image",
+      "x": 41,
+      "y": 359,
+      "opacity": 1,
+      "hidden": false,
+      "w": 25,
+      "h": 25,
+      "src": "/Style/newimg/editor/ed_20260907_214809_1df536c9.png"
+    }
+  ]
+}
